@@ -114,130 +114,8 @@ const mqttMessageGenerator = fc.record({
   snr: fc.option(fc.double({ min: -20, max: 20, noNaN: true }), { nil: undefined })
 });
 
-// Mock MQTT message parser and serializer
-class MQTTMessageProcessor {
-  /**
-   * Parse MQTT message from raw data
-   */
-  static parse(rawMessage: string | Buffer): MQTTMessage {
-    try {
-      const parsed = typeof rawMessage === 'string' 
-        ? JSON.parse(rawMessage) 
-        : JSON.parse(rawMessage.toString());
-      
-      // Validate required fields
-      if (!parsed.from || typeof parsed.from !== 'string') {
-        throw new Error('Invalid from field');
-      }
-      
-      if (!parsed.type || !Object.values(MessageType).includes(parsed.type)) {
-        throw new Error('Invalid message type');
-      }
-      
-      if (typeof parsed.encrypted !== 'boolean') {
-        throw new Error('Invalid encrypted field');
-      }
-      
-      if (typeof parsed.wantAck !== 'boolean') {
-        throw new Error('Invalid wantAck field');
-      }
-      
-      if (!parsed.priority || !Object.values(MessagePriority).includes(parsed.priority)) {
-        throw new Error('Invalid priority field');
-      }
-      
-      if (typeof parsed.channel !== 'number' || parsed.channel < 0 || parsed.channel > 7) {
-        throw new Error('Invalid channel field');
-      }
-      
-      if (typeof parsed.timestamp !== 'number') {
-        throw new Error('Invalid timestamp field');
-      }
-      
-      // Return normalized message
-      return {
-        id: parsed.id,
-        from: parsed.from,
-        to: parsed.to,
-        type: parsed.type,
-        payload: parsed.payload || {},
-        encrypted: parsed.encrypted,
-        hopLimit: parsed.hopLimit,
-        hopStart: parsed.hopStart,
-        wantAck: parsed.wantAck,
-        priority: parsed.priority,
-        channel: parsed.channel,
-        timestamp: parsed.timestamp,
-        routingPath: parsed.routingPath,
-        rssi: parsed.rssi,
-        snr: parsed.snr
-      };
-    } catch (error) {
-      throw new Error(`Failed to parse MQTT message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Serialize MQTT message to raw data
-   */
-  static serialize(message: MQTTMessage): string {
-    try {
-      // Validate message structure
-      if (!message.from || typeof message.from !== 'string') {
-        throw new Error('Invalid from field');
-      }
-      
-      if (!message.type || !Object.values(MessageType).includes(message.type)) {
-        throw new Error('Invalid message type');
-      }
-      
-      // Helper function to clean NaN and undefined values
-      const cleanValue = (value: any): any => {
-        if (value === undefined) return undefined;
-        if (typeof value === 'number' && isNaN(value)) return null;
-        if (typeof value === 'object' && value !== null) {
-          if (Array.isArray(value)) {
-            return value.map(cleanValue);
-          }
-          const cleaned: any = {};
-          for (const [key, val] of Object.entries(value)) {
-            const cleanedVal = cleanValue(val);
-            if (cleanedVal !== undefined) {
-              cleaned[key] = cleanedVal;
-            }
-          }
-          return cleaned;
-        }
-        return value;
-      };
-      
-      // Create serializable object (remove undefined values and convert NaN to null)
-      const serializable: any = {
-        from: message.from,
-        type: message.type,
-        payload: cleanValue(message.payload),
-        encrypted: message.encrypted,
-        wantAck: message.wantAck,
-        priority: message.priority,
-        channel: message.channel,
-        timestamp: message.timestamp
-      };
-      
-      // Add optional fields only if they exist
-      if (message.id !== undefined) serializable.id = message.id;
-      if (message.to !== undefined) serializable.to = message.to;
-      if (message.hopLimit !== undefined) serializable.hopLimit = message.hopLimit;
-      if (message.hopStart !== undefined) serializable.hopStart = message.hopStart;
-      if (message.routingPath !== undefined) serializable.routingPath = message.routingPath;
-      if (message.rssi !== undefined) serializable.rssi = message.rssi;
-      if (message.snr !== undefined && !isNaN(message.snr)) serializable.snr = message.snr;
-      
-      return JSON.stringify(serializable);
-    } catch (error) {
-      throw new Error(`Failed to serialize MQTT message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-}
+// Import the actual MQTT service for testing
+import { MQTTService } from '../services/mqtt.service';
 
 // Helper function to normalize messages for comparison
 function normalizeMessage(message: MQTTMessage): MQTTMessage {
@@ -298,17 +176,31 @@ function deepEqual(obj1: any, obj2: any): boolean {
 }
 
 describe('MQTT Message Processing Round-trip Property Tests', () => {
+  let mqttService: MQTTService;
+
+  beforeAll(() => {
+    // Create a mock MQTT service for testing
+    mqttService = new MQTTService({
+      brokerUrl: 'mqtt://localhost:1883',
+      topics: ['test/topic']
+    });
+  });
+
   test('Property 9: MQTT message processing round-trip', () => {
     fc.assert(
       fc.property(mqttMessageGenerator, (originalMessage) => {
         // Normalize the original message to handle undefined values
         const normalizedOriginal = normalizeMessage(originalMessage);
         
-        // Serialize the message
-        const serialized = MQTTMessageProcessor.serialize(normalizedOriginal);
+        // Serialize the message using the actual MQTT service
+        const serialized = mqttService.serializeMessage(normalizedOriginal);
         
-        // Parse the serialized message back
-        const parsed = MQTTMessageProcessor.parse(serialized);
+        // Parse the serialized message back using the actual MQTT service
+        const parsed = mqttService.parseRawMessage(serialized);
+        
+        if (!parsed) {
+          return false; // Parse failed
+        }
         
         // Normalize the parsed message
         const normalizedParsed = normalizeMessage(parsed);
@@ -349,8 +241,12 @@ describe('MQTT Message Processing Round-trip Property Tests', () => {
             payload: {}
           };
           
-          const serialized = MQTTMessageProcessor.serialize(messageWithEmptyPayload);
-          const parsed = MQTTMessageProcessor.parse(serialized);
+          const serialized = mqttService.serializeMessage(messageWithEmptyPayload);
+          const parsed = mqttService.parseRawMessage(serialized);
+          
+          if (!parsed) {
+            return false;
+          }
           
           return deepEqual(
             normalizeMessage(messageWithEmptyPayload),
@@ -381,10 +277,11 @@ describe('MQTT Message Processing Round-trip Property Tests', () => {
       snr: 20
     };
     
-    const serialized = MQTTMessageProcessor.serialize(maxMessage);
-    const parsed = MQTTMessageProcessor.parse(serialized);
+    const serialized = mqttService.serializeMessage(maxMessage);
+    const parsed = mqttService.parseRawMessage(serialized);
     
-    expect(deepEqual(normalizeMessage(maxMessage), normalizeMessage(parsed))).toBe(true);
+    expect(parsed).toBeTruthy();
+    expect(deepEqual(normalizeMessage(maxMessage), normalizeMessage(parsed!))).toBe(true);
   });
 
   test('Property 9 - Edge case: Minimum field values', () => {
@@ -404,9 +301,10 @@ describe('MQTT Message Processing Round-trip Property Tests', () => {
       snr: -20
     };
     
-    const serialized = MQTTMessageProcessor.serialize(minMessage);
-    const parsed = MQTTMessageProcessor.parse(serialized);
+    const serialized = mqttService.serializeMessage(minMessage);
+    const parsed = mqttService.parseRawMessage(serialized);
     
-    expect(deepEqual(normalizeMessage(minMessage), normalizeMessage(parsed))).toBe(true);
+    expect(parsed).toBeTruthy();
+    expect(deepEqual(normalizeMessage(minMessage), normalizeMessage(parsed!))).toBe(true);
   });
 });

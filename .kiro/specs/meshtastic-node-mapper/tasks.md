@@ -36,7 +36,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Validate schema migrations and data integrity
   - _Requirements: 13.1_
 
-- [ ] 3. MQTT service implementation
+- [x] 3. MQTT service implementation
   - Implement MQTT client connection to Mosquitto broker
   - Create Meshtastic protobuf message parsing and validation
   - Build message routing and topic subscription management
@@ -44,11 +44,11 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add connection recovery and error handling logic
   - _Requirements: 13.1, 13.5_
 
-- [ ] 3.1 Write property test for MQTT message parsing
+- [x] 3.1 Write property test for MQTT message parsing
   - **Property 9: MQTT message processing round-trip**
   - **Validates: Requirements 13.5**
 
-- [ ] 3.2 Write unit tests for MQTT service
+- [x] 3.2 Write unit tests for MQTT service
   - Test MQTT connection establishment and recovery
   - Validate message parsing for different Meshtastic message types
   - Test error handling for malformed messages
