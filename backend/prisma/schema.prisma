@@ -1,0 +1,254 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum NodeRole {
+  CLIENT
+  CLIENT_MUTE
+  ROUTER
+  ROUTER_CLIENT
+  REPEATER
+  TRACKER
+  SENSOR
+  TAK
+  CLIENT_HIDDEN
+  LOST_AND_FOUND
+  TAK_TRACKER
+}
+
+enum PositionSource {
+  GPS
+  MANUAL
+  ESTIMATED
+  NETWORK
+}
+
+enum TelemetryType {
+  DEVICE_METRICS
+  ENVIRONMENT_METRICS
+  POWER_METRICS
+}
+
+enum MessageType {
+  TEXT
+  POSITION
+  TELEMETRY
+  NODEINFO
+  ROUTING
+  ADMIN
+  DETECTION_SENSOR
+  REPLY
+  IP_TUNNEL_APP
+  PAXCOUNTER_APP
+  SERIAL_APP
+  STORE_FORWARD_APP
+  RANGE_TEST_APP
+  TELEMETRY_APP
+  ZPS_APP
+  SIMULATOR_APP
+  TRACEROUTE_APP
+  NEIGHBOR_INFO_APP
+  ATAK_PLUGIN
+  MAP_REPORT_APP
+  PRIVATE_APP
+  ATAK_FORWARDER
+}
+
+enum MessagePriority {
+  UNSET
+  MIN
+  BACKGROUND
+  DEFAULT
+  RELIABLE
+  ACK
+  MAX
+}
+
+enum LoRaRegion {
+  UNSET
+  US
+  EU_433
+  EU_868
+  CN
+  JP
+  ANZ
+  KR
+  TW
+  RU
+  IN
+  NZ_865
+  TH
+  LORA_24
+  UA_433
+  UA_868
+  MY_433
+  MY_919
+  SG_923
+}
+
+// Core entities
+model Network {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  mqttBroker  String
+  mqttCredentials Json
+  region      LoRaRegion
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  nodes    Node[]
+  channels Channel[]
+
+  @@map("networks")
+}
+
+model Node {
+  id                  String    @id @default(cuid())
+  nodeId              String    @unique // Meshtastic node ID
+  hexId               String    @unique // Hexadecimal representation
+  shortName           String?
+  longName            String?
+  hardwareModel       String?
+  firmwareVersion     String?
+  role                NodeRole  @default(CLIENT)
+  lastSeen            DateTime?
+  lastHeard           DateTime?
+  isOnline            Boolean   @default(false)
+  mqttConnected       Boolean   @default(false)
+  batteryLevel        Int?      // 0-100 percentage
+  voltage             Float?    // Voltage reading
+  channelUtilization  Float?    // 0-100 percentage
+  airUtilTx           Float?    // 0-100 percentage
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  networkId           String
+
+  // Relations
+  network           Network            @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  positions         Position[]
+  telemetryReadings TelemetryReading[]
+  sentMessages      Message[]          @relation("SentMessages")
+  receivedMessages  Message[]          @relation("ReceivedMessages")
+  neighborsFrom     NodeNeighbor[]     @relation("NodeNeighborsFrom")
+  neighborsTo       NodeNeighbor[]     @relation("NodeNeighborsTo")
+
+  @@map("nodes")
+}
+
+model Position {
+  id        String         @id @default(cuid())
+  nodeId    String
+  latitude  Float
+  longitude Float
+  altitude  Int?           // Meters above sea level
+  precision Int?           // GPS precision estimate
+  timestamp DateTime
+  source    PositionSource @default(GPS)
+  createdAt DateTime       @default(now())
+
+  // Relations
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("positions")
+}
+
+model TelemetryReading {
+  id        String        @id @default(cuid())
+  nodeId    String
+  type      TelemetryType
+  timestamp DateTime
+  data      Json          // Flexible JSON storage for different telemetry types
+  createdAt DateTime      @default(now())
+
+  // Relations
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("telemetry_readings")
+}
+
+model Message {
+  id           String          @id @default(cuid())
+  messageId    String?         // Meshtastic message ID
+  fromNodeId   String
+  toNodeId     String?         // null for broadcast
+  type         MessageType
+  content      Json            // Message payload (text, binary data, etc.)
+  encrypted    Boolean         @default(false)
+  hopLimit     Int?            // Maximum hops allowed
+  hopStart     Int?            // Starting hop count
+  wantAck      Boolean         @default(false)
+  priority     MessagePriority @default(DEFAULT)
+  channel      Int             @default(0)
+  timestamp    DateTime
+  receivedAt   DateTime        @default(now())
+  routingPath  String[]        // Array of node IDs in routing path
+  rssi         Int?            // Signal strength
+  snr          Float?          // Signal-to-noise ratio
+
+  // Relations
+  fromNode Node  @relation("SentMessages", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   Node? @relation("ReceivedMessages", fields: [toNodeId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+model NodeNeighbor {
+  id         String   @id @default(cuid())
+  nodeId     String
+  neighborId String
+  rssi       Int?     // Signal strength
+  snr        Float?   // Signal-to-noise ratio
+  lastHeard  DateTime
+  hopCount   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  node     Node @relation("NodeNeighborsFrom", fields: [nodeId], references: [id], onDelete: Cascade)
+  neighbor Node @relation("NodeNeighborsTo", fields: [neighborId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, neighborId])
+  @@map("node_neighbors")
+}
+
+model Channel {
+  id             String     @id @default(cuid())
+  networkId      String
+  index          Int        // Channel number
+  name           String
+  psk            String?    // Pre-shared key (encrypted)
+  frequency      BigInt?    // Center frequency in Hz
+  bandwidth      Int?       // Channel bandwidth
+  spreadingFactor Int?      // LoRa spreading factor
+  codingRate     Int?       // LoRa coding rate
+  isDefault      Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  network Network @relation(fields: [networkId], references: [id], onDelete: Cascade)
+
+  @@unique([networkId, index])
+  @@map("channels")
+}
+
+// Indexes for performance optimization
+// Time-series data indexes
+model TelemetryIndex {
+  @@map("telemetry_index")
+}
+
+// Add indexes for common queries
+// These will be created via migration files for TimescaleDB optimization
