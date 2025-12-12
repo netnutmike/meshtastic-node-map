@@ -1,4 +1,4 @@
-import { Node as PrismaNode, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { BaseRepository, PaginationOptions, applyPagination, createPaginatedResult, PaginatedResult } from './base.repository';
 import { Node, CreateNodeInput, UpdateNodeInput } from '../../types/database';
 
@@ -207,10 +207,10 @@ export class NodeRepository extends BaseRepository<Node, CreateNodeInput, Update
     
     const searchConditions = {
       OR: [
-        { shortName: { contains: query, mode: 'insensitive' as Prisma.QueryMode } },
-        { longName: { contains: query, mode: 'insensitive' as Prisma.QueryMode } },
-        { nodeId: { contains: query, mode: 'insensitive' as Prisma.QueryMode } },
-        { hexId: { contains: query, mode: 'insensitive' as Prisma.QueryMode } }
+        { shortName: { contains: query, mode: 'insensitive' } },
+        { longName: { contains: query, mode: 'insensitive' } },
+        { nodeId: { contains: query, mode: 'insensitive' } },
+        { hexId: { contains: query, mode: 'insensitive' } }
       ],
       ...(networkId && { networkId })
     };
@@ -303,12 +303,12 @@ export class NodeRepository extends BaseRepository<Node, CreateNodeInput, Update
     ]);
 
     const byRole: Record<string, number> = {};
-    roleStats.forEach(stat => {
+    roleStats.forEach((stat: any) => {
       byRole[stat.role] = stat._count.role;
     });
 
     const byHardware: Record<string, number> = {};
-    hardwareStats.forEach(stat => {
+    hardwareStats.forEach((stat: any) => {
       if (stat.hardwareModel) {
         byHardware[stat.hardwareModel] = stat._count.hardwareModel;
       }

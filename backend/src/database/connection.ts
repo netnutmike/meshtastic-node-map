@@ -73,7 +73,7 @@ export function initializeDatabase(config?: Partial<DatabaseConfig>): PrismaClie
     });
 
     // Set up logging
-    prisma.$on('query', (e) => {
+    prisma.$on('query', (e: any) => {
       if (dbConfig.logLevel === 'query') {
         logger.debug(`Query: ${e.query}`, {
           params: e.params,
@@ -82,15 +82,15 @@ export function initializeDatabase(config?: Partial<DatabaseConfig>): PrismaClie
       }
     });
 
-    prisma.$on('error', (e) => {
+    prisma.$on('error', (e: any) => {
       logger.error('Database error:', e);
     });
 
-    prisma.$on('info', (e) => {
+    prisma.$on('info', (e: any) => {
       logger.info('Database info:', e);
     });
 
-    prisma.$on('warn', (e) => {
+    prisma.$on('warn', (e: any) => {
       logger.warn('Database warning:', e);
     });
 

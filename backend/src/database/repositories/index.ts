@@ -6,6 +6,12 @@ export { PositionRepository } from './position.repository';
 export { TelemetryRepository } from './telemetry.repository';
 export { MessageRepository } from './message.repository';
 
+import { NodeRepository } from './node.repository';
+import { NetworkRepository } from './network.repository';
+import { PositionRepository } from './position.repository';
+import { TelemetryRepository } from './telemetry.repository';
+import { MessageRepository } from './message.repository';
+
 // Repository instances (singletons)
 let nodeRepository: NodeRepository;
 let networkRepository: NetworkRepository;

@@ -18,7 +18,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - **Property 1: Container service availability**
   - **Validates: Requirements 9.1**
 
-- [ ] 2. Database schema and core data models
+- [x] 2. Database schema and core data models
   - Design and implement PostgreSQL database schema using Prisma ORM
   - Create TypeScript interfaces for Node, Position, TelemetryReading, Message, and Network entities
   - Implement database migrations and seeding scripts
@@ -26,11 +26,11 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create database connection utilities and error handling
   - _Requirements: 13.1, 3.3, 3.4, 3.5_
 
-- [ ] 2.1 Write property test for data model validation
+- [x] 2.1 Write property test for data model validation
   - **Property 9: MQTT message processing round-trip**
   - **Validates: Requirements 13.5**
 
-- [ ] 2.2 Write unit tests for database operations
+- [x] 2.2 Write unit tests for database operations
   - Create unit tests for CRUD operations on all entities
   - Test database connection handling and error scenarios
   - Validate schema migrations and data integrity
