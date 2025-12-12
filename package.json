@@ -1,0 +1,26 @@
+{
+  "name": "meshtastic-node-mapper",
+  "version": "1.0.0",
+  "description": "Web-based application for visualizing Meshtastic mesh network nodes",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": ["meshtastic", "mqtt", "mapping", "mesh-network"],
+  "author": "Meshtastic Node Mapper Team",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -6,7 +6,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
 
 ## Task List
 
-- [ ] 1. Project setup and infrastructure foundation
+- [x] 1. Project setup and infrastructure foundation
   - Initialize Node.js/TypeScript project structure for both frontend and backend
   - Set up Docker Compose configuration with PostgreSQL, Redis, and Mosquitto services
   - Create external directories for configuration files and logs
@@ -14,7 +14,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Set up package.json files with all required dependencies
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-- [ ] 1.1 Write property test for Docker Compose deployment
+- [x] 1.1 Write property test for Docker Compose deployment
   - **Property 1: Container service availability**
   - **Validates: Requirements 9.1**
 

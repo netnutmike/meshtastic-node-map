@@ -1,0 +1,80 @@
+# MQTT Broker Configuration
+mqtt:
+  # Primary broker configuration
+  broker:
+    host: "localhost"
+    port: 1883
+    protocol: "mqtt"
+    clientId: "meshtastic-node-mapper"
+    keepalive: 60
+    connectTimeout: 30000
+    reconnectPeriod: 5000
+    
+  # Authentication (optional)
+  auth:
+    username: ""
+    password: ""
+    
+  # TLS/SSL Configuration (for secure connections)
+  tls:
+    enabled: false
+    ca: ""
+    cert: ""
+    key: ""
+    rejectUnauthorized: true
+    
+  # Topic subscriptions for Meshtastic data
+  topics:
+    # Standard Meshtastic MQTT topics
+    - "msh/+/2/e/+/+"     # Encrypted messages
+    - "msh/+/2/c/+/+"     # Clear text messages
+    - "msh/+/2/map/+"     # Map reports
+    - "msh/+/stat/+"      # Statistics
+    
+  # Message processing configuration
+  processing:
+    maxMessageSize: 1048576  # 1MB
+    messageTimeout: 30000    # 30 seconds
+    retryAttempts: 3
+    batchSize: 100
+    
+  # Quality of Service settings
+  qos:
+    subscribe: 0  # At most once
+    publish: 1    # At least once
+    
+  # Multi-network support (for future use)
+  networks:
+    - name: "primary"
+      enabled: true
+      broker:
+        host: "localhost"
+        port: 1883
+      topics:
+        - "msh/+/2/e/+/+"
+        - "msh/+/2/c/+/+"
+        
+# Message filtering and routing
+filters:
+  # Node filters
+  nodes:
+    excludeTestNodes: true
+    minBatteryLevel: 0
+    maxAge: 86400
+    
+  # Message type filters
+  messageTypes:
+    position: true
+    telemetry: true
+    text: true
+    routing: true
+    admin: false
+    
+  # Geographic filters
+  geographic:
+    enabled: false
+    bounds:
+      north: 90
+      south: -90
+      east: 180
+      west: -180

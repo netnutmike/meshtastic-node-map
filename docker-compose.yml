@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with TimescaleDB extension
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: meshtastic-postgres
+    environment:
+      POSTGRES_DB: meshtastic_mapper
+      POSTGRES_USER: meshtastic
+      POSTGRES_PASSWORD: meshtastic_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meshtastic -d meshtastic_mapper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: meshtastic-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Mosquitto MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: meshtastic-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./config/mosquitto/passwd:/mosquitto/config/passwd
+      - mosquitto_data:/mosquitto/data
+      - ./logs/mosquitto:/mosquitto/log
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t test -m 'health check' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meshtastic-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://meshtastic:meshtastic_password@postgres:5432/meshtastic_mapper
+      REDIS_URL: redis://redis:6379
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      JWT_SECRET: your-jwt-secret-change-in-production
+      API_PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./logs/backend:/app/logs
+      - ./config:/app/config
+    networks:
+      - meshtastic-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+    command: npm run dev
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: meshtastic-frontend
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_URL: http://localhost:3001
+      REACT_APP_WS_URL: ws://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./config:/app/config
+    networks:
+      - meshtastic-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: npm start
+
+  # Nginx Reverse Proxy (for production)
+  nginx:
+    image: nginx:alpine
+    container_name: meshtastic-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - meshtastic-network
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
+  mosquitto_data:
+
+networks:
+  meshtastic-network:
+    driver: bridge

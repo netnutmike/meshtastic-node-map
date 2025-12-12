@@ -1,0 +1,72 @@
+# Meshtastic Node Mapper Application Configuration
+app:
+  name: "Meshtastic Node Mapper"
+  version: "1.0.0"
+  description: "Web-based visualization for Meshtastic mesh networks"
+  logo: "/assets/logo.png"
+  favicon: "/assets/favicon.ico"
+
+# Map Configuration
+map:
+  defaultZoom: 10
+  defaultCenter: [40.7128, -74.0060]  # New York City
+  minZoom: 1
+  maxZoom: 18
+  tileServers:
+    - name: "OpenStreetMap"
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      attribution: "&copy; OpenStreetMap contributors"
+      default: true
+    - name: "OpenTopoMap"
+      url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+      attribution: "Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap"
+    - name: "Esri Satellite"
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      attribution: "Tiles &copy; Esri"
+
+# Node Configuration
+nodes:
+  maxAge: 86400        # 24 hours in seconds
+  disconnectedAge: 3600 # 1 hour in seconds
+  offlineAge: 300      # 5 minutes in seconds
+  clustering:
+    enabled: true
+    maxClusterRadius: 80
+    disableClusteringAtZoom: 15
+  colors:
+    online: "#4CAF50"      # Green
+    disconnected: "#2196F3" # Blue
+    offline: "#F44336"     # Red
+    unknown: "#9E9E9E"     # Gray
+
+# Update intervals
+updates:
+  mapRefreshInterval: 60000    # 1 minute in milliseconds
+  telemetryInterval: 30000     # 30 seconds
+  positionInterval: 10000      # 10 seconds
+  statusInterval: 5000         # 5 seconds
+
+# Custom Links (example configuration)
+customLinks:
+  - name: "Meshtastic Documentation"
+    description: "Official Meshtastic documentation"
+    url: "https://meshtastic.org/docs"
+    icon: "book"
+  - name: "Community Forum"
+    description: "Meshtastic community discussions"
+    url: "https://meshtastic.discourse.group"
+    icon: "forum"
+
+# Message of the Day
+motd:
+  enabled: false
+  title: "Welcome to Meshtastic Node Mapper"
+  message: "Monitor your mesh network in real-time"
+  dismissible: true
+
+# SEO Configuration
+seo:
+  title: "Meshtastic Node Mapper"
+  description: "Real-time visualization and monitoring of Meshtastic mesh networks"
+  keywords: "meshtastic, mesh network, LoRa, MQTT, mapping, visualization"
+  author: "Meshtastic Community"

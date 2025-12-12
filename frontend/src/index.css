@@ -1,0 +1,42 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Leaflet map styles */
+.leaflet-container {
+  height: 100vh;
+  width: 100%;
+}
+
+/* Custom node marker styles */
+.node-marker {
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.node-marker.online {
+  background-color: #4CAF50;
+}
+
+.node-marker.disconnected {
+  background-color: #2196F3;
+}
+
+.node-marker.offline {
+  background-color: #F44336;
+}
+
+.node-marker.unknown {
+  background-color: #9E9E9E;
+}

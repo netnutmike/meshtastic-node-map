@@ -1,0 +1,82 @@
+# Database Configuration
+database:
+  # PostgreSQL connection settings
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "meshtastic_mapper"
+    username: "meshtastic"
+    password: "meshtastic_password"
+    ssl: false
+    
+  # Connection pool settings
+  pool:
+    min: 2
+    max: 10
+    acquireTimeoutMillis: 60000
+    createTimeoutMillis: 30000
+    destroyTimeoutMillis: 5000
+    idleTimeoutMillis: 30000
+    reapIntervalMillis: 1000
+    createRetryIntervalMillis: 200
+    
+  # TimescaleDB specific settings
+  timescale:
+    enabled: true
+    chunkTimeInterval: "1 day"
+    compressionPolicy: "7 days"
+    retentionPolicy: "1 year"
+    
+  # Migration settings
+  migrations:
+    directory: "./prisma/migrations"
+    autoRun: true
+    
+# Redis Configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  database: 0
+  
+  # Connection settings
+  connection:
+    connectTimeout: 10000
+    lazyConnect: true
+    maxRetriesPerRequest: 3
+    retryDelayOnFailover: 100
+    
+  # Cache settings
+  cache:
+    defaultTTL: 3600      # 1 hour
+    maxMemoryPolicy: "allkeys-lru"
+    
+  # Session settings
+  session:
+    ttl: 86400           # 24 hours
+    prefix: "sess:"
+    
+  # Pub/Sub settings
+  pubsub:
+    maxListeners: 100
+    
+# Data retention policies
+retention:
+  # Node data retention
+  nodes:
+    positions: "30 days"
+    telemetry: "90 days"
+    messages: "7 days"
+    
+  # Log retention
+  logs:
+    application: "30 days"
+    audit: "1 year"
+    error: "90 days"
+    
+  # Backup settings
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention: "30 days"
+    compression: true
