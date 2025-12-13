@@ -5,8 +5,9 @@ import { Box } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RootState } from '../../store';
-import { setCenter, setZoom } from '../../store/slices/mapSlice';
+import { setCenter, setZoom, closeTopologyGraph } from '../../store/slices/mapSlice';
 import NodeMarkers from './NodeMarkers';
+import NetworkTopologyGraph from './NetworkTopologyGraph';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -108,7 +109,8 @@ interface MapComponentProps {
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh' }) => {
-  const { center, zoom, tileLayer } = useSelector((state: RootState) => state.map);
+  const dispatch = useDispatch();
+  const { center, zoom, tileLayer, topologyGraphOpen } = useSelector((state: RootState) => state.map);
   
   const selectedTileLayer = TILE_LAYERS[tileLayer as keyof typeof TILE_LAYERS] || TILE_LAYERS.openstreetmap;
 
@@ -152,6 +154,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh' }) => {
         <MapViewController />
         <NodeMarkers />
       </MapContainer>
+      
+      {/* Network Topology Graph Modal */}
+      <NetworkTopologyGraph
+        isOpen={topologyGraphOpen}
+        onClose={() => dispatch(closeTopologyGraph())}
+      />
     </Box>
   );
 };

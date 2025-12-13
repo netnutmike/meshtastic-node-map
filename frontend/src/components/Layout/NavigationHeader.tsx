@@ -17,7 +17,9 @@ import {
   Build as ToolsIcon,
   Link as LinkIcon,
   Refresh as RefreshIcon,
+  AccountTree as TopologyIcon,
 } from '@mui/icons-material';
+import ConnectionStatus from '../ConnectionStatus';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -63,11 +65,13 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 interface NavigationHeaderProps {
   onSearch?: (query: string) => void;
   onRefresh?: () => void;
+  onOpenTopology?: () => void;
 }
 
 const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   onSearch,
   onRefresh,
+  onOpenTopology,
 }) => {
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearch?.(event.target.value);
@@ -98,6 +102,11 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             onChange={handleSearchChange}
           />
         </Search>
+
+        {/* Connection Status */}
+        <Box sx={{ mx: 2 }}>
+          <ConnectionStatus />
+        </Box>
 
         {/* Navigation Icons */}
         <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
@@ -131,6 +140,15 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             title="Tools"
           >
             <ToolsIcon />
+          </IconButton>
+          
+          <IconButton
+            color="inherit"
+            aria-label="network topology"
+            title="Network Topology Graph"
+            onClick={onOpenTopology}
+          >
+            <TopologyIcon />
           </IconButton>
           
           <IconButton

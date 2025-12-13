@@ -28,26 +28,26 @@ export class TelemetryRepository extends BaseRepository<TelemetryReading, Create
           }
         }
       }
-    }) as Promise<TelemetryReading[]>;
+    }) as any;
   }
 
   protected async createImpl(data: CreateTelemetryInput): Promise<TelemetryReading> {
     return this.db.telemetryReading.create({
-      data,
+      data: data as any,
       include: {
         node: true
       }
-    }) as Promise<TelemetryReading>;
+    }) as any;
   }
 
   protected async updateImpl(id: string, data: Partial<CreateTelemetryInput>): Promise<TelemetryReading> {
     return this.db.telemetryReading.update({
       where: { id },
-      data,
+      data: data as any,
       include: {
         node: true
       }
-    }) as Promise<TelemetryReading>;
+    }) as any;
   }
 
   protected async deleteImpl(id: string): Promise<TelemetryReading> {
@@ -91,6 +91,16 @@ export class TelemetryRepository extends BaseRepository<TelemetryReading, Create
   async getLatestTelemetryForNode(nodeId: string, type: TelemetryType): Promise<TelemetryReading | null> {
     return this.db.telemetryReading.findFirst({
       where: { nodeId, type },
+      orderBy: { timestamp: 'desc' },
+      include: {
+        node: true
+      }
+    }) as Promise<TelemetryReading | null>;
+  }
+
+  async findLatestByNodeId(nodeId: string): Promise<TelemetryReading | null> {
+    return this.db.telemetryReading.findFirst({
+      where: { nodeId },
       orderBy: { timestamp: 'desc' },
       include: {
         node: true

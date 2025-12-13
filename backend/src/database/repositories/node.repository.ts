@@ -209,10 +209,10 @@ export class NodeRepository extends BaseRepository<Node, CreateNodeInput, Update
     
     const searchConditions = {
       OR: [
-        { shortName: { contains: query, mode: 'insensitive' } },
-        { longName: { contains: query, mode: 'insensitive' } },
-        { nodeId: { contains: query, mode: 'insensitive' } },
-        { hexId: { contains: query, mode: 'insensitive' } }
+        { shortName: { contains: query, mode: Prisma.QueryMode.insensitive } },
+        { longName: { contains: query, mode: Prisma.QueryMode.insensitive } },
+        { nodeId: { contains: query, mode: Prisma.QueryMode.insensitive } },
+        { hexId: { contains: query, mode: Prisma.QueryMode.insensitive } }
       ],
       ...(networkId && { networkId })
     };

@@ -10,6 +10,7 @@ interface MapState {
   viewMode: 'nodes' | 'nodeTypes' | 'bandwidthUtilization';
   clusteringEnabled: boolean;
   animationsEnabled: boolean;
+  topologyGraphOpen: boolean;
 }
 
 const initialState: MapState = {
@@ -22,6 +23,7 @@ const initialState: MapState = {
   viewMode: 'nodes',
   clusteringEnabled: true,
   animationsEnabled: true,
+  topologyGraphOpen: false,
 };
 
 const mapSlice = createSlice({
@@ -55,6 +57,12 @@ const mapSlice = createSlice({
     toggleAnimations: (state) => {
       state.animationsEnabled = !state.animationsEnabled;
     },
+    openTopologyGraph: (state) => {
+      state.topologyGraphOpen = true;
+    },
+    closeTopologyGraph: (state) => {
+      state.topologyGraphOpen = false;
+    },
   },
 });
 
@@ -68,6 +76,8 @@ export const {
   setViewMode,
   toggleClustering,
   toggleAnimations,
+  openTopologyGraph,
+  closeTopologyGraph,
 } = mapSlice.actions;
 
 export default mapSlice.reducer;

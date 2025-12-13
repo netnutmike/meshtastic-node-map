@@ -3,8 +3,9 @@ import { Marker, Popup, useMap } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import L from 'leaflet';
 import { RootState } from '../../store';
-import { Node, openDetailsPanel, closeDetailsPanel } from '../../store/slices/nodeSlice';
+import { Node, openDetailsPanel, closeDetailsPanel, activateNeighborVisualization, deactivateNeighborVisualization } from '../../store/slices/nodeSlice';
 import NodeDetailsPanel from '../NodeDetailsPanel';
+import NeighborArrows from './NeighborArrows';
 
 // Create custom icons for different node states with enhanced styling
 const createNodeIcon = (status: 'online' | 'disconnected' | 'offline', isAnimated: boolean = false) => {
@@ -98,6 +99,7 @@ const getNodeStatus = (node: Node): 'online' | 'disconnected' | 'offline' => {
 
 // Check if a node was recently updated (within last 5 minutes)
 const isRecentlyUpdated = (node: Node): boolean => {
+  if (!node.lastSeen) return false;
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
   const lastSeen = new Date(node.lastSeen);
   return lastSeen > fiveMinutesAgo;
@@ -105,7 +107,13 @@ const isRecentlyUpdated = (node: Node): boolean => {
 
 const NodeMarkers: React.FC = () => {
   const dispatch = useDispatch();
-  const { nodes, selectedNodeId, detailsPanelOpen } = useSelector((state: RootState) => state.nodes);
+  const { 
+    nodes, 
+    selectedNodeId, 
+    detailsPanelOpen, 
+    neighborVisualizationActive,
+    neighborVisualizationNodeId 
+  } = useSelector((state: RootState) => state.nodes);
   const { showNodes, animationsEnabled } = useSelector((state: RootState) => state.map);
   const map = useMap();
   const prevNodesRef = useRef<Node[]>([]);
@@ -266,10 +274,10 @@ const NodeMarkers: React.FC = () => {
                   color: '#666'
                 }}>
                   <p style={{ margin: '2px 0' }}>
-                    <strong>Last Seen:</strong> {new Date(node.lastSeen).toLocaleString()}
+                    <strong>Last Seen:</strong> {node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}
                   </p>
                   <p style={{ margin: '2px 0' }}>
-                    <strong>Last Heard:</strong> {new Date(node.lastHeard).toLocaleString()}
+                    <strong>Last Heard:</strong> {node.lastHeard ? new Date(node.lastHeard).toLocaleString() : 'Never'}
                   </p>
                   <p style={{ margin: '2px 0' }}>
                     <strong>Position:</strong> {node.position!.latitude.toFixed(6)}, {node.position!.longitude.toFixed(6)}
@@ -308,7 +316,7 @@ const NodeMarkers: React.FC = () => {
                     style={{
                       padding: '6px 12px',
                       fontSize: '12px',
-                      backgroundColor: '#4caf50',
+                      backgroundColor: neighborVisualizationActive && neighborVisualizationNodeId === node.id ? '#2e7d32' : '#4caf50',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
@@ -317,18 +325,21 @@ const NodeMarkers: React.FC = () => {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // TODO: Implement neighbor visualization functionality
-                      console.log('Show Neighbors That Heard Us for node:', node.id);
+                      if (neighborVisualizationActive && neighborVisualizationNodeId === node.id) {
+                        dispatch(deactivateNeighborVisualization());
+                      } else {
+                        dispatch(activateNeighborVisualization({ nodeId: node.id, direction: 'heard-us' }));
+                      }
                     }}
                   >
-                    Show Neighbors That Heard Us
+                    {neighborVisualizationActive && neighborVisualizationNodeId === node.id ? 'Hide' : 'Show'} Neighbors That Heard Us
                   </button>
                   
                   <button
                     style={{
                       padding: '6px 12px',
                       fontSize: '12px',
-                      backgroundColor: '#ff9800',
+                      backgroundColor: neighborVisualizationActive && neighborVisualizationNodeId === node.id ? '#e65100' : '#ff9800',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
@@ -337,11 +348,14 @@ const NodeMarkers: React.FC = () => {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // TODO: Implement reverse neighbor visualization functionality
-                      console.log('Show Neighbors That We Heard for node:', node.id);
+                      if (neighborVisualizationActive && neighborVisualizationNodeId === node.id) {
+                        dispatch(deactivateNeighborVisualization());
+                      } else {
+                        dispatch(activateNeighborVisualization({ nodeId: node.id, direction: 'we-heard' }));
+                      }
                     }}
                   >
-                    Show Neighbors That We Heard
+                    {neighborVisualizationActive && neighborVisualizationNodeId === node.id ? 'Hide' : 'Show'} Neighbors That We Heard
                   </button>
                 </div>
               </div>
@@ -349,6 +363,9 @@ const NodeMarkers: React.FC = () => {
           </Popup>
         </Marker>
       ))}
+      
+      {/* Neighbor visualization arrows */}
+      <NeighborArrows />
       
       <NodeDetailsPanel
         node={selectedNode}

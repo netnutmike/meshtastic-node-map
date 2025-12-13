@@ -3,8 +3,9 @@ import { useDispatch } from 'react-redux';
 import { Box } from '@mui/material';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import MapComponent from '../components/Map/MapComponent';
-import { setNodes } from '../store/slices/nodeSlice';
-import { Node } from '../store/slices/nodeSlice';
+import { setNodes, setLoading, setError, Node } from '../store/slices/nodeSlice';
+import { openTopologyGraph } from '../store/slices/mapSlice';
+import { apiService } from '../services/api';
 
 // Mock data for initial testing - this will be replaced with API calls
 const mockNodes: Node[] = [
@@ -30,6 +31,24 @@ const mockNodes: Node[] = [
     voltage: 4.1,
     channelUtilization: 15,
     airUtilTx: 8,
+    neighbors: [
+      {
+        id: 'neighbor_1_2',
+        neighborId: '2',
+        rssi: -45,
+        snr: 12,
+        lastHeard: new Date().toISOString(),
+        hopCount: 1
+      },
+      {
+        id: 'neighbor_1_3',
+        neighborId: '3',
+        rssi: -78,
+        snr: 3,
+        lastHeard: new Date(Date.now() - 300000).toISOString(),
+        hopCount: 1
+      }
+    ]
   },
   {
     id: '2',
@@ -53,6 +72,16 @@ const mockNodes: Node[] = [
     voltage: 3.8,
     channelUtilization: 22,
     airUtilTx: 12,
+    neighbors: [
+      {
+        id: 'neighbor_2_1',
+        neighborId: '1',
+        rssi: -52,
+        snr: 8,
+        lastHeard: new Date().toISOString(),
+        hopCount: 1
+      }
+    ]
   },
   {
     id: '3',
@@ -76,6 +105,16 @@ const mockNodes: Node[] = [
     voltage: 3.2,
     channelUtilization: 0,
     airUtilTx: 0,
+    neighbors: [
+      {
+        id: 'neighbor_3_1',
+        neighborId: '1',
+        rssi: -85,
+        snr: -2,
+        lastHeard: new Date(Date.now() - 3600000).toISOString(),
+        hopCount: 1
+      }
+    ]
   },
 ];
 
@@ -83,10 +122,50 @@ const MapPage: React.FC = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Load mock data on component mount
-    // In a real application, this would be an API call
-    dispatch(setNodes(mockNodes));
+    // Load nodes from API on component mount
+    loadNodes();
   }, [dispatch]);
+
+  const loadNodes = async () => {
+    try {
+      dispatch(setLoading(true));
+      const response = await apiService.getNodes();
+      
+      // Transform API response to frontend format
+      const transformedNodes = response.data.map((node: any) => ({
+        id: node.id,
+        hexId: node.hexId,
+        shortName: node.shortName,
+        longName: node.longName,
+        hardwareModel: node.hardwareModel,
+        firmwareVersion: node.firmwareVersion,
+        role: node.role,
+        position: node.positions && node.positions.length > 0 ? {
+          latitude: node.positions[0].latitude,
+          longitude: node.positions[0].longitude,
+          altitude: node.positions[0].altitude,
+          precision: node.positions[0].precision,
+        } : null,
+        lastSeen: node.lastSeen,
+        lastHeard: node.lastHeard,
+        isOnline: node.isOnline,
+        mqttConnected: node.mqttConnected,
+        batteryLevel: node.batteryLevel,
+        voltage: node.voltage,
+        channelUtilization: node.channelUtilization,
+        airUtilTx: node.airUtilTx,
+        neighbors: node.neighborsFrom || [],
+      }));
+      
+      dispatch(setNodes(transformedNodes));
+    } catch (error) {
+      console.error('Failed to load nodes:', error);
+      dispatch(setError('Failed to load nodes'));
+      
+      // Fallback to mock data for development
+      dispatch(setNodes(mockNodes));
+    }
+  };
 
   const handleSearch = (query: string) => {
     // TODO: Implement search functionality
@@ -94,14 +173,21 @@ const MapPage: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    // TODO: Implement refresh functionality
     console.log('Refreshing map data...');
-    dispatch(setNodes(mockNodes)); // For now, just reload mock data
+    loadNodes();
+  };
+
+  const handleOpenTopology = () => {
+    dispatch(openTopologyGraph());
   };
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <NavigationHeader onSearch={handleSearch} onRefresh={handleRefresh} />
+      <NavigationHeader 
+        onSearch={handleSearch} 
+        onRefresh={handleRefresh}
+        onOpenTopology={handleOpenTopology}
+      />
       <Box sx={{ flexGrow: 1 }}>
         <MapComponent height="100%" />
       </Box>

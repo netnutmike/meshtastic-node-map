@@ -1,0 +1,144 @@
+/* Connection Status Component Styles */
+
+.connection-status-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.connection-status-compact .status-indicator {
+  font-size: 12px;
+  font-weight: bold;
+  cursor: help;
+  transition: opacity 0.2s ease;
+}
+
+.connection-status-compact .status-indicator:hover {
+  opacity: 0.7;
+}
+
+.connection-status-detailed {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+}
+
+.connection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.connection-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.offline-badge {
+  background-color: #ff9800;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.connection-section {
+  margin-bottom: 16px;
+}
+
+.connection-section:last-child {
+  margin-bottom: 0;
+}
+
+.connection-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+}
+
+.connection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.connection-label {
+  color: #666;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.connection-value {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reconnect-info,
+.message-count {
+  font-size: 12px;
+  color: #888;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.error-info {
+  font-size: 12px;
+  margin-left: 4px;
+  cursor: help;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .connection-status-detailed {
+    min-width: 250px;
+    padding: 12px;
+  }
+  
+  .connection-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  
+  .connection-label {
+    min-width: auto;
+    font-size: 12px;
+  }
+  
+  .connection-value {
+    font-size: 13px;
+  }
+}
+
+/* Animation for connecting status */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.connection-status-compact .status-indicator:nth-child(1)[style*="rgb(255, 152, 0)"],
+.connection-status-compact .status-indicator:nth-child(2)[style*="rgb(255, 152, 0)"] {
+  animation: pulse 1.5s infinite;
+}
+
+.connection-value[style*="rgb(255, 152, 0)"] {
+  animation: pulse 1.5s infinite;
+}

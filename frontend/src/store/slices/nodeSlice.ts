@@ -1,12 +1,21 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export interface NodeNeighbor {
+  id: string;
+  neighborId: string;
+  rssi?: number;
+  snr?: number;
+  lastHeard: string;
+  hopCount: number;
+}
+
 export interface Node {
   id: string;
   hexId: string;
-  shortName: string;
-  longName: string;
-  hardwareModel: string;
-  firmwareVersion: string;
+  shortName?: string;
+  longName?: string;
+  hardwareModel?: string;
+  firmwareVersion?: string;
   role: string;
   position: {
     latitude: number;
@@ -14,20 +23,24 @@ export interface Node {
     altitude?: number;
     precision?: number;
   } | null;
-  lastSeen: string;
-  lastHeard: string;
+  lastSeen?: string;
+  lastHeard?: string;
   isOnline: boolean;
   mqttConnected: boolean;
   batteryLevel?: number;
   voltage?: number;
   channelUtilization?: number;
   airUtilTx?: number;
+  neighbors?: NodeNeighbor[];
 }
 
 interface NodeState {
   nodes: Node[];
   selectedNodeId: string | null;
   detailsPanelOpen: boolean;
+  neighborVisualizationActive: boolean;
+  neighborVisualizationNodeId: string | null;
+  neighborVisualizationDirection: 'heard-us' | 'we-heard' | null;
   loading: boolean;
   error: string | null;
 }
@@ -36,6 +49,9 @@ const initialState: NodeState = {
   nodes: [],
   selectedNodeId: null,
   detailsPanelOpen: false,
+  neighborVisualizationActive: false,
+  neighborVisualizationNodeId: null,
+  neighborVisualizationDirection: null,
   loading: false,
   error: null,
 };
@@ -74,6 +90,16 @@ const nodeSlice = createSlice({
       state.detailsPanelOpen = false;
       state.selectedNodeId = null;
     },
+    activateNeighborVisualization: (state, action: PayloadAction<{ nodeId: string; direction: 'heard-us' | 'we-heard' }>) => {
+      state.neighborVisualizationActive = true;
+      state.neighborVisualizationNodeId = action.payload.nodeId;
+      state.neighborVisualizationDirection = action.payload.direction;
+    },
+    deactivateNeighborVisualization: (state) => {
+      state.neighborVisualizationActive = false;
+      state.neighborVisualizationNodeId = null;
+      state.neighborVisualizationDirection = null;
+    },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
@@ -90,6 +116,8 @@ export const {
   selectNode,
   openDetailsPanel,
   closeDetailsPanel,
+  activateNeighborVisualization,
+  deactivateNeighborVisualization,
   setLoading,
   setError,
 } = nodeSlice.actions;

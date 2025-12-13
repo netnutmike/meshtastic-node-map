@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Node } from '../../store/slices/nodeSlice';
+import TelemetryChart from '../TelemetryChart';
+import { apiService } from '../../services/api';
 import './NodeDetailsPanel.css';
 
 interface NodeDetailsPanelProps {
@@ -8,10 +10,29 @@ interface NodeDetailsPanelProps {
   onClose: () => void;
 }
 
-type TabType = 'overview' | 'messages' | 'details' | 'lora' | 'position';
+type TabType = 'overview' | 'messages' | 'details' | 'lora' | 'position' | 'telemetry';
 
 const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [telemetryData, setTelemetryData] = useState<any[]>([]);
+
+  // Fetch telemetry data when panel opens or node changes
+  useEffect(() => {
+    if (isOpen && node) {
+      fetchTelemetryData(node.id);
+    }
+  }, [isOpen, node]);
+
+  const fetchTelemetryData = async (nodeId: string) => {
+    try {
+      // Fetch latest telemetry data for all types
+      const response = await apiService.getTelemetryLatest(nodeId);
+      setTelemetryData(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch telemetry data:', error);
+      setTelemetryData([]);
+    }
+  };
 
   if (!isOpen || !node) return null;
 
@@ -122,16 +143,16 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
       <div className="timestamps">
         <div className="timestamp-item">
           <label>Last Seen:</label>
-          <span>{new Date(node.lastSeen).toLocaleString()}</span>
+          <span>{node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}</span>
         </div>
         <div className="timestamp-item">
           <label>Last Heard:</label>
-          <span>{new Date(node.lastHeard).toLocaleString()}</span>
+          <span>{node.lastHeard ? new Date(node.lastHeard).toLocaleString() : 'Never'}</span>
         </div>
         {node.position && (
           <div className="timestamp-item">
             <label>Last Position Update:</label>
-            <span>{new Date(node.lastSeen).toLocaleString()}</span>
+            <span>{node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}</span>
           </div>
         )}
       </div>
@@ -338,6 +359,16 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
     return `${degrees}°${minutes}'${seconds}"${direction}`;
   };
 
+  const renderTelemetryTab = () => (
+    <div className="tab-content">
+      <TelemetryChart 
+        node={node} 
+        telemetryData={telemetryData} 
+        timeRange="24h"
+      />
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -350,6 +381,8 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
         return renderLoRaTab();
       case 'position':
         return renderPositionTab();
+      case 'telemetry':
+        return renderTelemetryTab();
       default:
         return renderOverviewTab();
     }
@@ -395,6 +428,12 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
             onClick={() => setActiveTab('position')}
           >
             Position
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+            onClick={() => setActiveTab('telemetry')}
+          >
+            Telemetry
           </button>
         </div>
 

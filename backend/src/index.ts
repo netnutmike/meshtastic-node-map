@@ -101,10 +101,33 @@ async function initializeMQTTManager() {
     );
 
     // Set up MQTT Manager event handlers
-    mqttManager.on('dataUpdate', (updateData) => {
-      // Broadcast real-time updates to connected clients
-      io.emit('nodeUpdate', updateData);
-      logger.debug('Broadcasted node update to clients');
+    mqttManager.on('dataUpdate', async (updateData) => {
+      try {
+        // Get the updated node data from database
+        const node = await nodeRepository.findByNodeId(updateData.nodeId);
+        if (node) {
+          // Get latest position and telemetry
+          const position = await positionRepository.getLatestPositionForNode(node.id);
+          const telemetry = await telemetryRepository.findLatestByNodeId(node.id);
+          
+          // Prepare comprehensive update data
+          const nodeUpdateData = {
+            type: 'node_updated',
+            nodeId: node.id,
+            data: {
+              ...node,
+              position,
+              latestTelemetry: telemetry
+            }
+          };
+          
+          // Broadcast real-time updates to connected clients
+          io.emit('nodeUpdate', nodeUpdateData);
+          logger.debug(`Broadcasted node update for ${updateData.nodeId} to clients`);
+        }
+      } catch (error) {
+        logger.error('Error preparing node update data:', error);
+      }
     });
 
     mqttManager.on('networkConnected', (networkId) => {

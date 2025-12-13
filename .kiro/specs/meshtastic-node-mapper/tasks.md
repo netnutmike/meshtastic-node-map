@@ -131,7 +131,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - **Property 6: Details panel comprehensive content**
   - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
 
-- [ ] 10. Telemetry visualization and historical data
+- [x] 10. Telemetry visualization and historical data
   - Implement Chart.js integration for telemetry graphs
   - Create device metrics section with battery, voltage, and utilization charts
   - Add environmental metrics with temperature, humidity, and pressure graphs
@@ -139,15 +139,15 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Display current real-time values alongside historical charts
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 10.1 Write property test for device telemetry display
+- [x] 10.1 Write property test for device telemetry display
   - **Property 7: Device telemetry visualization**
   - **Validates: Requirements 4.1, 4.2, 4.3**
 
-- [ ] 10.2 Write property test for environmental telemetry display
+- [x] 10.2 Write property test for environmental telemetry display
   - **Property 8: Environmental telemetry visualization**
   - **Validates: Requirements 4.4, 4.5**
 
-- [ ] 11. Neighbor visualization and network topology
+- [x] 11. Neighbor visualization and network topology
   - Implement neighbor relationship visualization with directional arrows
   - Create network topology graph component using D3.js or similar
   - Add interactive neighbor selection and highlighting
@@ -155,11 +155,11 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add topology filtering and layout options
   - _Requirements: 2.5, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 11.1 Write property test for neighbor visualization
+- [x] 11.1 Write property test for neighbor visualization
   - **Property 5: Neighbor visualization arrows**
   - **Validates: Requirements 2.5**
 
-- [ ] 12. Real-time updates and WebSocket implementation
+- [x] 12. Real-time updates and WebSocket implementation
   - Implement WebSocket server for real-time data streaming
   - Create client-side WebSocket connection with reconnection logic
   - Add real-time node position and status updates
@@ -167,7 +167,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add connection status indicators and offline mode handling
   - _Requirements: 13.2, 28.2_
 
-- [ ] 12.1 Write property test for real-time updates
+- [x] 12.1 Write property test for real-time updates
   - **Property 10: Data storage and interface updates**
   - **Validates: Requirements 13.1, 13.2**
 
