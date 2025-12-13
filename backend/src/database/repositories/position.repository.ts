@@ -3,7 +3,7 @@ import { Position, CreatePositionInput } from '../../types/database';
 
 export class PositionRepository extends BaseRepository<Position, CreatePositionInput, Partial<CreatePositionInput>> {
   
-  protected async findByIdImpl(id: string): Promise<Position | null> {
+  protected async findByIdImpl(id: string, options?: any): Promise<Position | null> {
     return this.db.position.findUnique({
       where: { id },
       include: {

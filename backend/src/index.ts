@@ -13,6 +13,10 @@ import { TelemetryRepository } from './database/repositories/telemetry.repositor
 import { MessageRepository } from './database/repositories/message.repository';
 import { NetworkRepository } from './database/repositories/network.repository';
 import { logger } from './utils/logger';
+import { apiRoutes } from './routes';
+import { rateLimiters } from './middleware/rateLimiting';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { setupSwagger } from './docs/swagger';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +40,9 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Apply general rate limiting
+app.use(rateLimiters.general);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -46,12 +53,19 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes placeholder
+// Setup Swagger documentation
+setupSwagger(app);
+
+// Mount API routes
+app.use(apiRoutes);
+
+// Legacy status endpoint for backward compatibility
 app.get('/api/status', (req, res) => {
   res.json({
     message: 'Meshtastic Node Mapper API is running',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    documentation: '/api/v1/docs'
   });
 });
 
@@ -68,7 +82,7 @@ let mqttManager: MQTTManagerService;
 async function initializeMQTTManager() {
   try {
     // Get networks from database
-    const networks = await networkRepository.findAll();
+    const networks = await networkRepository.findActiveNetworks();
     
     mqttManager = new MQTTManagerService(
       {
@@ -137,21 +151,10 @@ io.on('connection', (socket) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
-});
+app.use(errorHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    message: `Route ${req.originalUrl} not found`
-  });
-});
+// 404 handler for unmatched routes
+app.use('*', notFoundHandler);
 
 // Graceful shutdown handling
 process.on('SIGTERM', async () => {

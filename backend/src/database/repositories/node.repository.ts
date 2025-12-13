@@ -4,44 +4,46 @@ import { Node, CreateNodeInput, UpdateNodeInput } from '../../types/database';
 
 export class NodeRepository extends BaseRepository<Node, CreateNodeInput, UpdateNodeInput> {
   
-  protected async findByIdImpl(id: string): Promise<Node | null> {
-    return this.db.node.findUnique({
-      where: { id },
-      include: {
-        network: true,
-        positions: {
-          orderBy: { timestamp: 'desc' },
-          take: 1
-        },
-        telemetryReadings: {
-          orderBy: { timestamp: 'desc' },
-          take: 10
-        },
-        neighborsFrom: {
-          include: {
-            neighbor: {
-              select: {
-                id: true,
-                nodeId: true,
-                shortName: true,
-                longName: true
-              }
+  protected async findByIdImpl(id: string, options?: any): Promise<Node | null> {
+    const defaultInclude = {
+      network: true,
+      positions: {
+        orderBy: { timestamp: 'desc' },
+        take: 1
+      },
+      telemetryReadings: {
+        orderBy: { timestamp: 'desc' },
+        take: 10
+      },
+      neighborsFrom: {
+        include: {
+          neighbor: {
+            select: {
+              id: true,
+              nodeId: true,
+              shortName: true,
+              longName: true
             }
           }
-        },
-        neighborsTo: {
-          include: {
-            node: {
-              select: {
-                id: true,
-                nodeId: true,
-                shortName: true,
-                longName: true
-              }
+        }
+      },
+      neighborsTo: {
+        include: {
+          node: {
+            select: {
+              id: true,
+              nodeId: true,
+              shortName: true,
+              longName: true
             }
           }
         }
       }
+    };
+
+    return this.db.node.findUnique({
+      where: { id },
+      include: options?.include || defaultInclude
     }) as Promise<Node | null>;
   }
 

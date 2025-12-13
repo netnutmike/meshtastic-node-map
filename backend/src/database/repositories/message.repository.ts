@@ -3,7 +3,7 @@ import { Message, CreateMessageInput, MessageType } from '../../types/database';
 
 export class MessageRepository extends BaseRepository<Message, CreateMessageInput, Partial<CreateMessageInput>> {
   
-  protected async findByIdImpl(id: string): Promise<Message | null> {
+  protected async findByIdImpl(id: string, options?: any): Promise<Message | null> {
     return this.db.message.findUnique({
       where: { id },
       include: {

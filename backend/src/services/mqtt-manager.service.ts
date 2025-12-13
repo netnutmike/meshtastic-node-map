@@ -163,6 +163,8 @@ export class MQTTManagerService extends EventEmitter {
       if (!node && data.nodeUpdate) {
         // Create new node
         const createData = {
+          nodeId: data.nodeId,
+          hexId: data.nodeId.replace('!', ''),
           ...data.nodeUpdate,
           networkId,
           isOnline: true,
@@ -300,12 +302,11 @@ export class MQTTManagerService extends EventEmitter {
       logger.info('Reloading network configurations...');
       
       // Get updated networks from database
-      const networks = await this.networkRepository.findAll();
-      const activeNetworks = networks.filter(network => network.isActive);
+      const activeNetworks = await this.networkRepository.findActiveNetworks();
       
       // Remove connections for inactive networks
       for (const [networkId] of this.mqttServices) {
-        const network = activeNetworks.find(n => n.id === networkId);
+        const network = activeNetworks.find((n: any) => n.id === networkId);
         if (!network) {
           await this.removeNetwork(networkId);
         }

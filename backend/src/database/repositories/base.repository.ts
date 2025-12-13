@@ -14,9 +14,9 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
   /**
    * Find entity by ID
    */
-  async findById(id: string): Promise<T | null> {
+  async findById(id: string, options?: any): Promise<T | null> {
     return executeWithErrorHandling(
-      () => this.findByIdImpl(id),
+      () => this.findByIdImpl(id, options),
       `findById(${id})`
     );
   }
@@ -80,7 +80,7 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
   }
 
   // Abstract methods to be implemented by concrete repositories
-  protected abstract findByIdImpl(id: string): Promise<T | null>;
+  protected abstract findByIdImpl(id: string, options?: any): Promise<T | null>;
   protected abstract findManyImpl(options?: any): Promise<T[]>;
   protected abstract createImpl(data: CreateInput): Promise<T>;
   protected abstract updateImpl(id: string, data: UpdateInput): Promise<T>;

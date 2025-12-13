@@ -250,6 +250,12 @@ export interface CreateNodeInput {
   firmwareVersion?: string;
   role?: NodeRole;
   networkId: string;
+  isOnline?: boolean;
+  mqttConnected?: boolean;
+  batteryLevel?: number;
+  voltage?: number;
+  channelUtilization?: number;
+  airUtilTx?: number;
 }
 
 export interface CreatePositionInput {
@@ -282,6 +288,7 @@ export interface CreateMessageInput {
   priority?: MessagePriority;
   channel?: number;
   timestamp: Date;
+  receivedAt?: Date;
   routingPath?: string[];
   rssi?: number;
   snr?: number;

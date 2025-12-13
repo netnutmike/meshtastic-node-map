@@ -3,7 +3,7 @@ import { TelemetryReading, CreateTelemetryInput, TelemetryType } from '../../typ
 
 export class TelemetryRepository extends BaseRepository<TelemetryReading, CreateTelemetryInput, Partial<CreateTelemetryInput>> {
   
-  protected async findByIdImpl(id: string): Promise<TelemetryReading | null> {
+  protected async findByIdImpl(id: string, options?: any): Promise<TelemetryReading | null> {
     return this.db.telemetryReading.findUnique({
       where: { id },
       include: {

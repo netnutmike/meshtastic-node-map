@@ -245,10 +245,5 @@ model Channel {
 }
 
 // Indexes for performance optimization
-// Time-series data indexes
-model TelemetryIndex {
-  @@map("telemetry_index")
-}
-
 // Add indexes for common queries
 // These will be created via migration files for TimescaleDB optimization

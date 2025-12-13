@@ -3,7 +3,7 @@ import { Network, CreateNetworkInput, UpdateNetworkInput } from '../../types/dat
 
 export class NetworkRepository extends BaseRepository<Network, CreateNetworkInput, UpdateNetworkInput> {
   
-  protected async findByIdImpl(id: string): Promise<Network | null> {
+  protected async findByIdImpl(id: string, options?: any): Promise<Network | null> {
     return this.db.network.findUnique({
       where: { id },
       include: {
@@ -57,5 +57,37 @@ export class NetworkRepository extends BaseRepository<Network, CreateNetworkInpu
 
   async findActiveNetworks(): Promise<Network[]> {
     return this.findManyImpl({ where: { isActive: true } });
+  }
+
+  async getNetworkStats(networkId: string, dateFilter: any): Promise<any> {
+    // Get comprehensive network statistics
+    const [nodeCount, messageCount, positionCount, telemetryCount] = await Promise.all([
+      this.db.node.count({ where: { networkId } }),
+      this.db.message.count({ 
+        where: { 
+          fromNode: { networkId },
+          timestamp: dateFilter
+        } 
+      }),
+      this.db.position.count({ 
+        where: { 
+          node: { networkId },
+          timestamp: dateFilter
+        } 
+      }),
+      this.db.telemetryReading.count({ 
+        where: { 
+          node: { networkId },
+          timestamp: dateFilter
+        } 
+      })
+    ]);
+
+    return {
+      nodes: nodeCount,
+      messages: messageCount,
+      positions: positionCount,
+      telemetryReadings: telemetryCount
+    };
   }
 }

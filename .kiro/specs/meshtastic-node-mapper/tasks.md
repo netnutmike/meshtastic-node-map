@@ -54,7 +54,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Test error handling for malformed messages
   - _Requirements: 13.1, 13.5_
 
-- [ ] 4. Basic REST API implementation
+- [x] 4. Basic REST API implementation
   - Create Express.js server with TypeScript configuration
   - Implement RESTful endpoints for nodes, positions, and telemetry data
   - Add request validation and error handling middleware
@@ -62,17 +62,17 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create API documentation with OpenAPI/Swagger
   - _Requirements: 28.1, 28.4, 21.4_
 
-- [ ] 4.1 Write property test for API data consistency
+- [x] 4.1 Write property test for API data consistency
   - **Property 10: Data storage and interface updates**
   - **Validates: Requirements 13.1, 13.2**
 
-- [ ] 4.2 Write unit tests for API endpoints
+- [x] 4.2 Write unit tests for API endpoints
   - Test all CRUD operations for each entity type
   - Validate request/response formats and error codes
   - Test authentication and authorization logic
   - _Requirements: 28.1, 21.4_
 
-- [ ] 5. Frontend project setup and basic map implementation
+- [x] 5. Frontend project setup and basic map implementation
   - Initialize React project with TypeScript and modern tooling
   - Set up Leaflet.js for interactive mapping functionality
   - Implement basic map component with OpenStreetMap tiles
@@ -80,11 +80,11 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add basic routing and state management (Redux/Zustand)
   - _Requirements: 1.1, 6.1, 6.2, 14.1, 14.2_
 
-- [ ] 5.1 Write property test for map initialization
+- [x] 5.1 Write property test for map initialization
   - **Property 1: Node rendering with position data**
   - **Validates: Requirements 1.2**
 
-- [ ] 6. Node visualization on map
+- [x] 6. Node visualization on map
   - Implement node rendering as colored dots based on connection status
   - Create node clustering for high-density areas
   - Add real-time position updates and smooth animations
@@ -92,15 +92,15 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add support for multiple map tile sources
   - _Requirements: 1.2, 1.3, 1.4, 1.5, 8.1_
 
-- [ ] 6.1 Write property test for node status color coding
+- [x] 6.1 Write property test for node status color coding
   - **Property 2: Node status color coding**
   - **Validates: Requirements 1.3, 1.4, 1.5**
 
-- [ ] 6.2 Write property test for node positioning
+- [x] 6.2 Write property test for node positioning
   - **Property 1: Node rendering with position data**
   - **Validates: Requirements 1.2**
 
-- [ ] 7. Node hover popups and basic information display
+- [x] 7. Node hover popups and basic information display
   - Create hover popup component with node information
   - Implement popup content with all required fields (name, status, hardware, etc.)
   - Add action buttons for detailed view and neighbor visualization
@@ -108,18 +108,18 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Handle popup positioning and collision detection
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 7.1 Write property test for hover popup content
+- [x] 7.1 Write property test for hover popup content
   - **Property 3: Hover popup content completeness**
   - **Validates: Requirements 2.1**
 
-- [ ] 7.2 Write property test for hover popup buttons
+- [x] 7.2 Write property test for hover popup buttons
   - **Property 4: Hover popup required buttons**
   - **Validates: Requirements 2.2, 2.3, 2.4**
 
 - [ ] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Node details panel implementation
+- [x] 9. Node details panel implementation
   - Create comprehensive node details panel/modal component
   - Implement tabbed interface for different information sections
   - Add device details section with ID, hardware, firmware information
@@ -127,7 +127,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Implement position coordinates display with formatting
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 9.1 Write property test for details panel content
+- [x] 9.1 Write property test for details panel content
   - **Property 6: Details panel comprehensive content**
   - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
 
