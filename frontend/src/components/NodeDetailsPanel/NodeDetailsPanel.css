@@ -256,9 +256,19 @@
   color: #4caf50;
 }
 
+.message-btn.sent.active {
+  background-color: #4caf50;
+  color: white;
+}
+
 .message-btn.received {
   border-color: #2196f3;
   color: #2196f3;
+}
+
+.message-btn.received.active {
+  background-color: #2196f3;
+  color: white;
 }
 
 .message-btn.gated {
@@ -266,8 +276,22 @@
   color: #ff9800;
 }
 
+.message-btn.gated.active {
+  background-color: #ff9800;
+  color: white;
+}
+
 .message-btn:hover {
   background-color: #f8f9fa;
+}
+
+.message-btn.active:hover {
+  opacity: 0.9;
+}
+
+.message-content {
+  height: 400px;
+  overflow: hidden;
 }
 
 .message-placeholder {

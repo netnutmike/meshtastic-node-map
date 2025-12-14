@@ -14,7 +14,7 @@ const nodeRepository = new NodeRepository();
 
 // Position query filters schema
 const positionFiltersSchema = Joi.object({
-  nodeId: Joi.string().uuid().optional(),
+  nodeId: Joi.string().optional(), // Accept CUID format
   source: Joi.string().valid('GPS', 'MANUAL', 'ESTIMATED', 'NETWORK').optional(),
   bounds: Joi.object({
     north: Joi.number().min(-90).max(90).required(),
@@ -222,7 +222,7 @@ router.get('/latest',
   applyRateLimit('read'),
   optionalAuth,
   validate(Joi.object({
-    networkId: Joi.string().uuid().optional(),
+    networkId: Joi.string().optional(), // Accept CUID format
     bounds: Joi.object({
       north: Joi.number().min(-90).max(90).required(),
       south: Joi.number().min(-90).max(90).required(),
@@ -288,7 +288,7 @@ router.get('/latest',
 router.get('/track/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().uuid().required() }), 'params'),
+  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
   validate(schemas.pagination.concat(schemas.dateRange), 'query'),
   asyncHandler(async (req, res) => {
     const { nodeId } = req.params;

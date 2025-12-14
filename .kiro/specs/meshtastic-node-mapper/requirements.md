@@ -153,15 +153,15 @@ The Meshtastic Node Mapper is a web-based application that visualizes Meshtastic
 
 ### Requirement 12
 
-**User Story:** As an administrator, I want to communicate with users through configurable messaging and SEO optimization, so that I can provide important information and improve discoverability.
+**User Story:** As an administrator, I want to configure the application through YAML files and provide user information, so that I can customize the interface and provide important information without requiring user accounts.
 
 #### Acceptance Criteria
 
-1. WHEN a user first visits the application THEN the system SHALL display a configurable message of the day popup if one is configured
-2. WHEN the about page is accessed THEN the system SHALL display application information and a configurable custom content section
-3. WHEN custom links are configured THEN the system SHALL display a custom links icon in the navigation with hover descriptions and external link functionality
+1. WHEN the application starts THEN the system SHALL load all configuration from YAML files including branding, network settings, and feature toggles
+2. WHEN the about page is accessed THEN the system SHALL display application information and a configurable custom content section from configuration files
+3. WHEN custom links are configured in YAML THEN the system SHALL display a custom links icon in the navigation with hover descriptions and external link functionality
 4. WHEN no custom links are configured THEN the system SHALL hide the custom links icon from the navigation
-5. WHEN SEO configuration is provided THEN the system SHALL apply meta tags, descriptions, and other SEO elements based on YAML configuration settings
+5. WHEN authentication is configured as optional THEN the system SHALL show login options in the interface, otherwise authentication features SHALL be hidden
 
 ### Requirement 13
 
@@ -261,15 +261,15 @@ The Meshtastic Node Mapper is a web-based application that visualizes Meshtastic
 
 ### Requirement 21
 
-**User Story:** As a security-conscious administrator, I want authentication and access control features, so that I can protect sensitive network information and control user permissions.
+**User Story:** As a security-conscious administrator, I want optional authentication and access control features, so that I can protect sensitive network information and control user permissions when needed, while keeping core functionality publicly accessible.
 
 #### Acceptance Criteria
 
-1. WHEN authentication is enabled THEN the system SHALL support configurable login methods including local accounts, LDAP, and OAuth providers
-2. WHEN users are authenticated THEN the system SHALL enforce role-based permissions for viewing nodes, accessing tools, and modifying configuration
-3. WHEN sensitive data is displayed THEN the system SHALL allow administrators to configure which fields require elevated permissions to view
-4. WHEN API access is requested THEN the system SHALL support API key authentication with configurable rate limiting and scope restrictions
-5. WHEN security events occur THEN the system SHALL log authentication attempts, permission violations, and administrative actions
+1. WHEN authentication is disabled THEN the system SHALL provide full access to map visualization, node information, statistics, and monitoring tools without requiring login
+2. WHEN authentication is enabled via configuration THEN the system SHALL support configurable login methods including local accounts, LDAP, and OAuth providers
+3. WHEN users are authenticated THEN the system SHALL enforce role-based permissions for administrative functions, configuration changes, and sensitive operations
+4. WHEN authentication is disabled THEN the system SHALL use configuration files for all permanent settings and network configuration
+5. WHEN API access is requested THEN the system SHALL support optional API key authentication with configurable rate limiting based on configuration settings
 
 ### Requirement 22
 
@@ -363,6 +363,18 @@ The Meshtastic Node Mapper is a web-based application that visualizes Meshtastic
 
 1. WHEN configuring data retention THEN the system SHALL support automatic purging of historical data based on configurable age and type policies
 2. WHEN handling personal data THEN the system SHALL provide data anonymization options for location and message content based on privacy settings
-3. WHEN exporting data THEN the system SHALL include privacy controls that redact or exclude sensitive information based on user permissions
-4. WHEN auditing access THEN the system SHALL maintain detailed logs of who accessed what data and when for compliance reporting
-5. WHEN processing deletion requests THEN the system SHALL support complete data removal for specific nodes or users in compliance with privacy regulations
+3. WHEN exporting data THEN the system SHALL include privacy controls that redact or exclude sensitive information based on configuration settings
+4. WHEN auditing access THEN the system SHALL maintain detailed logs of system access and data operations for compliance reporting
+5. WHEN processing deletion requests THEN the system SHALL support complete data removal for specific nodes in compliance with privacy regulations
+
+### Requirement 30
+
+**User Story:** As a system administrator, I want the application to operate primarily through configuration files, so that I can deploy and manage the system without requiring user account management.
+
+#### Acceptance Criteria
+
+1. WHEN the system starts THEN the system SHALL load all operational settings from YAML configuration files including MQTT brokers, database settings, and feature flags
+2. WHEN authentication is disabled in configuration THEN the system SHALL provide full functionality without any login requirements or user management
+3. WHEN network settings are configured THEN the system SHALL connect to specified MQTT brokers and databases based on configuration files rather than user input
+4. WHEN branding is configured THEN the system SHALL display custom logos, site names, and styling based on configuration files
+5. WHEN authentication is enabled in configuration THEN the system SHALL provide optional enhanced features for authenticated users while maintaining public access to core functionality

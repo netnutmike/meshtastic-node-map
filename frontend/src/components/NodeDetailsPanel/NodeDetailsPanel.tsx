@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Node } from '../../store/slices/nodeSlice';
 import TelemetryChart from '../TelemetryChart';
+import MessageHistory from '../MessageHistory';
 import { apiService } from '../../services/api';
 import './NodeDetailsPanel.css';
 
@@ -15,6 +16,7 @@ type TabType = 'overview' | 'messages' | 'details' | 'lora' | 'position' | 'tele
 const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [telemetryData, setTelemetryData] = useState<any[]>([]);
+  const [messageDirection, setMessageDirection] = useState<'sent' | 'received' | 'gated'>('sent');
 
   // Fetch telemetry data when panel opens or node changes
   useEffect(() => {
@@ -162,19 +164,32 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
   const renderMessagesTab = () => (
     <div className="tab-content">
       <div className="message-buttons">
-        <button className="message-btn sent">
+        <button 
+          className={`message-btn sent ${messageDirection === 'sent' ? 'active' : ''}`}
+          onClick={() => setMessageDirection('sent')}
+        >
           Sent Messages
         </button>
-        <button className="message-btn received">
+        <button 
+          className={`message-btn received ${messageDirection === 'received' ? 'active' : ''}`}
+          onClick={() => setMessageDirection('received')}
+        >
           Received Messages
         </button>
-        <button className="message-btn gated">
+        <button 
+          className={`message-btn gated ${messageDirection === 'gated' ? 'active' : ''}`}
+          onClick={() => setMessageDirection('gated')}
+        >
           Gated Messages
         </button>
       </div>
-      <div className="message-placeholder">
-        <p>Message history functionality will be implemented in future tasks.</p>
-        <p>This section will display filtered message history based on the selected type.</p>
+      <div className="message-content">
+        {node && (
+          <MessageHistory 
+            nodeId={node.id} 
+            direction={messageDirection}
+          />
+        )}
       </div>
     </div>
   );

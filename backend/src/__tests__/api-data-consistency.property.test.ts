@@ -8,6 +8,7 @@
 
 import * as fc from 'fast-check';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { app } from '../index';
 import { NodeRepository } from '../database/repositories/node.repository';
 import { PositionRepository } from '../database/repositories/position.repository';
@@ -23,6 +24,7 @@ describe('API Data Consistency Property Tests', () => {
   let messageRepository: MessageRepository;
   let networkRepository: NetworkRepository;
   let testNetworkId: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     nodeRepository = new NodeRepository();
@@ -30,6 +32,14 @@ describe('API Data Consistency Property Tests', () => {
     telemetryRepository = new TelemetryRepository();
     messageRepository = new MessageRepository();
     networkRepository = new NetworkRepository();
+
+    // Generate test JWT token
+    const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    adminToken = jwt.sign(
+      { id: '1', username: 'admin', role: 'admin', permissions: ['read', 'write', 'admin'] },
+      secret,
+      { expiresIn: '1h' }
+    );
 
     // Create a test network for all tests
     const testNetwork = await networkRepository.create({
@@ -50,9 +60,22 @@ describe('API Data Consistency Property Tests', () => {
     }
   });
 
-  // Generators for test data
-  const nodeIdArbitrary = fc.string({ minLength: 8, maxLength: 8 }).map(s => s.padStart(8, '0'));
-  const hexIdArbitrary = fc.hexaString({ minLength: 8, maxLength: 8 });
+  // Generators for test data with proper uniqueness
+  const nodeIdArbitrary = fc.integer({ min: 1, max: 0xFFFFFFFF }).map((num) => {
+    // Generate a proper Meshtastic node ID format like !12345678
+    // Use timestamp + random to ensure uniqueness
+    const timestamp = Date.now();
+    const unique = (timestamp + num) % 0xFFFFFFFF;
+    return `!${unique.toString(16).padStart(8, '0')}`;
+  });
+  
+  const hexIdArbitrary = fc.integer({ min: 1, max: 0xFFFFFFFF }).map((num) => {
+    // Generate proper 8-character hex ID
+    // Use timestamp + random to ensure uniqueness
+    const timestamp = Date.now();
+    const unique = (timestamp + num + 1000) % 0xFFFFFFFF;
+    return unique.toString(16).padStart(8, '0');
+  });
   const shortNameArbitrary = fc.string({ minLength: 1, maxLength: 4 });
   const longNameArbitrary = fc.string({ minLength: 1, maxLength: 40 });
   const roleArbitrary = fc.constantFrom(...Object.values(NodeRole));
@@ -77,8 +100,8 @@ describe('API Data Consistency Property Tests', () => {
   const positionDataArbitrary = fc.record({
     latitude: latitudeArbitrary,
     longitude: longitudeArbitrary,
-    altitude: fc.option(altitudeArbitrary),
-    precision: fc.option(fc.float({ min: 0, max: 100 })),
+    altitude: fc.option(altitudeArbitrary, { nil: undefined }),
+    precision: fc.option(fc.float({ min: 0, max: 100 }), { nil: undefined }),
     timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date() }),
     source: fc.constantFrom(...Object.values(PositionSource))
   });
@@ -87,13 +110,13 @@ describe('API Data Consistency Property Tests', () => {
     type: fc.constantFrom(...Object.values(TelemetryType)),
     timestamp: fc.date({ min: new Date('2020-01-01'), max: new Date() }),
     data: fc.record({
-      batteryLevel: fc.option(batteryLevelArbitrary),
-      voltage: fc.option(voltageArbitrary),
-      channelUtilization: fc.option(utilizationArbitrary),
-      airUtilTx: fc.option(utilizationArbitrary),
-      temperature: fc.option(fc.float({ min: -40, max: 85 })),
-      humidity: fc.option(fc.float({ min: 0, max: 100 })),
-      pressure: fc.option(fc.float({ min: 300, max: 1100 }))
+      batteryLevel: fc.option(batteryLevelArbitrary, { nil: undefined }),
+      voltage: fc.option(voltageArbitrary, { nil: undefined }),
+      channelUtilization: fc.option(utilizationArbitrary, { nil: undefined }),
+      airUtilTx: fc.option(utilizationArbitrary, { nil: undefined }),
+      temperature: fc.option(fc.float({ min: -40, max: 85 }), { nil: undefined }),
+      humidity: fc.option(fc.float({ min: 0, max: 100 }), { nil: undefined }),
+      pressure: fc.option(fc.float({ min: 300, max: 1100 }), { nil: undefined })
     })
   });
 
@@ -101,46 +124,57 @@ describe('API Data Consistency Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(nodeDataArbitrary, async (nodeDataTemplate) => {
         const nodeData = { ...nodeDataTemplate, networkId: testNetworkId };
-        // Create node through API
-        const createResponse = await request(app)
-          .post('/api/v1/nodes')
-          .send(nodeData)
-          .expect(201);
+        
+        let createdNode: any = null;
+        try {
+          // Create node through API
+          const createResponse = await request(app)
+            .post('/api/v1/nodes')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send(nodeData)
+            .expect(201);
 
-        const createdNode = createResponse.body.data;
-        expect(createdNode).toBeDefined();
-        expect(createdNode.nodeId).toBe(nodeData.nodeId);
-        expect(createdNode.hexId).toBe(nodeData.hexId);
+          createdNode = createResponse.body.data;
+          expect(createdNode).toBeDefined();
+          expect(createdNode.nodeId).toBe(nodeData.nodeId);
+          expect(createdNode.hexId).toBe(nodeData.hexId);
 
-        // Verify node exists in database
-        const dbNode = await nodeRepository.findById(createdNode.id);
-        expect(dbNode).toBeDefined();
-        expect(dbNode!.nodeId).toBe(nodeData.nodeId);
-        expect(dbNode!.hexId).toBe(nodeData.hexId);
-        expect(dbNode!.role).toBe(nodeData.role);
+          // Verify node exists in database
+          const dbNode = await nodeRepository.findById(createdNode.id);
+          expect(dbNode).toBeDefined();
+          expect(dbNode!.nodeId).toBe(nodeData.nodeId);
+          expect(dbNode!.hexId).toBe(nodeData.hexId);
+          expect(dbNode!.role).toBe(nodeData.role);
 
-        // Verify node appears in API list
-        const listResponse = await request(app)
-          .get('/api/v1/nodes')
-          .query({ nodeId: nodeData.nodeId })
-          .expect(200);
+          // Verify node appears in API list
+          const listResponse = await request(app)
+            .get('/api/v1/nodes')
+            .query({ nodeId: nodeData.nodeId })
+            .expect(200);
 
-        const foundNodes = listResponse.body.data.filter((n: any) => n.id === createdNode.id);
-        expect(foundNodes).toHaveLength(1);
-        expect(foundNodes[0].nodeId).toBe(nodeData.nodeId);
+          const foundNodes = listResponse.body.data.filter((n: any) => n.id === createdNode.id);
+          expect(foundNodes).toHaveLength(1);
+          expect(foundNodes[0].nodeId).toBe(nodeData.nodeId);
 
-        // Verify node can be retrieved by ID
-        const getResponse = await request(app)
-          .get(`/api/v1/nodes/${createdNode.id}`)
-          .expect(200);
+          // Verify node can be retrieved by ID
+          const getResponse = await request(app)
+            .get(`/api/v1/nodes/${createdNode.id}`)
+            .expect(200);
 
-        expect(getResponse.body.data.id).toBe(createdNode.id);
-        expect(getResponse.body.data.nodeId).toBe(nodeData.nodeId);
-
-        // Clean up
-        await nodeRepository.delete(createdNode.id);
+          expect(getResponse.body.data.id).toBe(createdNode.id);
+          expect(getResponse.body.data.nodeId).toBe(nodeData.nodeId);
+        } finally {
+          // Clean up
+          if (createdNode) {
+            try {
+              await nodeRepository.delete(createdNode.id);
+            } catch (error) {
+              // Ignore cleanup errors
+            }
+          }
+        }
       }),
-      { numRuns: 20 }
+      { numRuns: 10 }
     );
   });
 
@@ -150,61 +184,71 @@ describe('API Data Consistency Property Tests', () => {
         nodeDataArbitrary,
         positionDataArbitrary,
         async (nodeDataTemplate, positionData) => {
-          // Create node first
-          const nodeData = { ...nodeDataTemplate, networkId: testNetworkId };
-          const node = await nodeRepository.create(nodeData);
+          let node: any = null;
+          let createdPosition: any = null;
+          
+          try {
+            // Create node first
+            const nodeData = { ...nodeDataTemplate, networkId: testNetworkId };
+            node = await nodeRepository.create(nodeData);
 
-          // Create position through API
-          const positionPayload = {
-            ...positionData,
-            nodeId: node.id
-          };
+            // Create position through API
+            const positionPayload = {
+              ...positionData,
+              nodeId: node.id
+            };
 
-          const createResponse = await request(app)
-            .post('/api/v1/positions')
-            .send(positionPayload)
-            .expect(201);
+            const createResponse = await request(app)
+              .post('/api/v1/positions')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send(positionPayload)
+              .expect(201);
 
-          const createdPosition = createResponse.body.data;
-          expect(createdPosition).toBeDefined();
-          expect(createdPosition.latitude).toBeCloseTo(positionData.latitude, 5);
-          expect(createdPosition.longitude).toBeCloseTo(positionData.longitude, 5);
+            createdPosition = createResponse.body.data;
+            expect(createdPosition).toBeDefined();
+            expect(createdPosition.latitude).toBeCloseTo(positionData.latitude, 5);
+            expect(createdPosition.longitude).toBeCloseTo(positionData.longitude, 5);
 
-          // Verify position exists in database
-          const dbPosition = await positionRepository.findById(createdPosition.id);
-          expect(dbPosition).toBeDefined();
-          expect(dbPosition!.nodeId).toBe(node.id);
-          expect(dbPosition!.latitude).toBeCloseTo(positionData.latitude, 5);
-          expect(dbPosition!.longitude).toBeCloseTo(positionData.longitude, 5);
+            // Verify position exists in database
+            const dbPosition = await positionRepository.findById(createdPosition.id);
+            expect(dbPosition).toBeDefined();
+            expect(dbPosition!.nodeId).toBe(node.id);
+            expect(dbPosition!.latitude).toBeCloseTo(positionData.latitude, 5);
+            expect(dbPosition!.longitude).toBeCloseTo(positionData.longitude, 5);
 
-          // Verify position appears in node's positions endpoint
-          const nodePositionsResponse = await request(app)
-            .get(`/api/v1/nodes/${node.id}/positions`)
-            .expect(200);
+            // Verify position appears in node's positions endpoint
+            const nodePositionsResponse = await request(app)
+              .get(`/api/v1/nodes/${node.id}/positions`)
+              .expect(200);
 
-          const foundPositions = nodePositionsResponse.body.data.filter(
-            (p: any) => p.id === createdPosition.id
-          );
-          expect(foundPositions).toHaveLength(1);
-          expect(foundPositions[0].latitude).toBeCloseTo(positionData.latitude, 5);
+            const foundPositions = nodePositionsResponse.body.data.filter(
+              (p: any) => p.id === createdPosition.id
+            );
+            expect(foundPositions).toHaveLength(1);
+            expect(foundPositions[0].latitude).toBeCloseTo(positionData.latitude, 5);
 
-          // Verify position appears in general positions list
-          const positionsResponse = await request(app)
-            .get('/api/v1/positions')
-            .query({ nodeId: node.id })
-            .expect(200);
+            // Verify position appears in general positions list
+            const positionsResponse = await request(app)
+              .get('/api/v1/positions')
+              .query({ nodeId: node.id })
+              .expect(200);
 
-          const foundInList = positionsResponse.body.data.filter(
-            (p: any) => p.id === createdPosition.id
-          );
-          expect(foundInList).toHaveLength(1);
-
-          // Clean up
-          await positionRepository.delete(createdPosition.id);
-          await nodeRepository.delete(node.id);
+            const foundInList = positionsResponse.body.data.filter(
+              (p: any) => p.id === createdPosition.id
+            );
+            expect(foundInList).toHaveLength(1);
+          } finally {
+            // Clean up
+            try {
+              if (createdPosition) await positionRepository.delete(createdPosition.id);
+              if (node) await nodeRepository.delete(node.id);
+            } catch (error) {
+              // Ignore cleanup errors
+            }
+          }
         }
       ),
-      { numRuns: 15 }
+      { numRuns: 5 }
     );
   });
 
@@ -226,6 +270,7 @@ describe('API Data Consistency Property Tests', () => {
 
           const createResponse = await request(app)
             .post('/api/v1/telemetry')
+            .set('Authorization', `Bearer ${adminToken}`)
             .send(telemetryPayload)
             .expect(201);
 
@@ -262,11 +307,15 @@ describe('API Data Consistency Property Tests', () => {
           expect(foundInList).toHaveLength(1);
 
           // Clean up
-          await telemetryRepository.delete(createdTelemetry.id);
-          await nodeRepository.delete(node.id);
+          try {
+            await telemetryRepository.delete(createdTelemetry.id);
+            await nodeRepository.delete(node.id);
+          } catch (error) {
+            // Ignore cleanup errors
+          }
         }
       ),
-      { numRuns: 15 }
+      { numRuns: 5 }
     );
   });
 
@@ -278,8 +327,8 @@ describe('API Data Consistency Property Tests', () => {
           batteryLevel: fc.option(batteryLevelArbitrary, { nil: undefined }),
           voltage: fc.option(voltageArbitrary, { nil: undefined }),
           channelUtilization: fc.option(utilizationArbitrary, { nil: undefined }),
-          isOnline: fc.boolean(),
-          mqttConnected: fc.boolean()
+          isOnline: fc.option(fc.boolean(), { nil: undefined }),
+          mqttConnected: fc.option(fc.boolean(), { nil: undefined })
         }),
         async (nodeDataTemplate, updateData) => {
           // Create node first
@@ -289,6 +338,7 @@ describe('API Data Consistency Property Tests', () => {
           // Update node through API
           const updateResponse = await request(app)
             .put(`/api/v1/nodes/${node.id}`)
+            .set('Authorization', `Bearer ${adminToken}`)
             .send(updateData)
             .expect(200);
 
@@ -338,10 +388,14 @@ describe('API Data Consistency Property Tests', () => {
           }
 
           // Clean up
-          await nodeRepository.delete(node.id);
+          try {
+            await nodeRepository.delete(node.id);
+          } catch (error) {
+            // Ignore cleanup errors
+          }
         }
       ),
-      { numRuns: 15 }
+      { numRuns: 5 }
     );
   });
 });

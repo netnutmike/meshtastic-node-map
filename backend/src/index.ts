@@ -202,14 +202,16 @@ process.on('SIGINT', async () => {
   });
 });
 
-// Start server
-server.listen(PORT, async () => {
-  logger.info(`🚀 Meshtastic Node Mapper Backend running on port ${PORT}`);
-  logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
-  logger.info(`🔌 Socket.IO server ready for connections`);
-  
-  // Initialize MQTT Manager after server starts
-  await initializeMQTTManager();
-});
+// Start server only if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, async () => {
+    logger.info(`🚀 Meshtastic Node Mapper Backend running on port ${PORT}`);
+    logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
+    logger.info(`🔌 Socket.IO server ready for connections`);
+    
+    // Initialize MQTT Manager after server starts
+    await initializeMQTTManager();
+  });
+}
 
 export { app, io, mqttManager };

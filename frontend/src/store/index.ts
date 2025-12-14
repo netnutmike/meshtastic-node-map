@@ -3,6 +3,7 @@ import mapReducer from './slices/mapSlice';
 import nodeReducer from './slices/nodeSlice';
 import settingsReducer from './slices/settingsSlice';
 import connectionReducer from './slices/connectionSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     nodes: nodeReducer,
     settings: settingsReducer,
     connection: connectionReducer,
+    auth: authReducer,
   },
 });
 

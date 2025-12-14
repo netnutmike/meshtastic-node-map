@@ -52,15 +52,15 @@ export const schemas = {
   createNode: Joi.object({
     nodeId: Joi.string().required(),
     hexId: Joi.string().required(),
-    shortName: Joi.string().max(4).optional(),
-    longName: Joi.string().max(40).optional(),
-    hardwareModel: Joi.string().optional(),
-    firmwareVersion: Joi.string().optional(),
+    shortName: Joi.string().max(4).allow('').optional(),
+    longName: Joi.string().max(40).allow('').optional(),
+    hardwareModel: Joi.string().allow('').optional(),
+    firmwareVersion: Joi.string().allow('').optional(),
     role: Joi.string().valid(
       'CLIENT', 'CLIENT_MUTE', 'ROUTER', 'ROUTER_CLIENT', 'REPEATER',
       'TRACKER', 'SENSOR', 'TAK', 'CLIENT_HIDDEN', 'LOST_AND_FOUND', 'TAK_TRACKER'
     ).default('CLIENT'),
-    networkId: Joi.string().uuid().required()
+    networkId: Joi.string().required() // Accept CUID format
   }),
 
   updateNode: Joi.object({
@@ -82,7 +82,7 @@ export const schemas = {
 
   // Position schemas
   createPosition: Joi.object({
-    nodeId: Joi.string().uuid().required(),
+    nodeId: Joi.string().required(), // Accept CUID format
     latitude: Joi.number().min(-90).max(90).required(),
     longitude: Joi.number().min(-180).max(180).required(),
     altitude: Joi.number().optional(),
@@ -93,7 +93,7 @@ export const schemas = {
 
   // Telemetry schemas
   createTelemetry: Joi.object({
-    nodeId: Joi.string().uuid().required(),
+    nodeId: Joi.string().required(), // Accept CUID format
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').required(),
     timestamp: Joi.date().iso().required(),
     data: Joi.object().required()
@@ -102,8 +102,8 @@ export const schemas = {
   // Message schemas
   createMessage: Joi.object({
     messageId: Joi.string().optional(),
-    fromNodeId: Joi.string().uuid().required(),
-    toNodeId: Joi.string().uuid().optional(),
+    fromNodeId: Joi.string().required(), // Accept CUID format
+    toNodeId: Joi.string().optional(), // Accept CUID format
     type: Joi.string().valid(
       'TEXT', 'POSITION', 'TELEMETRY', 'NODEINFO', 'ROUTING', 'ADMIN',
       'DETECTION_SENSOR', 'REPLY', 'IP_TUNNEL_APP', 'PAXCOUNTER_APP',
@@ -151,9 +151,14 @@ export const schemas = {
     isActive: Joi.boolean().optional()
   }),
 
-  // UUID parameter validation
+  // ID parameter validation (accepts CUID format)
+  idParam: Joi.object({
+    id: Joi.string().required()
+  }),
+
+  // UUID parameter validation (backward compatibility - now accepts CUID)
   uuidParam: Joi.object({
-    id: Joi.string().uuid().required()
+    id: Joi.string().required()
   })
 };
 
@@ -161,20 +166,55 @@ export const schemas = {
 export const extendedSchemas = {
   // Search and filter schemas
   nodeFilters: Joi.object({
-    networkId: Joi.string().uuid().optional(),
-    role: Joi.string().optional(),
+    networkId: Joi.string().optional(), // Accept CUID format
+    role: Joi.string().valid(
+      'CLIENT', 'CLIENT_MUTE', 'ROUTER', 'ROUTER_CLIENT', 'REPEATER',
+      'TRACKER', 'SENSOR', 'TAK', 'CLIENT_HIDDEN', 'LOST_AND_FOUND', 'TAK_TRACKER'
+    ).optional(),
     isOnline: Joi.boolean().optional(),
     mqttConnected: Joi.boolean().optional(),
-    hardwareModel: Joi.string().optional(),
-    search: Joi.string().optional(), // Search in name, shortName, longName
+    hardwareModel: Joi.string().valid(
+      'TBEAM', 'HELTEC_V3', 'RAK4631', 'STATION_G1', 'NANO_G1',
+      'LORA32_V2_1', 'T_ECHO', 'PORTDUINO', 'ANDROID_SIM', 'DIY_V1'
+    ).optional(),
+    search: Joi.string().max(100).optional(), // Search in name, shortName, longName, hexId
     minBattery: Joi.number().min(0).max(100).optional(),
-    maxAge: Joi.number().integer().min(0).optional(), // Hours since last seen
-    bounds: Joi.object({
-      north: Joi.number().min(-90).max(90).required(),
-      south: Joi.number().min(-90).max(90).required(),
-      east: Joi.number().min(-180).max(180).required(),
-      west: Joi.number().min(-180).max(180).required()
-    }).optional()
+    maxAge: Joi.number().integer().min(0).max(8760).optional(), // Hours since last seen (max 1 year)
+    bounds: Joi.alternatives().try(
+      Joi.string().custom((value, helpers) => {
+        try {
+          const parsed = JSON.parse(value);
+          const { error } = Joi.object({
+            north: Joi.number().min(-90).max(90).required(),
+            south: Joi.number().min(-90).max(90).required(),
+            east: Joi.number().min(-180).max(180).required(),
+            west: Joi.number().min(-180).max(180).required()
+          }).validate(parsed);
+          
+          if (error) {
+            return helpers.error('any.invalid');
+          }
+          
+          // Validate logical bounds
+          if (parsed.north <= parsed.south) {
+            return helpers.error('any.invalid', { message: 'North must be greater than south' });
+          }
+          if (parsed.east <= parsed.west) {
+            return helpers.error('any.invalid', { message: 'East must be greater than west' });
+          }
+          
+          return parsed;
+        } catch (e) {
+          return helpers.error('any.invalid');
+        }
+      }),
+      Joi.object({
+        north: Joi.number().min(-90).max(90).required(),
+        south: Joi.number().min(-90).max(90).required(),
+        east: Joi.number().min(-180).max(180).required(),
+        west: Joi.number().min(-180).max(180).required()
+      })
+    ).optional()
   }).concat(schemas.pagination).concat(schemas.dateRange)
 
 

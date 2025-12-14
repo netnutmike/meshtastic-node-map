@@ -6,6 +6,7 @@
 
 import { EventEmitter } from 'events';
 import { MQTTService, MQTTConnectionConfig, ParsedMeshtasticData } from './mqtt.service';
+import { MQTTMonitorService } from './mqtt-monitor.service';
 import { logger } from '../utils/logger';
 import { NodeRepository } from '../database/repositories/node.repository';
 import { PositionRepository } from '../database/repositories/position.repository';
@@ -21,6 +22,7 @@ export interface MQTTManagerConfig {
 
 export class MQTTManagerService extends EventEmitter {
   private mqttServices: Map<string, MQTTService> = new Map();
+  private mqttMonitorService: MQTTMonitorService;
   private nodeRepository: NodeRepository;
   private positionRepository: PositionRepository;
   private telemetryRepository: TelemetryRepository;
@@ -43,6 +45,7 @@ export class MQTTManagerService extends EventEmitter {
     this.telemetryRepository = telemetryRepository;
     this.messageRepository = messageRepository;
     this.networkRepository = networkRepository;
+    this.mqttMonitorService = new MQTTMonitorService();
   }
 
   /**
@@ -142,6 +145,11 @@ export class MQTTManagerService extends EventEmitter {
 
     mqttService.on('data', async (data: ParsedMeshtasticData) => {
       await this.handleMeshtasticData(data, network.id);
+    });
+
+    // Add raw message monitoring for MQTT Monitor
+    mqttService.on('rawMessage', (topic: string, payload: string, options: any) => {
+      this.mqttMonitorService.addMessage(topic, payload, options);
     });
 
     mqttService.on('parseError', (errorData) => {
@@ -276,6 +284,13 @@ export class MQTTManagerService extends EventEmitter {
       connections: this.getConnectionStatus(),
       uptime: process.uptime()
     };
+  }
+
+  /**
+   * Get MQTT monitor service instance
+   */
+  getMQTTMonitorService(): MQTTMonitorService {
+    return this.mqttMonitorService;
   }
 
   /**

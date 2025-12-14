@@ -188,6 +188,9 @@ export class MQTTService extends EventEmitter {
       const messageStr = message.toString();
       logger.debug(`Received message on topic ${topic}:`, messageStr);
 
+      // Emit raw message for monitoring
+      this.emit('rawMessage', topic, messageStr, { qos: 0, retain: false });
+
       // Parse the message based on topic structure
       const parsedData = this.parseMessage(topic, messageStr);
       

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box } from '@mui/material';
@@ -8,6 +8,8 @@ import { RootState } from '../../store';
 import { setCenter, setZoom, closeTopologyGraph } from '../../store/slices/mapSlice';
 import NodeMarkers from './NodeMarkers';
 import NetworkTopologyGraph from './NetworkTopologyGraph';
+import MapOptions from './MapOptions';
+import MapLegend from './MapLegend';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -106,13 +108,23 @@ const MapViewController: React.FC = () => {
 
 interface MapComponentProps {
   height?: string | number;
+  onOpenMapOptions?: () => void;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh' }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMapOptions }) => {
   const dispatch = useDispatch();
   const { center, zoom, tileLayer, topologyGraphOpen } = useSelector((state: RootState) => state.map);
+  const [mapOptionsOpen, setMapOptionsOpen] = useState(false);
   
   const selectedTileLayer = TILE_LAYERS[tileLayer as keyof typeof TILE_LAYERS] || TILE_LAYERS.openstreetmap;
+
+  // Handle external map options open request
+  useEffect(() => {
+    if (onOpenMapOptions) {
+      // This is a bit of a hack, but we need to expose the open function
+      (window as any).openMapOptions = () => setMapOptionsOpen(true);
+    }
+  }, [onOpenMapOptions]);
 
   return (
     <Box sx={{ height, width: '100%', position: 'relative' }}>
@@ -160,6 +172,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh' }) => {
         isOpen={topologyGraphOpen}
         onClose={() => dispatch(closeTopologyGraph())}
       />
+      
+      {/* Map Options Panel */}
+      <MapOptions
+        isOpen={mapOptionsOpen}
+        onClose={() => setMapOptionsOpen(false)}
+      />
+      
+      {/* Map Legend */}
+      <MapLegend />
     </Box>
   );
 };

@@ -171,7 +171,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - **Property 10: Data storage and interface updates**
   - **Validates: Requirements 13.1, 13.2**
 
-- [ ] 13. Search and filtering functionality
+- [x] 13. Search and filtering functionality
   - Implement node search with autocomplete functionality
   - Create advanced filtering by hardware type, role, and status
   - Add geographic area filtering with map drawing tools
@@ -179,13 +179,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create filter combination logic and result count display
   - _Requirements: 6.3, 16.1, 16.2, 16.3, 16.4, 16.5_
 
-- [ ] 13.1 Write unit tests for search and filtering
+- [x] 13.1 Write unit tests for search and filtering
   - Test search functionality with various query types
   - Validate filter combinations and result accuracy
   - Test geographic area filtering logic
   - _Requirements: 6.3, 16.1, 16.2, 16.3, 16.4, 16.5_
 
-- [ ] 14. Settings and configuration management
+- [x] 14. Settings and configuration management
   - Create settings panel with user preference controls
   - Implement local storage for persistent user settings
   - Add configuration options for node age limits and display preferences
@@ -193,13 +193,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Implement settings reset functionality with default values
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 14.1 Write unit tests for settings management
+- [x] 14.1 Write unit tests for settings management
   - Test settings persistence and retrieval
   - Validate default value restoration
   - Test setting validation and error handling
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 15. Age-based node filtering and display logic
+- [x] 15. Age-based node filtering and display logic
   - Implement node age calculation and filtering logic
   - Create "Show All" toggle to override age filtering
   - Add visual indicators for node age and connection status
@@ -207,11 +207,11 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Add age-based styling and opacity effects
   - _Requirements: 7.1, 13.4_
 
-- [ ] 15.1 Write property test for age-based filtering
+- [x] 15.1 Write property test for age-based filtering
   - **Property 11: Age-based node filtering**
   - **Validates: Requirements 13.4**
 
-- [ ] 16. Map options and layer management
+- [x] 16. Map options and layer management
   - Implement map tile source selection (OpenStreetMap, satellite, etc.)
   - Create node display mode toggles (All, Routers, Clustered, None)
   - Add overlay management for legend, neighbors, and position history
@@ -219,13 +219,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create map options panel with intuitive controls
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 16.1 Write unit tests for map layer management
+- [x] 16.1 Write unit tests for map layer management
   - Test tile source switching functionality
   - Validate overlay toggle behavior
   - Test view mode transitions and data display
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 17. Message history and communication tracking
+- [x] 17. Message history and communication tracking
   - Implement message storage and retrieval system
   - Create message history display with filtering and search
   - Add message type categorization (Sent, Received, Gated)
@@ -233,16 +233,16 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create message export functionality
   - _Requirements: 3.2, 15.1, 19.3_
 
-- [ ] 17.1 Write unit tests for message management
+- [x] 17.1 Write unit tests for message management
   - Test message storage and retrieval operations
   - Validate message filtering and search functionality
   - Test routing path calculation and display
   - _Requirements: 3.2, 15.1, 19.3_
 
-- [ ] 18. Checkpoint - Ensure all tests pass
+- [x] 18. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 19. About page and customizable content
+- [x] 19. About page and customizable content
   - Create about page with application information and version display
   - Implement configurable content sections for custom information
   - Add version tracking and display from package.json
@@ -250,13 +250,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Implement navigation and routing for about page
   - _Requirements: 6.4, 10.4, 12.2_
 
-- [ ] 19.1 Write unit tests for about page
+- [x] 19.1 Write unit tests for about page
   - Test version display and content rendering
   - Validate configurable content sections
   - Test responsive layout and navigation
   - _Requirements: 6.4, 10.4, 12.2_
 
-- [ ] 20. Custom links and navigation enhancements
+- [x] 20. Custom links and navigation enhancements
   - Implement custom links configuration from YAML
   - Create custom links menu with hover descriptions
   - Add external link handling with new tab opening
@@ -264,13 +264,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Style custom links for consistent navigation experience
   - _Requirements: 12.3, 12.4_
 
-- [ ] 20.1 Write unit tests for custom links
+- [x] 20.1 Write unit tests for custom links
   - Test custom links configuration loading
   - Validate link display and interaction behavior
   - Test conditional visibility logic
   - _Requirements: 12.3, 12.4_
 
-- [ ] 21. MQTT monitoring tool
+- [x] 21. MQTT monitoring tool
   - Create MQTT traffic monitoring interface
   - Implement real-time message display with filtering
   - Add message type breakdown and statistics
@@ -278,13 +278,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Implement traffic rate monitoring and alerts
   - _Requirements: 11.1_
 
-- [ ] 21.1 Write unit tests for MQTT monitoring
+- [x] 21.1 Write unit tests for MQTT monitoring
   - Test message capture and display functionality
   - Validate filtering and statistics calculations
   - Test real-time update performance
   - _Requirements: 11.1_
 
-- [ ] 22. Statistics and analytics reporting
+- [x] 22. Statistics and analytics reporting
   - Implement comprehensive network statistics calculation
   - Create detailed reports for nodes, messages, and network utilization
   - Add breakdown by message type, encryption status, and routing method
@@ -292,13 +292,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create exportable reports in multiple formats
   - _Requirements: 11.2, 19.1, 19.2_
 
-- [ ] 22.1 Write unit tests for statistics generation
+- [x] 22.1 Write unit tests for statistics generation
   - Test statistics calculation accuracy
   - Validate report generation and formatting
   - Test data aggregation and filtering logic
   - _Requirements: 11.2, 19.1, 19.2_
 
-- [ ] 23. Network utilization analysis
+- [x] 23. Network utilization analysis
   - Implement channel utilization tracking and analysis
   - Create utilization heatmaps and geographic overlays
   - Add capacity planning tools and recommendations
@@ -306,13 +306,13 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create utilization alerts and threshold monitoring
   - _Requirements: 11.3, 11.4, 17.1, 17.2, 17.3_
 
-- [ ] 23.1 Write unit tests for utilization analysis
+- [x] 23.1 Write unit tests for utilization analysis
   - Test utilization calculation algorithms
   - Validate heatmap generation and overlay display
   - Test capacity planning recommendations
   - _Requirements: 11.3, 11.4, 17.1, 17.2, 17.3_
 
-- [ ] 24. Authentication and user management
+- [x] 24. Authentication and user management
   - Implement JWT-based authentication system
   - Create user registration and login interfaces
   - Add role-based access control (Admin, Operator, Viewer)
@@ -320,7 +320,7 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
   - Create user session management and security controls
   - _Requirements: 21.1, 21.2, 21.3_
 
-- [ ] 24.1 Write unit tests for authentication
+- [x] 24.1 Write unit tests for authentication
   - Test user authentication and authorization flows
   - Validate JWT token generation and validation
   - Test role-based permission enforcement

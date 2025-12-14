@@ -1,11 +1,15 @@
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { Box } from '@mui/material';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Box, Drawer, IconButton, Tooltip } from '@mui/material';
+import { FilterList as FilterIcon } from '@mui/icons-material';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import MapComponent from '../components/Map/MapComponent';
-import { setNodes, setLoading, setError, Node } from '../store/slices/nodeSlice';
+import SearchAndFiltering, { SearchFilters } from '../components/SearchAndFiltering';
+import { MQTTMonitor } from '../components/MQTTMonitor';
+import { setNodes, setLoading, setError, setSearchFilters, Node } from '../store/slices/nodeSlice';
 import { openTopologyGraph } from '../store/slices/mapSlice';
 import { apiService } from '../services/api';
+import { RootState } from '../store';
 
 // Mock data for initial testing - this will be replaced with API calls
 const mockNodes: Node[] = [
@@ -120,16 +124,20 @@ const mockNodes: Node[] = [
 
 const MapPage: React.FC = () => {
   const dispatch = useDispatch();
+  const { filteredNodes } = useSelector((state: RootState) => state.nodes);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
+  const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
 
   useEffect(() => {
     // Load nodes from API on component mount
     loadNodes();
   }, [dispatch]);
 
-  const loadNodes = async () => {
+  const loadNodes = async (filters?: SearchFilters) => {
     try {
       dispatch(setLoading(true));
-      const response = await apiService.getNodes();
+      const response = await apiService.getNodes(filters);
       
       // Transform API response to frontend format
       const transformedNodes = response.data.map((node: any) => ({
@@ -168,17 +176,49 @@ const MapPage: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
-    // TODO: Implement search functionality
-    console.log('Search query:', query);
+    const filters = { ...currentFilters, search: query };
+    setCurrentFilters(filters);
+    dispatch(setSearchFilters(filters));
+    loadNodes(filters);
   };
+
+  const handleFilter = useCallback((filters: SearchFilters) => {
+    setCurrentFilters(filters);
+    dispatch(setSearchFilters(filters));
+    loadNodes(filters);
+  }, [dispatch]);
 
   const handleRefresh = () => {
     console.log('Refreshing map data...');
-    loadNodes();
+    loadNodes(currentFilters);
   };
 
   const handleOpenTopology = () => {
     dispatch(openTopologyGraph());
+  };
+
+  const handleOpenMapOptions = () => {
+    // Use the global function exposed by MapComponent
+    if ((window as any).openMapOptions) {
+      (window as any).openMapOptions();
+    }
+  };
+
+  const handleOpenMQTTMonitor = () => {
+    setMqttMonitorOpen(true);
+  };
+
+  const handleCloseMQTTMonitor = () => {
+    setMqttMonitorOpen(false);
+  };
+
+  const handleDrawBounds = () => {
+    // TODO: Implement map drawing functionality
+    console.log('Drawing bounds on map...');
+  };
+
+  const toggleFilterDrawer = () => {
+    setFilterDrawerOpen(!filterDrawerOpen);
   };
 
   return (
@@ -187,10 +227,59 @@ const MapPage: React.FC = () => {
         onSearch={handleSearch} 
         onRefresh={handleRefresh}
         onOpenTopology={handleOpenTopology}
+        onOpenMapOptions={handleOpenMapOptions}
+        onOpenMQTTMonitor={handleOpenMQTTMonitor}
       />
-      <Box sx={{ flexGrow: 1 }}>
-        <MapComponent height="100%" />
+      
+      {/* Filter Toggle Button */}
+      <Box sx={{ position: 'absolute', top: 80, right: 16, zIndex: 1000 }}>
+        <Tooltip title="Search & Filter">
+          <IconButton
+            onClick={toggleFilterDrawer}
+            sx={{
+              backgroundColor: 'background.paper',
+              boxShadow: 2,
+              '&:hover': {
+                backgroundColor: 'background.paper',
+                boxShadow: 4,
+              },
+            }}
+          >
+            <FilterIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
+
+      {/* Search and Filtering Drawer */}
+      <Drawer
+        anchor="right"
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: 400,
+            maxWidth: '90vw',
+            top: 64, // Below the navigation header
+            height: 'calc(100vh - 64px)',
+          },
+        }}
+      >
+        <SearchAndFiltering
+          onFilter={handleFilter}
+          resultCount={filteredNodes.length}
+          onDrawBounds={handleDrawBounds}
+        />
+      </Drawer>
+
+      <Box sx={{ flexGrow: 1 }}>
+        <MapComponent height="100%" onOpenMapOptions={handleOpenMapOptions} />
+      </Box>
+
+      {/* MQTT Monitor */}
+      <MQTTMonitor 
+        isVisible={mqttMonitorOpen}
+        onClose={handleCloseMQTTMonitor}
+      />
     </Box>
   );
 };

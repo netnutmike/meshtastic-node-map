@@ -7,6 +7,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     role: string;
     permissions: string[];
+    sessionId?: string;
   };
 }
 
@@ -32,10 +33,15 @@ export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: 
     const secret = process.env.JWT_SECRET || 'fallback-secret-key';
     const decoded = jwt.verify(token, secret) as any;
     
+    // Check if token is blacklisted (for logout functionality)
+    // Note: In production, this would be stored in Redis or database
+    // For now, we'll skip this check as it would require importing from auth routes
+    
     req.user = {
       id: decoded.id,
       role: decoded.role,
-      permissions: decoded.permissions || []
+      permissions: decoded.permissions || [],
+      sessionId: decoded.sessionId
     };
     
     next();
@@ -79,15 +85,53 @@ export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: Nex
   const apiKey = req.headers['x-api-key'] as string;
 
   if (authHeader) {
-    authenticateJWT(req, res, next);
-    return;
+    const token = authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+        const decoded = jwt.verify(token, secret) as any;
+        
+        req.user = {
+          id: decoded.id,
+          role: decoded.role,
+          permissions: decoded.permissions || [],
+          sessionId: decoded.sessionId
+        };
+      } catch (error) {
+        // Invalid token, but continue without authentication
+        logger.warn('Optional JWT authentication failed:', error);
+      }
+    }
   } else if (apiKey) {
-    authenticateApiKey(req as ApiKeyRequest, res, next);
-    return;
-  } else {
-    // No authentication provided, continue with limited access
-    next();
+    const validApiKeys = process.env.API_KEYS?.split(',') || [];
+    if (validApiKeys.includes(apiKey)) {
+      (req as ApiKeyRequest).apiKey = {
+        id: apiKey,
+        name: 'Default API Key',
+        permissions: ['read', 'write']
+      };
+    }
   }
+  
+  // Always continue, regardless of authentication status
+  next();
+};
+
+// Check if authentication is enabled via configuration
+export const isAuthEnabled = (): boolean => {
+  return process.env.AUTH_ENABLED === 'true' || process.env.JWT_SECRET !== undefined;
+};
+
+// Conditional authentication - only require auth if enabled in config
+export const conditionalAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  if (!isAuthEnabled()) {
+    // Authentication disabled, continue without auth
+    next();
+    return;
+  }
+  
+  // Authentication enabled, require it
+  authenticateJWT(req, res, next);
 };
 
 // Role-based authorization middleware
@@ -117,6 +161,39 @@ export const requirePermission = (permission: string) => {
       return;
     }
 
+    if (!user.permissions.includes(permission) && !user.permissions.includes('admin')) {
+      res.status(403).json({ error: `Permission '${permission}' required` });
+      return;
+    }
+
+    next();
+  };
+};
+
+// Optional permission check - only enforces if authentication is enabled and user is authenticated
+export const optionalPermission = (permission: string) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    // If authentication is disabled, allow access
+    if (!isAuthEnabled()) {
+      next();
+      return;
+    }
+    
+    const user = req.user || (req as ApiKeyRequest).apiKey;
+    
+    // If no user but auth is enabled, still allow read operations for public access
+    if (!user && permission === 'read') {
+      next();
+      return;
+    }
+    
+    // If no user and not a read operation, require auth
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    // Check permissions for authenticated users
     if (!user.permissions.includes(permission) && !user.permissions.includes('admin')) {
       res.status(403).json({ error: `Permission '${permission}' required` });
       return;

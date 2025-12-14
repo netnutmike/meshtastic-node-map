@@ -7,18 +7,58 @@ import { Node, openDetailsPanel, closeDetailsPanel, activateNeighborVisualizatio
 import NodeDetailsPanel from '../NodeDetailsPanel';
 import NeighborArrows from './NeighborArrows';
 
-// Create custom icons for different node states with enhanced styling
-const createNodeIcon = (status: 'online' | 'disconnected' | 'offline', isAnimated: boolean = false) => {
-  const colors = {
+// Create custom icons for different node states with enhanced styling and age-based effects
+const createNodeIcon = (
+  status: 'online' | 'disconnected' | 'offline', 
+  isAnimated: boolean = false, 
+  ageOpacity: number = 1.0,
+  isOld: boolean = false,
+  viewMode: 'nodes' | 'nodeTypes' | 'bandwidthUtilization' = 'nodes',
+  node?: Node
+) => {
+  let colors = {
     online: '#4caf50',      // Green
     disconnected: '#2196f3', // Blue  
     offline: '#f44336',     // Red
   };
 
+  // Adjust colors based on view mode (Requirements 8.4, 8.5)
+  if (viewMode === 'nodeTypes' && node) {
+    const typeColors = {
+      'ROUTER': '#9c27b0',     // Purple
+      'REPEATER': '#ff5722',   // Deep Orange
+      'CLIENT': '#00bcd4',     // Cyan
+      'CLIENT_MUTE': '#607d8b', // Blue Grey
+      'CLIENT_HIDDEN': '#795548', // Brown
+      'TRACKER': '#ff9800',    // Orange
+      'SENSOR': '#4caf50',     // Green
+      'TAK': '#e91e63',        // Pink
+      'TAK_TRACKER': '#f44336', // Red
+      'TELEMETRY_REQUEST': '#3f51b5', // Indigo
+    };
+    const nodeColor = typeColors[node.role as keyof typeof typeColors] || '#9e9e9e';
+    colors = { online: nodeColor, disconnected: nodeColor, offline: nodeColor };
+  } else if (viewMode === 'bandwidthUtilization' && node) {
+    // Color based on channel utilization
+    const utilization = node.channelUtilization || 0;
+    let utilizationColor = '#4caf50'; // Green for low utilization
+    
+    if (utilization > 75) {
+      utilizationColor = '#f44336'; // Red for high utilization
+    } else if (utilization > 50) {
+      utilizationColor = '#ff9800'; // Orange for medium utilization
+    } else if (utilization > 25) {
+      utilizationColor = '#ffeb3b'; // Yellow for moderate utilization
+    }
+    
+    colors = { online: utilizationColor, disconnected: utilizationColor, offline: utilizationColor };
+  }
+
   const animationClass = isAnimated ? 'node-marker-pulse' : '';
+  const ageClass = isOld ? 'node-marker-old' : '';
 
   return L.divIcon({
-    className: `custom-node-marker ${animationClass}`,
+    className: `custom-node-marker ${animationClass} ${ageClass}`,
     html: `<div class="node-marker-container">
       <div class="node-marker-dot" style="
         width: 12px;
@@ -28,15 +68,18 @@ const createNodeIcon = (status: 'online' | 'disconnected' | 'offline', isAnimate
         border: 2px solid white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         transition: all 0.3s ease;
+        opacity: ${ageOpacity};
+        ${isOld ? 'filter: grayscale(0.3);' : ''}
       "></div>
       ${isAnimated ? '<div class="node-marker-pulse-ring"></div>' : ''}
+      ${isOld ? '<div class="node-marker-age-indicator"></div>' : ''}
     </div>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
 };
 
-// Add CSS for animations
+// Add CSS for animations and age-based styling
 const addNodeMarkerStyles = () => {
   if (document.getElementById('node-marker-styles')) return;
   
@@ -53,6 +96,11 @@ const addNodeMarkerStyles = () => {
       transform: scale(1.2);
     }
     
+    .node-marker-old .node-marker-dot:hover {
+      transform: scale(1.1);
+      filter: grayscale(0.1) !important;
+    }
+    
     .node-marker-pulse-ring {
       position: absolute;
       top: 50%;
@@ -64,6 +112,18 @@ const addNodeMarkerStyles = () => {
       transform: translate(-50%, -50%);
       animation: pulse-ring 2s infinite;
       opacity: 0.6;
+    }
+    
+    .node-marker-age-indicator {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 6px;
+      height: 6px;
+      background-color: #ff9800;
+      border: 1px solid white;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
     
     @keyframes pulse-ring {
@@ -81,12 +141,26 @@ const addNodeMarkerStyles = () => {
       }
     }
     
+    @keyframes age-fade {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    
+    .node-marker-old {
+      animation: age-fade 3s ease-in-out infinite;
+    }
+    
     .leaflet-marker-icon.custom-node-marker {
       background: transparent !important;
       border: none !important;
     }
-    
-
   `;
   document.head.appendChild(style);
 };
@@ -114,7 +188,8 @@ const NodeMarkers: React.FC = () => {
     neighborVisualizationActive,
     neighborVisualizationNodeId 
   } = useSelector((state: RootState) => state.nodes);
-  const { showNodes, animationsEnabled } = useSelector((state: RootState) => state.map);
+  const { showNodes, animationsEnabled, nodeDisplayMode, viewMode } = useSelector((state: RootState) => state.map);
+  const { showAll, nodesMaxAge } = useSelector((state: RootState) => state.settings);
   const map = useMap();
   const prevNodesRef = useRef<Node[]>([]);
 
@@ -151,20 +226,67 @@ const NodeMarkers: React.FC = () => {
   const processedNodes = useMemo(() => {
     return nodes
       .filter(node => node.position) // Only show nodes with valid position data
+      .filter(node => {
+        // Node display mode filtering (Requirements 8.2)
+        if (nodeDisplayMode === 'none') {
+          return false; // Hide all nodes
+        }
+        
+        if (nodeDisplayMode === 'routers') {
+          return node.role === 'ROUTER' || node.role === 'REPEATER';
+        }
+        
+        // For 'all' and 'clustered' modes, show all nodes (clustering handled by map layer)
+        return true;
+      })
+      .filter(node => {
+        // Age-based filtering logic (Requirements 13.4)
+        if (showAll) {
+          return true; // Show all nodes when showAll is enabled
+        }
+        
+        // Apply age filtering when showAll is disabled
+        if (!node.lastSeen) {
+          return false; // Hide nodes without lastSeen timestamp
+        }
+        
+        const nodeAgeSeconds = (Date.now() - new Date(node.lastSeen).getTime()) / 1000;
+        return nodeAgeSeconds <= nodesMaxAge;
+      })
       .map(node => {
         const status = getNodeStatus(node);
         const isRecent = isRecentlyUpdated(node);
         const shouldAnimate = animationsEnabled && isRecent;
-        const icon = createNodeIcon(status, shouldAnimate);
+        
+        // Calculate age-based visual effects
+        let ageOpacity = 1.0;
+        let isOld = false;
+        
+        if (node.lastSeen) {
+          const nodeAgeSeconds = (Date.now() - new Date(node.lastSeen).getTime()) / 1000;
+          const ageRatio = nodeAgeSeconds / nodesMaxAge;
+          
+          // Nodes older than 75% of max age are considered "old"
+          isOld = ageRatio > 0.75;
+          
+          // Gradually reduce opacity as nodes get older (minimum 0.6 opacity)
+          if (ageRatio > 0.5) {
+            ageOpacity = Math.max(0.6, 1.0 - (ageRatio - 0.5) * 0.8);
+          }
+        }
+        
+        const icon = createNodeIcon(status, shouldAnimate, ageOpacity, isOld, viewMode, node);
         
         return {
           ...node,
           status,
           isRecent,
+          isOld,
+          ageOpacity,
           icon,
         };
       });
-  }, [nodes, animationsEnabled]);
+  }, [nodes, animationsEnabled, showAll, nodesMaxAge, nodeDisplayMode, viewMode]);
 
   // Get the selected node for the details panel
   const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) || null : null;
@@ -196,16 +318,31 @@ const NodeMarkers: React.FC = () => {
                                    node.status === 'disconnected' ? '#2196f3' : '#f44336',
                   marginRight: '8px',
                   border: '2px solid white',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  opacity: node.ageOpacity || 1.0
                 }} />
                 <h4 style={{ margin: 0, flex: 1 }}>{node.longName || node.shortName}</h4>
                 {node.isRecent && (
                   <span style={{ 
                     fontSize: '10px', 
                     color: '#4caf50', 
-                    fontWeight: 'bold' 
+                    fontWeight: 'bold',
+                    marginRight: '4px'
                   }}>
                     LIVE
+                  </span>
+                )}
+                {node.isOld && (
+                  <span style={{ 
+                    fontSize: '10px', 
+                    color: '#ff9800', 
+                    fontWeight: 'bold',
+                    backgroundColor: '#fff3e0',
+                    padding: '2px 4px',
+                    borderRadius: '3px',
+                    border: '1px solid #ffcc02'
+                  }}>
+                    OLD
                   </span>
                 )}
               </div>
@@ -275,6 +412,35 @@ const NodeMarkers: React.FC = () => {
                 }}>
                   <p style={{ margin: '2px 0' }}>
                     <strong>Last Seen:</strong> {node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}
+                    {node.lastSeen && (() => {
+                      const ageSeconds = (Date.now() - new Date(node.lastSeen).getTime()) / 1000;
+                      const ageMinutes = Math.floor(ageSeconds / 60);
+                      const ageHours = Math.floor(ageMinutes / 60);
+                      const ageDays = Math.floor(ageHours / 24);
+                      
+                      let ageText = '';
+                      let ageColor = '#666';
+                      
+                      if (ageDays > 0) {
+                        ageText = ` (${ageDays}d ago)`;
+                        ageColor = '#f44336';
+                      } else if (ageHours > 0) {
+                        ageText = ` (${ageHours}h ago)`;
+                        ageColor = ageHours > 12 ? '#ff9800' : '#666';
+                      } else if (ageMinutes > 0) {
+                        ageText = ` (${ageMinutes}m ago)`;
+                        ageColor = '#4caf50';
+                      } else {
+                        ageText = ' (just now)';
+                        ageColor = '#4caf50';
+                      }
+                      
+                      return (
+                        <span style={{ color: ageColor, fontWeight: 'bold' }}>
+                          {ageText}
+                        </span>
+                      );
+                    })()}
                   </p>
                   <p style={{ margin: '2px 0' }}>
                     <strong>Last Heard:</strong> {node.lastHeard ? new Date(node.lastHeard).toLocaleString() : 'Never'}

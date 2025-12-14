@@ -14,9 +14,9 @@ const nodeRepository = new NodeRepository();
 
 // Telemetry query filters schema
 const telemetryFiltersSchema = Joi.object({
-  nodeId: Joi.string().uuid().optional(),
+  nodeId: Joi.string().optional(), // Accept CUID format
   type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional(),
-  networkId: Joi.string().uuid().optional()
+  networkId: Joi.string().optional() // Accept CUID format
 }).concat(schemas.pagination).concat(schemas.dateRange);
 
 // GET /telemetry - List all telemetry readings with filtering
@@ -198,7 +198,7 @@ router.delete('/:id',
 router.get('/latest/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().uuid().required() }), 'params'),
+  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
   validate(Joi.object({
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional()
   }), 'query'),
@@ -247,7 +247,7 @@ router.get('/latest/:nodeId',
 router.get('/stats/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().uuid().required() }), 'params'),
+  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
   validate(schemas.dateRange.concat(Joi.object({
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional(),
     interval: Joi.string().valid('hour', 'day', 'week', 'month').default('hour')
@@ -370,7 +370,7 @@ router.get('/summary',
   applyRateLimit('read'),
   optionalAuth,
   validate(Joi.object({
-    networkId: Joi.string().uuid().optional(),
+    networkId: Joi.string().optional(), // Accept CUID format
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional()
   }).concat(schemas.dateRange), 'query'),
   asyncHandler(async (req, res) => {

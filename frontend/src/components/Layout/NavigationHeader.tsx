@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   AppBar,
   Toolbar,
@@ -8,18 +10,24 @@ import {
   InputBase,
   alpha,
   styled,
+  Button,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Info as InfoIcon,
   Devices as DevicesIcon,
   Settings as SettingsIcon,
-  Build as ToolsIcon,
-  Link as LinkIcon,
   Refresh as RefreshIcon,
   AccountTree as TopologyIcon,
+  Map as MapOptionsIcon,
+  Monitor as MonitorIcon,
+  Login as LoginIcon,
 } from '@mui/icons-material';
 import ConnectionStatus from '../ConnectionStatus';
+import Settings from '../Settings';
+import CustomLinksMenu from '../CustomLinksMenu';
+import { AuthModal, UserMenu } from '../Auth';
+import { selectIsAuthenticated, selectUser } from '../../store/slices/authSlice';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -66,15 +74,53 @@ interface NavigationHeaderProps {
   onSearch?: (query: string) => void;
   onRefresh?: () => void;
   onOpenTopology?: () => void;
+  onOpenMapOptions?: () => void;
+  onOpenMQTTMonitor?: () => void;
 }
 
 const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   onSearch,
   onRefresh,
   onOpenTopology,
+  onOpenMapOptions,
+  onOpenMQTTMonitor,
 }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authEnabled, setAuthEnabled] = useState(false);
+  const navigate = useNavigate();
+  
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
+
+  // Check if authentication is enabled via API
+  React.useEffect(() => {
+    const checkAuthConfig = async () => {
+      try {
+        const response = await fetch('/api/auth/config');
+        if (response.ok) {
+          const config = await response.json();
+          setAuthEnabled(config.enabled);
+        }
+      } catch (error) {
+        // If auth config endpoint doesn't exist or fails, assume auth is disabled
+        setAuthEnabled(false);
+      }
+    };
+    
+    checkAuthConfig();
+  }, []);
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearch?.(event.target.value);
+  };
+
+  const handleOpenSettings = () => {
+    setSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setSettingsOpen(false);
   };
 
   return (
@@ -114,6 +160,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             color="inherit"
             aria-label="about"
             title="About"
+            onClick={() => navigate('/about')}
           >
             <InfoIcon />
           </IconButton>
@@ -130,16 +177,18 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             color="inherit"
             aria-label="settings"
             title="Settings"
+            onClick={handleOpenSettings}
           >
             <SettingsIcon />
           </IconButton>
           
           <IconButton
             color="inherit"
-            aria-label="tools"
-            title="Tools"
+            aria-label="mqtt monitor"
+            title="MQTT Monitor"
+            onClick={onOpenMQTTMonitor}
           >
-            <ToolsIcon />
+            <MonitorIcon />
           </IconButton>
           
           <IconButton
@@ -153,11 +202,14 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           
           <IconButton
             color="inherit"
-            aria-label="custom links"
-            title="Custom Links"
+            aria-label="map options"
+            title="Map Options"
+            onClick={onOpenMapOptions}
           >
-            <LinkIcon />
+            <MapOptionsIcon />
           </IconButton>
+          
+          <CustomLinksMenu />
           
           <IconButton
             color="inherit"
@@ -168,7 +220,38 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             <RefreshIcon />
           </IconButton>
         </Box>
+
+        {/* Authentication Section - Only show if auth is enabled */}
+        {authEnabled && (
+          <Box sx={{ ml: 2 }}>
+            {isAuthenticated && user ? (
+              <UserMenu user={user} />
+            ) : (
+              <Button
+                color="inherit"
+                startIcon={<LoginIcon />}
+                onClick={() => setAuthModalOpen(true)}
+              >
+                Sign In
+              </Button>
+            )}
+          </Box>
+        )}
       </Toolbar>
+
+      {/* Settings Dialog */}
+      <Settings 
+        open={settingsOpen} 
+        onClose={handleCloseSettings} 
+      />
+
+      {/* Authentication Modal - Only render if auth is enabled */}
+      {authEnabled && (
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+        />
+      )}
     </AppBar>
   );
 };
