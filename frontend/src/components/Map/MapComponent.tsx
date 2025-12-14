@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
-import { Box } from '@mui/material';
+import { Box, useTheme, useMediaQuery } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RootState } from '../../store';
@@ -10,6 +10,7 @@ import NodeMarkers from './NodeMarkers';
 import NetworkTopologyGraph from './NetworkTopologyGraph';
 import MapOptions from './MapOptions';
 import MapLegend from './MapLegend';
+import { MobileControls } from '../Mobile';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -109,10 +110,20 @@ const MapViewController: React.FC = () => {
 interface MapComponentProps {
   height?: string | number;
   onOpenMapOptions?: () => void;
+  onOpenSearch?: () => void;
+  onOpenSettings?: () => void;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMapOptions }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ 
+  height = '100vh', 
+  onOpenMapOptions,
+  onOpenSearch,
+  onOpenSettings 
+}) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const { center, zoom, tileLayer, topologyGraphOpen } = useSelector((state: RootState) => state.map);
   const [mapOptionsOpen, setMapOptionsOpen] = useState(false);
   
@@ -132,13 +143,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMap
         center={center}
         zoom={zoom}
         style={{ height: '100%', width: '100%' }}
-        zoomControl={true}
+        zoomControl={!isMobile} // Hide default zoom controls on mobile
         scrollWheelZoom={true}
         doubleClickZoom={true}
         touchZoom={true}
         dragging={true}
-        keyboard={true}
-        boxZoom={true}
+        keyboard={!isMobile} // Disable keyboard controls on mobile
+        boxZoom={!isMobile} // Disable box zoom on mobile
         trackResize={true}
         worldCopyJump={false}
         closePopupOnClick={true}
@@ -147,6 +158,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMap
         zoomAnimation={true}
         fadeAnimation={true}
         markerZoomAnimation={true}
+        // Mobile-specific options
+        tap={isMobile}
+        tapTolerance={15}
+        zoomSnap={isMobile ? 0.5 : 1}
+        zoomDelta={isMobile ? 0.5 : 1}
       >
         <TileLayer
           key={tileLayer} // Force re-render when tile layer changes
@@ -159,13 +175,21 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMap
           detectRetina={true}
           updateWhenIdle={false}
           updateWhenZooming={true}
-          keepBuffer={2}
+          keepBuffer={isMobile ? 1 : 2} // Reduce buffer on mobile for performance
+          crossOrigin={true}
         />
         
         <MapEventHandler />
         <MapViewController />
         <NodeMarkers />
       </MapContainer>
+      
+      {/* Mobile Controls */}
+      <MobileControls
+        onOpenSearch={onOpenSearch}
+        onOpenSettings={onOpenSettings}
+        onOpenMapOptions={() => setMapOptionsOpen(true)}
+      />
       
       {/* Network Topology Graph Modal */}
       <NetworkTopologyGraph
@@ -179,8 +203,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ height = '100vh', onOpenMap
         onClose={() => setMapOptionsOpen(false)}
       />
       
-      {/* Map Legend */}
-      <MapLegend />
+      {/* Map Legend - Hide on mobile when controls are visible */}
+      {!isMobile && <MapLegend />}
     </Box>
   );
 };

@@ -131,6 +131,8 @@ model Node {
   voltage             Float?    // Voltage reading
   channelUtilization  Float?    // 0-100 percentage
   airUtilTx           Float?    // 0-100 percentage
+  transmitPower       Int?      // Transmit power in dBm
+  antennaGain         Float?    // Antenna gain in dBi
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   networkId           String

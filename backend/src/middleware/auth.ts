@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
+import { securityAuditService } from '../services/security-audit.service';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -47,13 +48,22 @@ export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: 
     next();
   } catch (error) {
     logger.warn('JWT authentication failed:', error);
+    
+    // Log security event
+    securityAuditService.logAuthentication(false, {
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      endpoint: req.path,
+      method: req.method
+    }, { error: error instanceof Error ? error.message : 'Unknown error' });
+    
     res.status(403).json({ error: 'Invalid or expired token' });
     return;
   }
 };
 
 // API Key Authentication middleware
-export const authenticateApiKey = (req: ApiKeyRequest, res: Response, next: NextFunction): void => {
+export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next: NextFunction): Promise<void> => {
   const apiKey = req.headers['x-api-key'] as string;
 
   if (!apiKey) {
@@ -61,26 +71,49 @@ export const authenticateApiKey = (req: ApiKeyRequest, res: Response, next: Next
     return;
   }
 
-  // In a real implementation, you would validate the API key against a database
-  // For now, we'll use a simple validation
-  const validApiKeys = process.env.API_KEYS?.split(',') || [];
-  
-  if (!validApiKeys.includes(apiKey)) {
-    res.status(403).json({ error: 'Invalid API key' });
+  try {
+    // Import here to avoid circular dependency
+    const { apiKeyService } = await import('../services/api-key.service');
+    
+    const validatedKey = await apiKeyService.validateApiKey(apiKey, req.ip);
+    
+    if (!validatedKey) {
+      // Log security event
+      securityAuditService.logApiKeyUsage('unknown', {
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        endpoint: req.path,
+        method: req.method
+      }, req.path, false);
+      
+      res.status(403).json({ error: 'Invalid or expired API key' });
+      return;
+    }
+
+    // Log successful API key usage
+    securityAuditService.logApiKeyUsage(validatedKey.id, {
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      endpoint: req.path,
+      method: req.method
+    }, req.path, true);
+
+    req.apiKey = {
+      id: validatedKey.id,
+      name: validatedKey.name,
+      permissions: validatedKey.permissions
+    };
+
+    next();
+  } catch (error) {
+    logger.error('API key validation error:', error);
+    res.status(500).json({ error: 'Internal server error during authentication' });
     return;
   }
-
-  req.apiKey = {
-    id: apiKey,
-    name: 'Default API Key',
-    permissions: ['read', 'write'] // Default permissions
-  };
-
-  next();
 };
 
 // Optional authentication - allows both authenticated and unauthenticated access
-export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers.authorization;
   const apiKey = req.headers['x-api-key'] as string;
 
@@ -103,13 +136,19 @@ export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: Nex
       }
     }
   } else if (apiKey) {
-    const validApiKeys = process.env.API_KEYS?.split(',') || [];
-    if (validApiKeys.includes(apiKey)) {
-      (req as ApiKeyRequest).apiKey = {
-        id: apiKey,
-        name: 'Default API Key',
-        permissions: ['read', 'write']
-      };
+    try {
+      // Import here to avoid circular dependency
+      const { apiKeyService } = await import('../services/api-key.service');
+      const validatedKey = await apiKeyService.validateApiKey(apiKey, req.ip);
+      if (validatedKey) {
+        (req as ApiKeyRequest).apiKey = {
+          id: validatedKey.id,
+          name: validatedKey.name,
+          permissions: validatedKey.permissions
+        };
+      }
+    } catch (error) {
+      logger.warn('Optional API key validation failed:', error);
     }
   }
   
@@ -143,6 +182,15 @@ export const requireRole = (roles: string[]) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      // Log authorization failure
+      securityAuditService.logAuthorization(false, {
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        userId: req.user.id,
+        endpoint: req.path,
+        method: req.method
+      }, req.path, `role:${roles.join(',')}`);
+      
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
@@ -162,6 +210,16 @@ export const requirePermission = (permission: string) => {
     }
 
     if (!user.permissions.includes(permission) && !user.permissions.includes('admin')) {
+      // Log authorization failure
+      securityAuditService.logAuthorization(false, {
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        userId: 'user' in req && req.user ? req.user.id : undefined,
+        apiKeyId: 'apiKey' in req && (req as ApiKeyRequest).apiKey ? (req as ApiKeyRequest).apiKey!.id : undefined,
+        endpoint: req.path,
+        method: req.method
+      }, req.path, permission);
+      
       res.status(403).json({ error: `Permission '${permission}' required` });
       return;
     }

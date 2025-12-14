@@ -1,169 +1,207 @@
 # Meshtastic Node Mapper
 
-A comprehensive web-based application for visualizing, monitoring, and analyzing Meshtastic mesh networks through real-time MQTT data consumption.
+A comprehensive web-based application for visualizing and monitoring Meshtastic mesh networks through real-time MQTT data consumption.
 
-## Features
+## 🌟 Features
 
-- 🗺️ **Interactive Map Visualization** - Real-time node positioning with status-based color coding
-- 📊 **Comprehensive Analytics** - Historical telemetry data, network topology, and performance metrics
-- 🔄 **Real-time Updates** - Live data streaming via WebSocket connections
-- 📱 **Mobile Responsive** - Optimized for desktop and mobile devices
-- 🐳 **Containerized Deployment** - Easy setup with Docker Compose
-- 🔒 **Security Features** - Authentication, rate limiting, and access controls
-- 📈 **Advanced Analytics** - Predictive modeling and network optimization
+- **Real-time Node Visualization**: Interactive map showing all active Meshtastic nodes
+- **Comprehensive Monitoring**: Node telemetry, message tracking, and network analytics
+- **Multi-Network Support**: Manage multiple mesh networks simultaneously
+- **Advanced Analytics**: Predictive analysis, coverage planning, and performance optimization
+- **Mobile-Friendly**: Responsive design with offline capabilities
+- **Docker-Ready**: Complete containerized deployment solution
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Node.js 18+ (for development)
-- Git
+- Docker 20.10+ and Docker Compose 2.0+
+- 4GB RAM minimum (8GB recommended)
+- 20GB storage space
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd meshtastic-node-mapper
-   ```
+1. **Clone and Setup**:
+```bash
+git clone https://github.com/your-org/meshtastic-node-mapper.git
+cd meshtastic-node-mapper
+./scripts/setup.sh
+```
 
-2. **Copy environment configuration**
-   ```bash
-   cp .env.example .env
-   ```
+2. **Access the Application**:
+- 🌐 **Frontend**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:3001
+- 📚 **API Docs**: http://localhost:3001/api/v1/docs
 
-3. **Start the application**
-   ```bash
-   docker-compose up -d
-   ```
+That's it! The setup script handles everything automatically.
 
-4. **Access the application**
-   - Web Interface: http://localhost:3000
-   - API Documentation: http://localhost:3001/api/docs
-   - MQTT Broker: localhost:1883
+## 📖 Documentation
 
-### Development Setup
+Comprehensive documentation is available in the `docs/` directory:
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   cd backend && npm install
-   cd ../frontend && npm install
-   ```
+- **[📋 Installation Guide](docs/installation.md)** - Complete setup instructions
+- **[👤 User Guide](docs/user-guide.md)** - How to use all features
+- **[⚙️ Configuration Guide](docs/configuration.md)** - Customization options
+- **[👨‍💻 Developer Guide](docs/developer-guide.md)** - Development and contribution
+- **[🔌 API Documentation](docs/api-guide.md)** - REST API and WebSocket reference
+- **[🏗️ Architecture Overview](docs/architecture.md)** - System design details
 
-2. **Start development servers**
-   ```bash
-   npm run dev
-   ```
+## 🛠️ Development
 
-## Architecture
+### Quick Development Setup
 
-The application follows a microservices architecture:
+```bash
+# Install dependencies
+npm install
 
-- **Frontend**: React 18 with TypeScript, Leaflet.js for mapping
-- **Backend**: Node.js with Express, Socket.IO for real-time updates
-- **Database**: PostgreSQL with TimescaleDB for time-series data
-- **Cache**: Redis for session storage and caching
-- **Message Broker**: Mosquitto MQTT for Meshtastic data ingestion
+# Start development environment
+docker-compose -f docker-compose.dev.yml up -d
 
-## Configuration
+# Start backend (terminal 1)
+cd backend && npm run dev
 
-### Application Settings
+# Start frontend (terminal 2)
+cd frontend && npm start
+```
 
-Edit `config/app.yml` to customize:
-- Map default location and zoom
-- Node age thresholds
-- Custom branding and links
-- Feature toggles
-
-### MQTT Configuration
-
-Configure MQTT broker connection in `config/mqtt.yml`:
-- Broker host and authentication
-- Topic subscriptions
-- Message processing settings
-
-### Database Settings
-
-Database configuration in `config/database.yml`:
-- Connection parameters
-- Retention policies
-- Backup settings
-
-## API Documentation
-
-The REST API provides endpoints for:
-- Node data retrieval and management
-- Telemetry data queries
-- Message history access
-- Network topology information
-
-WebSocket API supports:
-- Real-time node updates
-- Live telemetry streaming
-- Network event notifications
-
-## Testing
+### Testing
 
 ```bash
 # Run all tests
 npm test
 
-# Backend tests only
-npm run test:backend
-
-# Frontend tests only
-npm run test:frontend
-
-# Coverage reports
+# Run with coverage
 npm run test:coverage
+
+# Run integration tests
+npm run test:integration
 ```
 
-## Deployment
+See the [Developer Guide](docs/developer-guide.md) for detailed development instructions.
 
-### Production Deployment
+## 🌐 API Overview
 
-1. **Configure environment variables**
-   ```bash
-   cp .env.example .env.production
-   # Edit .env.production with production values
-   ```
+The API provides comprehensive access to mesh network data:
 
-2. **Deploy with production profile**
-   ```bash
-   docker-compose --profile production up -d
-   ```
+### REST API Examples
 
-### Security Considerations
+```javascript
+// Get all online nodes
+const nodes = await fetch('/api/v1/nodes?isOnline=true');
 
-- Change default passwords in production
-- Enable HTTPS with proper SSL certificates
-- Configure firewall rules
-- Set up monitoring and logging
-- Regular security updates
+// Get telemetry data
+const telemetry = await fetch('/api/v1/telemetry?nodeId=123456789');
 
-## Contributing
+// Export data
+const csv = await fetch('/api/v1/export/nodes?format=csv');
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+### WebSocket Real-time Updates
 
-## License
+```javascript
+const socket = io('http://localhost:3001');
 
-This project is licensed under the GPL v3 License - see the [LICENSE](LICENSE) file for details.
+socket.on('nodeUpdate', (data) => {
+  console.log('Node updated:', data);
+});
 
-## Support
+socket.on('messageReceived', (message) => {
+  console.log('New message:', message);
+});
+```
 
-- 📖 [Documentation](docs/)
-- 🐛 [Issue Tracker](issues/)
-- 💬 [Community Forum](https://meshtastic.discourse.group)
-- 📧 [Contact](mailto:support@example.com)
+Full API documentation: [API Guide](docs/api-guide.md)
 
-## Acknowledgments
+## 🚢 Production Deployment
 
-- [Meshtastic Project](https://meshtastic.org) for the amazing mesh networking platform
-- [OpenStreetMap](https://openstreetmap.org) for map data
-- All contributors and community members
+### Docker Production Setup
+
+```bash
+# Production deployment
+./scripts/setup.sh --prod
+
+# Or manually
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Key Production Features
+
+- 🔒 **Security**: JWT authentication, rate limiting, input validation
+- 📊 **Monitoring**: Health checks, metrics, logging
+- 🔄 **High Availability**: Load balancing, auto-restart, graceful shutdown
+- 📈 **Performance**: Caching, connection pooling, optimized queries
+- 🔧 **Maintenance**: Automated backups, log rotation, updates
+
+See [Installation Guide](docs/installation.md) for detailed deployment instructions.
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend API   │    │   MQTT Broker   │
+│   (React)       │◄──►│   (Node.js)     │◄──►│   (Mosquitto)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       ▼                       │
+         │              ┌─────────────────┐              │
+         │              │   PostgreSQL    │              │
+         │              │   + TimescaleDB │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│      Nginx      │    │      Redis      │    │   Monitoring    │
+│   (Reverse      │    │    (Cache)      │    │  (Prometheus)   │
+│    Proxy)       │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Technology Stack:**
+- **Frontend**: React 18+, TypeScript, Material-UI, Leaflet
+- **Backend**: Node.js, Express, Socket.IO, Prisma ORM
+- **Database**: PostgreSQL 15+ with TimescaleDB
+- **Cache**: Redis for sessions and caching
+- **MQTT**: Mosquitto broker integration
+- **Deployment**: Docker with multi-stage builds
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Read the [Developer Guide](docs/developer-guide.md)**
+2. **Fork the repository**
+3. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+4. **Make your changes and add tests**
+5. **Submit a pull request**
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Write tests for new features
+- Update documentation as needed
+- Follow conventional commit messages
+- Ensure all tests pass
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support & Community
+
+- **📖 Documentation**: Complete guides in `docs/` directory
+- **🐛 Issues**: Report bugs on [GitHub Issues](https://github.com/your-org/meshtastic-node-mapper/issues)
+- **💬 Discussions**: Join [GitHub Discussions](https://github.com/your-org/meshtastic-node-mapper/discussions)
+- **📧 Security**: Report security issues privately
+
+## 🙏 Acknowledgments
+
+- **[Meshtastic Project](https://meshtastic.org/)** - The amazing mesh networking platform
+- **[OpenStreetMap](https://www.openstreetmap.org/)** - Open map data
+- **Open Source Community** - All the amazing libraries and tools
+- **Contributors** - Everyone who helps make this project better
+
+---
+
+**⭐ Star this repository if you find it useful!**
+
+For detailed information on any topic, please refer to the comprehensive documentation in the `docs/` directory.

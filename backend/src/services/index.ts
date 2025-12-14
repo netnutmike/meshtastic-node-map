@@ -13,3 +13,21 @@ export {
   UtilizationReport, 
   ExportFormat 
 } from './statistics.service';
+export {
+  AnalyticsService,
+  NodeFailurePrediction,
+  NetworkAnomaly,
+  PerformanceOptimization,
+  TrendAnalysis,
+  IntelligentAlert
+} from './analytics.service';
+export {
+  CoverageAnalysisService,
+  RadioRange,
+  CoverageGap,
+  HypotheticalNode,
+  NetworkOptimization,
+  TerrainData,
+  LineOfSightResult,
+  PerformanceEstimate
+} from './coverage-analysis.service';

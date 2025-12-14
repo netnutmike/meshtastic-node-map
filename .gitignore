@@ -110,3 +110,9 @@ backend/prisma/dev.db*
 # Temporary files
 tmp/
 temp/
+
+# Export and backup files
+backend/exports/
+backend/backups/
+exports/
+backups/

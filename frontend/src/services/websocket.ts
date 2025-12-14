@@ -8,6 +8,7 @@ import {
   updateLastDataUpdate,
   incrementMqttMessageCount 
 } from '../store/slices/connectionSlice';
+import offlineService from './offline.service';
 
 export interface WebSocketService {
   connect(): void;
@@ -171,6 +172,9 @@ class WebSocketServiceImpl implements WebSocketService {
           } else {
             store.dispatch(updateNode({ id: nodeId, ...transformedNode }));
           }
+          
+          // Cache the node data for offline use
+          offlineService.cacheData(`node_${nodeId}`, transformedNode, 24 * 60 * 60 * 1000); // 24 hours TTL
           
           // Update last data update timestamp
           store.dispatch(updateLastDataUpdate());

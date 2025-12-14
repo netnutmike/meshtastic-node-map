@@ -1,0 +1,362 @@
+/* Mobile-specific styles and responsive design */
+
+/* Base mobile styles */
+@media (max-width: 768px) {
+  /* Ensure full viewport usage on mobile */
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Touch-friendly button sizes */
+  .MuiButton-root {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .MuiIconButton-root {
+    padding: 12px;
+  }
+
+  /* Larger touch targets for map controls */
+  .leaflet-control-zoom a {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+  }
+
+  /* Mobile-optimized map container */
+  .leaflet-container {
+    height: 100vh !important;
+    width: 100vw !important;
+    touch-action: pan-x pan-y;
+  }
+
+  /* Optimize popup positioning for mobile */
+  .leaflet-popup {
+    margin-bottom: 60px; /* Account for mobile controls */
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 40px);
+    border-radius: 8px;
+  }
+
+  .leaflet-popup-content {
+    margin: 12px 16px;
+    line-height: 1.5;
+    font-size: 14px;
+  }
+
+  /* Mobile-friendly node markers */
+  .node-marker {
+    min-width: 12px;
+    min-height: 12px;
+    border-width: 2px;
+  }
+
+  /* Responsive navigation header */
+  .navigation-header {
+    padding: 8px 16px;
+    min-height: 56px;
+  }
+
+  .navigation-header .logo {
+    height: 32px;
+  }
+
+  .navigation-header .site-name {
+    font-size: 18px;
+  }
+
+  /* Mobile search bar */
+  .search-container {
+    flex: 1;
+    margin: 0 16px;
+  }
+
+  .search-input {
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  /* Mobile-optimized panels and modals */
+  .mobile-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 70vh;
+    background: white;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1300;
+    overflow: hidden;
+  }
+
+  .mobile-panel-header {
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f5f5f5;
+  }
+
+  .mobile-panel-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(70vh - 60px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile-friendly forms */
+  .mobile-form .MuiFormControl-root {
+    margin-bottom: 16px;
+  }
+
+  .mobile-form .MuiTextField-root {
+    width: 100%;
+  }
+
+  .mobile-form .MuiButton-root {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* Touch-friendly tabs */
+  .MuiTabs-root {
+    min-height: 48px;
+  }
+
+  .MuiTab-root {
+    min-height: 48px;
+    min-width: 90px;
+    font-size: 14px;
+  }
+
+  /* Mobile charts and graphs */
+  .mobile-chart-container {
+    height: 200px;
+    margin: 16px 0;
+  }
+
+  .mobile-chart-container canvas {
+    max-height: 200px !important;
+  }
+
+  /* Responsive tables */
+  .mobile-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-table table {
+    min-width: 100%;
+    font-size: 14px;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  /* Mobile-specific utility classes */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block !important;
+  }
+
+  .mobile-flex-column {
+    flex-direction: column !important;
+  }
+
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  .mobile-text-center {
+    text-align: center !important;
+  }
+
+  /* Swipe gesture indicators */
+  .swipe-indicator {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: #ccc;
+    border-radius: 2px;
+  }
+
+  /* Loading states for mobile */
+  .mobile-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    flex-direction: column;
+  }
+
+  .mobile-loading .MuiCircularProgress-root {
+    margin-bottom: 16px;
+  }
+}
+
+/* Tablet-specific styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablet optimizations */
+  .leaflet-control-zoom a {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+  }
+
+  .mobile-panel {
+    max-width: 400px;
+    right: 16px;
+    left: auto;
+    bottom: 16px;
+    border-radius: 8px;
+    max-height: 60vh;
+  }
+
+  .navigation-header {
+    padding: 12px 24px;
+  }
+
+  /* Show desktop controls on tablet */
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Landscape phone styles */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-panel {
+    max-height: 50vh;
+  }
+
+  .mobile-panel-content {
+    max-height: calc(50vh - 60px);
+  }
+
+  /* Adjust controls for landscape */
+  .leaflet-popup {
+    margin-bottom: 40px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .node-marker {
+    border-width: 1px;
+  }
+  
+  .leaflet-control-zoom a {
+    background-size: 20px 20px;
+  }
+}
+
+/* Dark mode mobile adjustments */
+@media (prefers-color-scheme: dark) {
+  .mobile-panel {
+    background: #1e1e1e;
+    color: white;
+  }
+
+  .mobile-panel-header {
+    background: #2d2d2d;
+    border-bottom-color: #404040;
+  }
+
+  .swipe-indicator {
+    background: #666;
+  }
+}
+
+/* Accessibility improvements for mobile */
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-zoom-animated,
+  .leaflet-pan-anim {
+    transition: none !important;
+  }
+}
+
+/* Focus styles for keyboard navigation on mobile */
+.MuiButton-root:focus-visible,
+.MuiIconButton-root:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Safe area adjustments for devices with notches */
+@supports (padding: max(0px)) {
+  .navigation-header {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  .mobile-panel {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+
+  .leaflet-control-zoom {
+    margin-right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* PWA-specific styles */
+@media (display-mode: standalone) {
+  /* Styles for when app is installed as PWA */
+  .pwa-status-bar {
+    height: env(safe-area-inset-top);
+    background: #1976d2;
+  }
+}
+
+/* Performance optimizations for mobile */
+.mobile-optimized {
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth scrolling for mobile */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Touch callout and selection adjustments */
+.no-touch-callout {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Map-specific touch optimizations */
+.leaflet-container {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.leaflet-marker-icon {
+  -webkit-touch-callout: none;
+}

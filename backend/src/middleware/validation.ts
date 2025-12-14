@@ -1,11 +1,217 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
+import DOMPurify from 'isomorphic-dompurify';
+import validator from 'validator';
 import { logger } from '../utils/logger';
 
-// Generic validation middleware factory
-export const validate = (schema: Joi.ObjectSchema, property: 'body' | 'query' | 'params' = 'body') => {
+// Security validation options
+const SECURITY_OPTIONS = {
+  maxStringLength: 10000,
+  maxArrayLength: 1000,
+  maxObjectDepth: 10,
+  allowedHtmlTags: [], // No HTML allowed by default
+  sqlInjectionPatterns: [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+    /(--|\/\*|\*\/|;|'|"|`)/,
+    /(\bOR\b|\bAND\b).*?[=<>]/i
+  ],
+  xssPatterns: [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /javascript:/gi,
+    /on\w+\s*=/gi,
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi
+  ]
+};
+
+// Input sanitization functions
+export const sanitizeInput = {
+  // Sanitize string input
+  string: (input: string): string => {
+    if (typeof input !== 'string') return '';
+    
+    // Trim whitespace
+    let sanitized = input.trim();
+    
+    // Limit length
+    if (sanitized.length > SECURITY_OPTIONS.maxStringLength) {
+      sanitized = sanitized.substring(0, SECURITY_OPTIONS.maxStringLength);
+    }
+    
+    // Remove HTML tags
+    sanitized = DOMPurify.sanitize(sanitized, { 
+      ALLOWED_TAGS: SECURITY_OPTIONS.allowedHtmlTags,
+      ALLOWED_ATTR: []
+    });
+    
+    // Escape special characters
+    sanitized = validator.escape(sanitized);
+    
+    return sanitized;
+  },
+
+  // Sanitize email
+  email: (input: string): string => {
+    if (typeof input !== 'string') return '';
+    const sanitized = input.trim().toLowerCase();
+    return validator.isEmail(sanitized) ? sanitized : '';
+  },
+
+  // Sanitize URL
+  url: (input: string): string => {
+    if (typeof input !== 'string') return '';
+    const sanitized = input.trim();
+    return validator.isURL(sanitized, { 
+      protocols: ['http', 'https'],
+      require_protocol: true
+    }) ? sanitized : '';
+  },
+
+  // Sanitize numeric input
+  number: (input: any): number | null => {
+    const num = Number(input);
+    return isNaN(num) || !isFinite(num) ? null : num;
+  },
+
+  // Sanitize boolean input
+  boolean: (input: any): boolean => {
+    if (typeof input === 'boolean') return input;
+    if (typeof input === 'string') {
+      return input.toLowerCase() === 'true';
+    }
+    return Boolean(input);
+  }
+};
+
+// Security validation functions
+export const securityValidation = {
+  // Check for SQL injection patterns
+  checkSqlInjection: (input: string): boolean => {
+    return SECURITY_OPTIONS.sqlInjectionPatterns.some(pattern => pattern.test(input));
+  },
+
+  // Check for XSS patterns
+  checkXss: (input: string): boolean => {
+    return SECURITY_OPTIONS.xssPatterns.some(pattern => pattern.test(input));
+  },
+
+  // Check for path traversal
+  checkPathTraversal: (input: string): boolean => {
+    return /\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e%5c/i.test(input);
+  },
+
+  // Validate object depth
+  validateObjectDepth: (obj: any, maxDepth = SECURITY_OPTIONS.maxObjectDepth): boolean => {
+    const checkDepth = (item: any, depth: number): boolean => {
+      if (depth > maxDepth) return false;
+      if (typeof item === 'object' && item !== null) {
+        for (const key in item) {
+          if (!checkDepth(item[key], depth + 1)) return false;
+        }
+      }
+      return true;
+    };
+    return checkDepth(obj, 0);
+  }
+};
+
+// Recursively sanitize object
+function sanitizeObject(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj === 'string') {
+    return sanitizeInput.string(obj);
+  }
+  
+  if (typeof obj === 'number') {
+    return sanitizeInput.number(obj);
+  }
+  
+  if (typeof obj === 'boolean') {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    if (obj.length > SECURITY_OPTIONS.maxArrayLength) {
+      obj = obj.slice(0, SECURITY_OPTIONS.maxArrayLength);
+    }
+    return obj.map((item: any) => sanitizeObject(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const sanitizedKey = sanitizeInput.string(key);
+      sanitized[sanitizedKey] = sanitizeObject(value);
+    }
+    return sanitized;
+  }
+  
+  return obj;
+}
+
+// Enhanced validation middleware factory
+export const validate = (schema: Joi.ObjectSchema, options: {
+  property?: 'body' | 'query' | 'params';
+  sanitize?: boolean;
+  securityCheck?: boolean;
+} = {}) => {
+  const { property = 'body', sanitize = true, securityCheck = true } = options;
+
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { error, value } = schema.validate(req[property], {
+    const data = req[property];
+
+    // Security validation
+    if (securityCheck) {
+      const dataString = JSON.stringify(data);
+      
+      if (securityValidation.checkSqlInjection(dataString)) {
+        logger.warn('SQL injection attempt detected:', { 
+          ip: req.ip, 
+          path: req.path, 
+          data: dataString.substring(0, 200) 
+        });
+        res.status(400).json({ error: 'Invalid input detected' });
+        return;
+      }
+
+      if (securityValidation.checkXss(dataString)) {
+        logger.warn('XSS attempt detected:', { 
+          ip: req.ip, 
+          path: req.path, 
+          data: dataString.substring(0, 200) 
+        });
+        res.status(400).json({ error: 'Invalid input detected' });
+        return;
+      }
+
+      if (securityValidation.checkPathTraversal(dataString)) {
+        logger.warn('Path traversal attempt detected:', { 
+          ip: req.ip, 
+          path: req.path, 
+          data: dataString.substring(0, 200) 
+        });
+        res.status(400).json({ error: 'Invalid input detected' });
+        return;
+      }
+
+      if (!securityValidation.validateObjectDepth(data)) {
+        logger.warn('Object depth limit exceeded:', { 
+          ip: req.ip, 
+          path: req.path 
+        });
+        res.status(400).json({ error: 'Input too complex' });
+        return;
+      }
+    }
+
+    // Sanitize input if requested
+    let sanitizedData = data;
+    if (sanitize && typeof data === 'object' && data !== null) {
+      sanitizedData = sanitizeObject(data);
+    }
+
+    // Joi validation
+    const { error, value } = schema.validate(sanitizedData, {
       abortEarly: false,
       stripUnknown: true
     });
@@ -17,7 +223,12 @@ export const validate = (schema: Joi.ObjectSchema, property: 'body' | 'query' | 
         value: detail.context?.value
       }));
 
-      logger.warn('Validation error:', errorDetails);
+      logger.warn('Validation error:', { 
+        path: req.path, 
+        method: req.method, 
+        errors: errorDetails,
+        ip: req.ip
+      });
       
       res.status(400).json({
         error: 'Validation failed',
@@ -159,6 +370,41 @@ export const schemas = {
   // UUID parameter validation (backward compatibility - now accepts CUID)
   uuidParam: Joi.object({
     id: Joi.string().required()
+  }),
+
+  // API Key schemas
+  createApiKey: Joi.object({
+    name: Joi.string().min(1).max(100).required(),
+    permissions: Joi.array().items(Joi.string().valid('read', 'write', 'admin')).min(1).required(),
+    description: Joi.string().max(500).optional(),
+    expiresAt: Joi.date().iso().greater('now').optional(),
+    rateLimit: Joi.object({
+      requests: Joi.number().integer().min(1).max(100000).required(),
+      windowMs: Joi.number().integer().min(1000).max(86400000).required() // 1 second to 24 hours
+    }).optional(),
+    ipWhitelist: Joi.array().items(Joi.string().ip()).optional()
+  }),
+
+  updateApiKey: Joi.object({
+    name: Joi.string().min(1).max(100).optional(),
+    permissions: Joi.array().items(Joi.string().valid('read', 'write', 'admin')).min(1).optional(),
+    description: Joi.string().max(500).optional(),
+    rateLimit: Joi.object({
+      requests: Joi.number().integer().min(1).max(100000).required(),
+      windowMs: Joi.number().integer().min(1000).max(86400000).required()
+    }).optional(),
+    ipWhitelist: Joi.array().items(Joi.string().ip()).optional()
+  }),
+
+  // Security audit schemas
+  auditLogFilters: Joi.object({
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().min(Joi.ref('startDate')).optional(),
+    level: Joi.string().valid('info', 'warn', 'error').optional(),
+    source: Joi.string().optional(),
+    ipAddress: Joi.string().ip().optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20)
   })
 };
 
@@ -215,7 +461,7 @@ export const extendedSchemas = {
         west: Joi.number().min(-180).max(180).required()
       })
     ).optional()
-  }).concat(schemas.pagination).concat(schemas.dateRange)
+  })
 
 
 };

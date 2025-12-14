@@ -423,6 +423,77 @@ class ApiService {
     return this.request<any>(endpoint);
   }
 
+  // Multi-Network API methods
+  async getMultiNetworkStatus(): Promise<ApiResponse<any>> {
+    return this.request<any>('/multi-network/status');
+  }
+
+  async getAvailableNetworks(): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>('/multi-network/networks');
+  }
+
+  async connectToNetwork(networkId: string, accessControls?: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/multi-network/networks/${networkId}/connect`, {
+      method: 'POST',
+      body: JSON.stringify(accessControls || {})
+    });
+  }
+
+  async disconnectFromNetwork(networkId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/multi-network/networks/${networkId}/disconnect`, {
+      method: 'DELETE'
+    });
+  }
+
+  async updateNetworkAccessControls(networkId: string, accessControls: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/multi-network/networks/${networkId}/access-controls`, {
+      method: 'PUT',
+      body: JSON.stringify(accessControls)
+    });
+  }
+
+  async getCrossNetworkAnalytics(options: {
+    startDate?: string;
+    endDate?: string;
+  } = {}): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const endpoint = `/multi-network/analytics${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
+  async getFederationStatus(): Promise<ApiResponse<any>> {
+    return this.request<any>('/multi-network/federation/status');
+  }
+
+  async configureFederation(settings: {
+    enabled: boolean;
+    syncInterval?: number;
+    allowedNetworks?: string[];
+    dataTypes?: string[];
+  }): Promise<ApiResponse<any>> {
+    return this.request<any>('/multi-network/federation/configure', {
+      method: 'POST',
+      body: JSON.stringify(settings)
+    });
+  }
+
+  async reloadNetworkConfigurations(): Promise<ApiResponse<any>> {
+    return this.request<any>('/multi-network/reload', {
+      method: 'POST'
+    });
+  }
+
+  async testNetworkIsolation(networkId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/multi-network/networks/${networkId}/isolation-test`);
+  }
+
   async exportStatistics(
     format: 'csv' | 'json' | 'pdf',
     type: 'network' | 'messages' | 'utilization',
