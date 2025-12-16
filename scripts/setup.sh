@@ -556,9 +556,16 @@ case "${1:-}" in
         ;;
     --dev)
         COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.yml -f docker-compose.dev.yml"
+        log_info "Using development configuration"
         ;;
     --prod)
         COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.prod.yml"
+        log_info "Using production configuration"
+        ;;
+    *)
+        # Default to development mode
+        COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.yml -f docker-compose.dev.yml"
+        log_info "Using development configuration (default)"
         ;;
 esac
 

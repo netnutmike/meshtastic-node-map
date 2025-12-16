@@ -21,14 +21,21 @@ A comprehensive web-based application for visualizing and monitoring Meshtastic 
 
 ### Installation
 
-1. **Clone and Setup**:
+#### Option 1: Quick Start (Recommended for Development)
+```bash
+git clone https://github.com/your-org/meshtastic-node-mapper.git
+cd meshtastic-node-mapper
+./scripts/quick-start.sh
+```
+
+#### Option 2: Full Setup (Production-Ready)
 ```bash
 git clone https://github.com/your-org/meshtastic-node-mapper.git
 cd meshtastic-node-mapper
 ./scripts/setup.sh
 ```
 
-2. **If you get Docker permission errors**:
+#### If you get Docker permission errors:
 ```bash
 # Run the permission fix script
 ./scripts/fix-docker-permissions.sh

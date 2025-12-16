@@ -70,6 +70,33 @@ sudo chmod +x /usr/local/bin/docker-compose
 docker-compose --version
 ```
 
+## Build Issues
+
+### Problem: Backend build fails with "npm run build" exit code 127
+
+This happens when TypeScript is not available during the Docker build process.
+
+#### Solution:
+The issue has been fixed in the updated Dockerfile. If you're still seeing this:
+
+```bash
+# Clean rebuild
+docker-compose down --rmi all
+docker-compose up --build -d
+
+# Or use the quick start script
+./scripts/quick-start.sh
+```
+
+### Problem: Frontend build issues
+
+```bash
+# Clear npm cache and rebuild
+docker-compose down
+docker system prune -f
+./scripts/quick-start.sh
+```
+
 ## Service Startup Issues
 
 ### Problem: Services fail to start

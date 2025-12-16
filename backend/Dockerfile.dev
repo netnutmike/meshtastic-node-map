@@ -10,20 +10,11 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install all dependencies (including dev dependencies for build)
+# Install all dependencies
 RUN npm ci
-
-# Copy source code
-COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
-
-# Build the application
-RUN npm run build
-
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -43,5 +34,5 @@ COPY healthcheck.js ./
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application in development mode
+CMD ["npm", "run", "dev"]

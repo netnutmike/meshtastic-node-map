@@ -1,0 +1,41 @@
+services:
+  # Backend API Service - Development Override
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://meshtastic:meshtastic_password@postgres:5432/meshtastic_mapper
+      REDIS_URL: redis://redis:6379
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      JWT_SECRET: your-jwt-secret-change-in-production
+      API_PORT: 3001
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./logs/backend:/app/logs
+      - ./config:/app/config
+    command: npm run dev
+
+  # Frontend Web Application - Development Override
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_URL: http://localhost:3001
+      REACT_APP_WS_URL: ws://localhost:3001
+      CHOKIDAR_USEPOLLING: true
+      WATCHPACK_POLLING: true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./config:/app/config
+    command: npm start
+
+  # Disable nginx in development
+  nginx:
+    profiles:
+      - disabled
