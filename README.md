@@ -28,12 +28,28 @@ cd meshtastic-node-mapper
 ./scripts/setup.sh
 ```
 
-2. **Access the Application**:
+2. **If you get Docker permission errors**:
+```bash
+# Run the permission fix script
+./scripts/fix-docker-permissions.sh
+
+# Then try setup again
+./scripts/setup.sh
+```
+
+3. **Access the Application**:
 - 🌐 **Frontend**: http://localhost:3000
 - 🔧 **Backend API**: http://localhost:3001
 - 📚 **API Docs**: http://localhost:3001/api/v1/docs
 
 That's it! The setup script handles everything automatically.
+
+### Troubleshooting
+
+If you encounter issues:
+- 🔧 **Docker Permissions**: Run `./scripts/fix-docker-permissions.sh`
+- 📖 **Common Issues**: Check [docs/troubleshooting.md](docs/troubleshooting.md)
+- 🐛 **Bug Reports**: Open an issue on GitHub
 
 ## 📖 Documentation
 

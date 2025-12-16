@@ -2,6 +2,8 @@
 
 This guide provides comprehensive instructions for installing and setting up the Meshtastic Node Mapper application.
 
+> **Having issues?** Check the [Troubleshooting Guide](troubleshooting.md) for common problems and solutions.
+
 ## Prerequisites
 
 Before installing the Meshtastic Node Mapper, ensure your system meets the following requirements:
@@ -52,7 +54,12 @@ sudo systemctl enable docker
 
 # Add user to docker group
 sudo usermod -aG docker $USER
+
+# Log out and back in, or run:
+newgrp docker
 ```
+
+> **Important**: After adding your user to the docker group, you must log out and back in (or run `newgrp docker`) for the changes to take effect. If you get permission errors, see the [Troubleshooting Guide](troubleshooting.md#docker-permission-issues).
 
 **macOS:**
 ```bash

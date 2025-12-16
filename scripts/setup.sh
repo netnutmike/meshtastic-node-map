@@ -55,13 +55,58 @@ check_docker() {
         exit 1
     fi
 
+    # Check Docker daemon access
+    if ! docker info &> /dev/null; then
+        log_error "Cannot connect to Docker daemon. This usually means:"
+        echo "  1. Docker daemon is not running"
+        echo "  2. Current user doesn't have permission to access Docker"
+        echo ""
+        echo "To fix permission issues, run:"
+        echo "  sudo usermod -aG docker \$USER"
+        echo "  newgrp docker"
+        echo ""
+        echo "Or run this script with sudo (not recommended for security):"
+        echo "  sudo $0"
+        echo ""
+        echo "After adding user to docker group, log out and back in, then try again."
+        exit 1
+    fi
+
     DOCKER_VERSION=$(docker --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     if ! version_compare "$DOCKER_VERSION" "$REQUIRED_DOCKER_VERSION"; then
         log_error "Docker version $DOCKER_VERSION is too old. Required: $REQUIRED_DOCKER_VERSION+"
         exit 1
     fi
 
-    log_success "Docker $DOCKER_VERSION is installed"
+    log_success "Docker $DOCKER_VERSION is installed and accessible"
+}
+
+check_docker_permissions() {
+    log_info "Checking Docker permissions..."
+    
+    # Check if user is in docker group
+    if ! groups | grep -q docker; then
+        log_warning "Current user is not in the docker group."
+        
+        if [[ $EUID -eq 0 ]]; then
+            log_warning "Running as root. This works but is not recommended for security."
+        else
+            log_info "Attempting to add user to docker group..."
+            if sudo usermod -aG docker "$USER" 2>/dev/null; then
+                log_success "User added to docker group."
+                log_warning "Please log out and back in, or run 'newgrp docker' to apply group changes."
+                log_info "Then run this script again."
+                exit 0
+            else
+                log_error "Failed to add user to docker group. Please run manually:"
+                echo "  sudo usermod -aG docker \$USER"
+                echo "  newgrp docker"
+                exit 1
+            fi
+        fi
+    else
+        log_success "User has Docker permissions"
+    fi
 }
 
 check_docker_compose() {
@@ -71,9 +116,9 @@ check_docker_compose() {
     if command -v docker-compose &> /dev/null; then
         COMPOSE_CMD="docker-compose"
         COMPOSE_VERSION=$(docker-compose --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    elif docker compose version &> /dev/null; then
+    elif docker compose version &> /dev/null 2>&1; then
         COMPOSE_CMD="docker compose"
-        COMPOSE_VERSION=$(docker compose version --short)
+        COMPOSE_VERSION=$(docker compose version --short 2>/dev/null || echo "2.0.0")
     else
         log_error "Docker Compose is not installed. Please install Docker Compose first."
         log_info "Visit: https://docs.docker.com/compose/install/"
@@ -478,6 +523,7 @@ main() {
     
     # Check prerequisites
     check_docker
+    check_docker_permissions
     check_docker_compose
     
     # Setup
