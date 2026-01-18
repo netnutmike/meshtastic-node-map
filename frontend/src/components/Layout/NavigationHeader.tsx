@@ -19,9 +19,10 @@ import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
   AccountTree as TopologyIcon,
-  Map as MapOptionsIcon,
   Monitor as MonitorIcon,
   Login as LoginIcon,
+  MapOutlined as MapIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material';
 import ConnectionStatus from '../ConnectionStatus';
 import Settings from '../Settings';
@@ -74,7 +75,6 @@ interface NavigationHeaderProps {
   onSearch?: (query: string) => void;
   onRefresh?: () => void;
   onOpenTopology?: () => void;
-  onOpenMapOptions?: () => void;
   onOpenMQTTMonitor?: () => void;
 }
 
@@ -82,7 +82,6 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   onSearch,
   onRefresh,
   onOpenTopology,
-  onOpenMapOptions,
   onOpenMQTTMonitor,
 }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -158,17 +157,18 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
           <IconButton
             color="inherit"
-            aria-label="about"
-            title="About"
-            onClick={() => navigate('/about')}
+            aria-label="map"
+            title="Map"
+            onClick={() => navigate('/')}
           >
-            <InfoIcon />
+            <MapIcon />
           </IconButton>
           
           <IconButton
             color="inherit"
-            aria-label="devices"
-            title="Devices"
+            aria-label="nodes"
+            title="Nodes"
+            onClick={() => navigate('/nodes')}
           >
             <DevicesIcon />
           </IconButton>
@@ -200,16 +200,25 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             <TopologyIcon />
           </IconButton>
           
+          <CustomLinksMenu />
+          
           <IconButton
             color="inherit"
-            aria-label="map options"
-            title="Map Options"
-            onClick={onOpenMapOptions}
+            aria-label="network insights"
+            title="Network Insights"
+            onClick={() => navigate('/insights')}
           >
-            <MapOptionsIcon />
+            <DashboardIcon />
           </IconButton>
           
-          <CustomLinksMenu />
+          <IconButton
+            color="inherit"
+            aria-label="about"
+            title="About"
+            onClick={() => navigate('/about')}
+          >
+            <InfoIcon />
+          </IconButton>
           
           <IconButton
             color="inherit"

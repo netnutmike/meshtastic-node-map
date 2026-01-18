@@ -152,6 +152,66 @@ router.get('/export',
   })
 );
 
+// GET /statistics/database-overview - Get database table record counts
+router.get('/database-overview',
+  applyRateLimit('read'),
+  optionalAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    logger.debug('Fetching database overview');
+
+    const overview = await statisticsService.getDatabaseOverview();
+
+    res.json({
+      data: overview,
+      generatedAt: new Date()
+    });
+  })
+);
+
+// GET /statistics/message-timeline - Get MQTT message timeline
+router.get('/message-timeline',
+  applyRateLimit('read'),
+  optionalAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { networkId, days = 3, intervalMinutes = 15 } = req.query;
+
+    logger.debug('Fetching message timeline', { networkId, days, intervalMinutes });
+
+    const timeline = await statisticsService.getMessageTimeline(
+      networkId as string | undefined,
+      parseInt(days as string, 10),
+      parseInt(intervalMinutes as string, 10)
+    );
+
+    res.json({
+      data: timeline,
+      generatedAt: new Date()
+    });
+  })
+);
+
+// GET /statistics/top-talkers - Get top talkers (nodes with most messages)
+router.get('/top-talkers',
+  applyRateLimit('read'),
+  optionalAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit = 20, networkId, requireShortName = 'false' } = req.query;
+
+    logger.debug('Fetching top talkers', { limit, networkId, requireShortName });
+
+    const topTalkers = await statisticsService.getTopTalkers(
+      parseInt(limit as string, 10),
+      networkId as string | undefined,
+      requireShortName === 'true'
+    );
+
+    res.json({
+      data: topTalkers,
+      generatedAt: new Date()
+    });
+  })
+);
+
 // Helper function to convert data to CSV format
 function convertToCSV(data: any): string {
   if (Array.isArray(data)) {

@@ -423,6 +423,40 @@ class ApiService {
     return this.request<any>(endpoint);
   }
 
+  // Generic HTTP methods for flexibility
+  async get<T = any>(endpoint: string, options: { params?: any } = {}): Promise<{ data: T }> {
+    const params = options.params ? new URLSearchParams(options.params).toString() : '';
+    const url = params ? `${endpoint}?${params}` : endpoint;
+    const response = await this.request<T>(url);
+    return response;
+  }
+
+  async post<T = any>(endpoint: string, data?: any, options: RequestInit = {}): Promise<{ data: T }> {
+    const response = await this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
+    });
+    return response;
+  }
+
+  async put<T = any>(endpoint: string, data?: any, options: RequestInit = {}): Promise<{ data: T }> {
+    const response = await this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
+    });
+    return response;
+  }
+
+  async delete<T = any>(endpoint: string, options: RequestInit = {}): Promise<{ data: T }> {
+    const response = await this.request<T>(endpoint, {
+      method: 'DELETE',
+      ...options
+    });
+    return response;
+  }
+
   // Multi-Network API methods
   async getMultiNetworkStatus(): Promise<ApiResponse<any>> {
     return this.request<any>('/multi-network/status');
@@ -519,6 +553,48 @@ class ApiService {
     }
     
     return response.blob();
+  }
+
+  async getDatabaseOverview(): Promise<ApiResponse<any>> {
+    return this.request<any>('/v1/statistics/database-overview');
+  }
+
+  async getMessageTimeline(
+    options: {
+      networkId?: string;
+      days?: number;
+      intervalMinutes?: number;
+    } = {}
+  ): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const endpoint = `/v1/statistics/message-timeline${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
+  async getTopTalkers(
+    options: {
+      limit?: number;
+      networkId?: string;
+      requireShortName?: boolean;
+    } = {}
+  ): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const endpoint = `/v1/statistics/top-talkers${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
   }
 }
 

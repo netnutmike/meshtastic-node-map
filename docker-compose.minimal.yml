@@ -1,0 +1,62 @@
+services:
+  # PostgreSQL Database - Minimal configuration
+  postgres:
+    image: postgres:15-alpine
+    container_name: meshtastic-postgres-minimal
+    environment:
+      POSTGRES_DB: meshtastic_mapper
+      POSTGRES_USER: meshtastic
+      POSTGRES_PASSWORD: meshtastic_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_minimal:/var/lib/postgresql/data
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meshtastic -d meshtastic_mapper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Minimal configuration
+  redis:
+    image: redis:7-alpine
+    container_name: meshtastic-redis-minimal
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_minimal:/data
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Mosquitto MQTT Broker - Minimal configuration
+  mosquitto:
+    image: eclipse-mosquitto:2.0-alpine
+    container_name: meshtastic-mosquitto-minimal
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_data_minimal:/mosquitto/data
+    networks:
+      - meshtastic-network
+    restart: unless-stopped
+    command: mosquitto -c /mosquitto-no-auth.conf
+
+volumes:
+  postgres_data_minimal:
+  redis_data_minimal:
+  mosquitto_data_minimal:
+
+networks:
+  meshtastic-network:
+    driver: bridge

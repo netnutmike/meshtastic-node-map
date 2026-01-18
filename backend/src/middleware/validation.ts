@@ -160,36 +160,48 @@ export const validate = (schema: Joi.ObjectSchema, options: {
   return (req: Request, res: Response, next: NextFunction): void => {
     const data = req[property];
 
-    // Security validation
-    if (securityCheck) {
-      const dataString = JSON.stringify(data);
-      
-      if (securityValidation.checkSqlInjection(dataString)) {
-        logger.warn('SQL injection attempt detected:', { 
-          ip: req.ip, 
-          path: req.path, 
-          data: dataString.substring(0, 200) 
-        });
-        res.status(400).json({ error: 'Invalid input detected' });
-        return;
-      }
+    // Security validation - check actual string values, not JSON representation
+    if (securityCheck && data && typeof data === 'object') {
+      const checkValue = (value: any): boolean => {
+        if (typeof value === 'string') {
+          if (securityValidation.checkSqlInjection(value)) {
+            logger.warn('SQL injection attempt detected:', { 
+              ip: req.ip, 
+              path: req.path, 
+              value: value.substring(0, 200) 
+            });
+            return false;
+          }
 
-      if (securityValidation.checkXss(dataString)) {
-        logger.warn('XSS attempt detected:', { 
-          ip: req.ip, 
-          path: req.path, 
-          data: dataString.substring(0, 200) 
-        });
-        res.status(400).json({ error: 'Invalid input detected' });
-        return;
-      }
+          if (securityValidation.checkXss(value)) {
+            logger.warn('XSS attempt detected:', { 
+              ip: req.ip, 
+              path: req.path, 
+              value: value.substring(0, 200) 
+            });
+            return false;
+          }
 
-      if (securityValidation.checkPathTraversal(dataString)) {
-        logger.warn('Path traversal attempt detected:', { 
-          ip: req.ip, 
-          path: req.path, 
-          data: dataString.substring(0, 200) 
-        });
+          if (securityValidation.checkPathTraversal(value)) {
+            logger.warn('Path traversal attempt detected:', { 
+              ip: req.ip, 
+              path: req.path, 
+              value: value.substring(0, 200) 
+            });
+            return false;
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          // Recursively check nested objects
+          for (const key in value) {
+            if (!checkValue(value[key])) {
+              return false;
+            }
+          }
+        }
+        return true;
+      };
+
+      if (!checkValue(data)) {
         res.status(400).json({ error: 'Invalid input detected' });
         return;
       }
@@ -460,7 +472,15 @@ export const extendedSchemas = {
         east: Joi.number().min(-180).max(180).required(),
         west: Joi.number().min(-180).max(180).required()
       })
-    ).optional()
+    ).optional(),
+    // Pagination parameters
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sortBy: Joi.string().optional(),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+    // Date range parameters
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().optional()
   })
 
 

@@ -49,7 +49,7 @@ import {
   Edit,
   Save,
   Cancel,
-  TestTube
+  Science
 } from '@mui/icons-material';
 import { apiService } from '../../services/api';
 
@@ -107,7 +107,7 @@ export const NetworkIsolationPanel: React.FC<NetworkIsolationPanelProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await apiService.request<any>('/multi-network/status');
+      const response = await apiService.get<any>('/multi-network/status');
       const networkStatus = response.data.status[networkId];
       
       if (networkStatus?.accessControls) {
@@ -127,7 +127,7 @@ export const NetworkIsolationPanel: React.FC<NetworkIsolationPanelProps> = ({
       setTesting(true);
       setError(null);
       
-      const response = await apiService.request<NetworkIsolationTest>(
+      const response = await apiService.get<NetworkIsolationTest>(
         `/multi-network/networks/${networkId}/isolation-test`
       );
       
@@ -146,12 +146,9 @@ export const NetworkIsolationPanel: React.FC<NetworkIsolationPanelProps> = ({
       setLoading(true);
       setError(null);
       
-      await apiService.request(
+      await apiService.put(
         `/multi-network/networks/${networkId}/access-controls`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(newAccessControls)
-        }
+        newAccessControls
       );
       
       setAccessControls(newAccessControls);
@@ -216,7 +213,7 @@ export const NetworkIsolationPanel: React.FC<NetworkIsolationPanelProps> = ({
             <Box display="flex" gap={1}>
               <Tooltip title="Run isolation test">
                 <IconButton onClick={runIsolationTest} disabled={testing}>
-                  <TestTube />
+                  <Science />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Edit access controls">

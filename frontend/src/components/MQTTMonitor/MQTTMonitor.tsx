@@ -96,7 +96,8 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
         )
       });
       
-      const response = await fetch(`/api/v1/mqtt-monitor/messages?${queryParams}`);
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/v1/mqtt-monitor/messages?${queryParams}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -123,7 +124,8 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
     if (!isVisible || activeTab !== 'statistics') return;
     
     try {
-      const response = await fetch('/api/v1/mqtt-monitor/statistics?timeRange=1h');
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/v1/mqtt-monitor/statistics?timeRange=1h`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -141,7 +143,8 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
     if (!isVisible || activeTab !== 'traffic') return;
     
     try {
-      const response = await fetch('/api/v1/mqtt-monitor/traffic-rate?interval=1m');
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/v1/mqtt-monitor/traffic-rate?interval=1m`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

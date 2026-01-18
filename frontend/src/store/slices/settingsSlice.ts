@@ -8,16 +8,18 @@ interface SettingsState {
   temperatureFormat: 'celsius' | 'fahrenheit';
   autoUpdatePositionInUrl: boolean;
   showAll: boolean;
+  showDebugInfo: boolean;
 }
 
 const defaultSettings: SettingsState = {
   nodesMaxAge: 86400, // 24 hours
-  nodesDisconnectedAge: 3600, // 1 hour
-  nodesOfflineAge: 300, // 5 minutes
+  nodesDisconnectedAge: 10800, // 3 hours
+  nodesOfflineAge: 3600, // 60 minutes
   defaultZoom: 10,
   temperatureFormat: 'celsius',
   autoUpdatePositionInUrl: true,
   showAll: false,
+  showDebugInfo: false,
 };
 
 // Load settings from localStorage
@@ -63,6 +65,10 @@ const settingsSlice = createSlice({
       state.showAll = !state.showAll;
       saveSettingsToStorage(state);
     },
+    toggleShowDebugInfo: (state) => {
+      state.showDebugInfo = !state.showDebugInfo;
+      saveSettingsToStorage(state);
+    },
   },
 });
 
@@ -70,6 +76,7 @@ export const {
   updateSettings,
   resetSettings,
   toggleShowAll,
+  toggleShowDebugInfo,
 } = settingsSlice.actions;
 
 export default settingsSlice.reducer;

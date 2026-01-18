@@ -22,7 +22,7 @@ import {
 import { 
   NetworkCheck, 
   NetworkWifi, 
-  NetworkWifiOff, 
+  WifiOff, 
   Security, 
   Public, 
   Lock,
@@ -70,7 +70,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await apiService.request<NetworkInfo[]>('/multi-network/networks');
+      const response = await apiService.get<NetworkInfo[]>('/multi-network/networks');
       setNetworks(response.data);
     } catch (err) {
       console.error('Failed to load networks:', err);
@@ -87,7 +87,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   // Get network status icon
   const getNetworkStatusIcon = (network: NetworkInfo) => {
     if (!network.isConnected) {
-      return <NetworkWifiOff color="error" />;
+      return <WifiOff color="error" />;
     }
     return <NetworkWifi color="success" />;
   };

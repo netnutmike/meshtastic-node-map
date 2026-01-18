@@ -68,7 +68,7 @@ export const MultiNetworkManager: React.FC<MultiNetworkManagerProps> = ({
   const loadNetworkInfo = async () => {
     try {
       setLoading(true);
-      const response = await apiService.request<any[]>('/multi-network/networks');
+      const response = await apiService.get<any[]>('/multi-network/networks');
       
       const names: Record<string, string> = {};
       response.data.forEach((network: any) => {
@@ -95,7 +95,7 @@ export const MultiNetworkManager: React.FC<MultiNetworkManagerProps> = ({
       setError(null);
       
       // Reload networks
-      await apiService.request('/multi-network/reload', { method: 'POST' });
+      await apiService.post('/multi-network/reload');
       await loadNetworkInfo();
       
       setSuccessMessage('Network configurations reloaded successfully');

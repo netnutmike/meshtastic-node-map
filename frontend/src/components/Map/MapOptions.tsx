@@ -61,6 +61,7 @@ const VIEW_MODES = [
 
 const MapOptions: React.FC<MapOptionsProps> = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
+  
   const {
     tileLayer,
     nodeDisplayMode,

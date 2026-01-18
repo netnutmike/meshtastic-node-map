@@ -33,7 +33,7 @@ const messageFiltersSchema = Joi.object({
 router.get('/',
   applyRateLimit('read'),
   optionalAuth,
-  validate(messageFiltersSchema, 'query'),
+  validate(messageFiltersSchema, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -129,7 +129,7 @@ router.get('/',
 router.get('/:id',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -187,7 +187,7 @@ router.put('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('write'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(Joi.object({
     content: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
     encrypted: Joi.boolean().optional(),
@@ -218,7 +218,7 @@ router.delete('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -243,8 +243,8 @@ router.get('/conversation/:nodeId1/:nodeId2',
   validate(Joi.object({
     nodeId1: Joi.string().required(), // Accept CUID format
     nodeId2: Joi.string().required() // Accept CUID format
-  }), 'params'),
-  validate(schemas.pagination.concat(schemas.dateRange), 'query'),
+  }), { property: 'params' }),
+  validate(schemas.pagination.concat(schemas.dateRange), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { nodeId1, nodeId2 } = req.params;
     const { page = 1, limit = 50, startDate, endDate } = req.query;
@@ -344,7 +344,7 @@ router.get('/export',
     networkId: Joi.string().optional(), // Accept CUID format
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional()
-  }), 'query'),
+  }), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       format = 'json',
@@ -450,7 +450,7 @@ router.get('/export',
 router.get('/node/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(Joi.object({
     direction: Joi.string().valid('sent', 'received', 'both').default('both'),
     type: Joi.string().valid(
@@ -464,7 +464,7 @@ router.get('/node/:nodeId',
     page: Joi.number().integer().min(1).default(1),
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional()
-  }), 'query'),
+  }), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { nodeId } = req.params;
     const { direction = 'both', type, limit = 50, page = 1, startDate, endDate } = req.query;

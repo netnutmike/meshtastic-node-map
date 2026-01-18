@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Drawer, IconButton, Tooltip } from '@mui/material';
-import { FilterList as FilterIcon } from '@mui/icons-material';
+import { Box, Drawer, IconButton, Tooltip, CircularProgress } from '@mui/material';
+import { FilterList as FilterIcon, Map as MapOptionsIcon, MyLocation as MyLocationIcon } from '@mui/icons-material';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import MapComponent from '../components/Map/MapComponent';
 import SearchAndFiltering, { SearchFilters } from '../components/SearchAndFiltering';
 import { MQTTMonitor } from '../components/MQTTMonitor';
 import { setNodes, setLoading, setError, setSearchFilters, Node } from '../store/slices/nodeSlice';
-import { openTopologyGraph } from '../store/slices/mapSlice';
+import { openTopologyGraph, getUserLocation, setUserLocation, setCenter, setZoom } from '../store/slices/mapSlice';
 import { apiService } from '../services/api';
 import { RootState } from '../store';
 
@@ -128,19 +128,63 @@ const MapPage: React.FC = () => {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
   const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     // Load nodes from API on component mount
+    console.log('MapPage: Component mounted, loading nodes...');
     loadNodes();
+    
+    // Request user's geolocation
+    getUserLocation().then((location) => {
+      console.log('Setting map center to user location:', location);
+      dispatch(setUserLocation(location));
+    });
   }, [dispatch]);
 
   const loadNodes = async (filters?: SearchFilters) => {
     try {
+      console.log('MapPage: Starting loadNodes...');
       dispatch(setLoading(true));
-      const response = await apiService.getNodes(filters);
+      
+      // Fetch all nodes by making multiple paginated requests (same as NodesPage)
+      let allNodes: any[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+      const pageSize = 100; // Maximum allowed by backend
+      
+      while (hasMorePages) {
+        const response = await apiService.getNodes({
+          ...filters,
+          page: currentPage,
+          limit: pageSize,
+          sortBy: 'lastSeen',
+          sortOrder: 'desc'
+        });
+        
+        allNodes = allNodes.concat(response.data || []);
+        
+        // Check if there are more pages
+        if (response.pagination) {
+          const { page, pages, total } = response.pagination;
+          hasMorePages = page < pages;
+          currentPage++;
+          console.log(`MapPage: Loaded page ${page}/${pages} (${response.data.length} nodes, ${allNodes.length}/${total} total)`);
+        } else {
+          hasMorePages = false;
+        }
+        
+        // Safety check to prevent infinite loops
+        if (currentPage > 100) {
+          console.warn('MapPage: Reached maximum page limit (100), stopping pagination');
+          break;
+        }
+      }
+      
+      console.log('MapPage: Received all nodes:', allNodes.length);
       
       // Transform API response to frontend format
-      const transformedNodes = response.data.map((node: any) => ({
+      const transformedNodes = allNodes.map((node: any) => ({
         id: node.id,
         hexId: node.hexId,
         shortName: node.shortName,
@@ -165,12 +209,16 @@ const MapPage: React.FC = () => {
         neighbors: node.neighborsFrom || [],
       }));
       
+      console.log('MapPage: Transformed nodes:', transformedNodes.length, 'nodes');
+      console.log('MapPage: Nodes with positions:', transformedNodes.filter(n => n.position).length);
       dispatch(setNodes(transformedNodes));
+      console.log('MapPage: Dispatched setNodes to Redux');
     } catch (error) {
-      console.error('Failed to load nodes:', error);
+      console.error('MapPage: Failed to load nodes:', error);
       dispatch(setError('Failed to load nodes'));
       
       // Fallback to mock data for development
+      console.log('MapPage: Using mock data fallback');
       dispatch(setNodes(mockNodes));
     }
   };
@@ -221,13 +269,52 @@ const MapPage: React.FC = () => {
     setFilterDrawerOpen(!filterDrawerOpen);
   };
 
+  const handleCenterOnMyLocation = () => {
+    setLocating(true);
+
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by your browser');
+      setLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        dispatch(setCenter([latitude, longitude]));
+        dispatch(setZoom(15));
+        setLocating(false);
+      },
+      (error) => {
+        let errorMessage = 'Unable to retrieve your location';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out';
+            break;
+        }
+        console.error('Geolocation error:', errorMessage);
+        setLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <NavigationHeader 
         onSearch={handleSearch} 
         onRefresh={handleRefresh}
         onOpenTopology={handleOpenTopology}
-        onOpenMapOptions={handleOpenMapOptions}
         onOpenMQTTMonitor={handleOpenMQTTMonitor}
       />
       
@@ -246,6 +333,48 @@ const MapPage: React.FC = () => {
             }}
           >
             <FilterIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Map Options Button */}
+      <Box sx={{ position: 'absolute', top: 140, right: 16, zIndex: 1000 }}>
+        <Tooltip title="Map Options">
+          <IconButton
+            onClick={handleOpenMapOptions}
+            sx={{
+              backgroundColor: 'background.paper',
+              boxShadow: 2,
+              '&:hover': {
+                backgroundColor: 'background.paper',
+                boxShadow: 4,
+              },
+            }}
+          >
+            <MapOptionsIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Center on My Location Button */}
+      <Box sx={{ position: 'absolute', top: 200, right: 16, zIndex: 1000 }}>
+        <Tooltip title={locating ? "Locating..." : "Center on My Location"}>
+          <IconButton
+            onClick={handleCenterOnMyLocation}
+            disabled={locating}
+            sx={{
+              backgroundColor: 'background.paper',
+              boxShadow: 2,
+              '&:hover': {
+                backgroundColor: 'background.paper',
+                boxShadow: 4,
+              },
+              '&:disabled': {
+                backgroundColor: 'background.paper',
+              },
+            }}
+          >
+            {locating ? <CircularProgress size={24} /> : <MyLocationIcon />}
           </IconButton>
         </Tooltip>
       </Box>

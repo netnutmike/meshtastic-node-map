@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material';
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { api } from '../../services/api';
+import apiService from '../../services/api';
 import './CoverageAnalysis.css';
 
 interface RadioRange {
@@ -290,7 +290,7 @@ export const CoverageAnalysis: React.FC = () => {
     try {
       setLoading(true);
       const params = selectedNetworkId ? { networkId: selectedNetworkId } : {};
-      const response = await api.get('/coverage-analysis/radio-ranges', { params });
+      const response = await apiService.get('/coverage-analysis/radio-ranges', { params });
       setRadioRanges(response.data);
     } catch (err) {
       setError('Failed to load radio ranges');
@@ -303,7 +303,7 @@ export const CoverageAnalysis: React.FC = () => {
   const loadCoverageGaps = async () => {
     try {
       const params = selectedNetworkId ? { networkId: selectedNetworkId } : {};
-      const response = await api.get('/coverage-analysis/coverage-gaps', { params });
+      const response = await apiService.get('/coverage-analysis/coverage-gaps', { params });
       setCoverageGaps(response.data);
     } catch (err) {
       setError('Failed to load coverage gaps');
@@ -314,7 +314,7 @@ export const CoverageAnalysis: React.FC = () => {
   const loadOptimizationRecommendations = async () => {
     try {
       const params = selectedNetworkId ? { networkId: selectedNetworkId } : {};
-      const response = await api.get('/coverage-analysis/optimization-recommendations', { params });
+      const response = await apiService.get('/coverage-analysis/optimization-recommendations', { params });
       setOptimizationRecommendations(response.data);
     } catch (err) {
       setError('Failed to load optimization recommendations');
@@ -344,7 +344,7 @@ export const CoverageAnalysis: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await api.post('/coverage-analysis/simulate-deployment', {
+      const response = await apiService.post('/coverage-analysis/simulate-deployment', {
         hypotheticalNodes,
         networkId: selectedNetworkId || undefined
       });
@@ -366,7 +366,7 @@ export const CoverageAnalysis: React.FC = () => {
     try {
       setLoading(true);
       const params = selectedNetworkId ? { networkId: selectedNetworkId } : {};
-      const response = await api.get(
+      const response = await apiService.get(
         `/coverage-analysis/line-of-sight/${selectedFromNode}/${selectedToNode}`,
         { params }
       );
@@ -388,7 +388,7 @@ export const CoverageAnalysis: React.FC = () => {
     try {
       setLoading(true);
       const params = selectedNetworkId ? { networkId: selectedNetworkId } : {};
-      const response = await api.get(
+      const response = await apiService.get(
         `/coverage-analysis/performance-estimate/${selectedFromNode}/${selectedToNode}`,
         { params }
       );

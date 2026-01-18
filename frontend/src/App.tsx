@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { ThemeProvider, createTheme, useMediaQuery } from '@mui/material/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { store } from './store';
 import AppRouter from './routes/AppRouter';
@@ -64,12 +65,27 @@ const theme = createTheme({
 });
 
 function App() {
-  useEffect(() => {
-    // Initialize WebSocket connection when app starts
-    webSocketService.connect();
+  const [servicesInitialized, setServicesInitialized] = React.useState(false);
 
-    // Initialize offline service
-    // offlineService is automatically initialized when imported
+  useEffect(() => {
+    // Delay initialization to ensure React and Redux are fully ready
+    const timer = setTimeout(async () => {
+      try {
+        // Enable Redux dispatching for websocket service
+        webSocketService.enableReduxDispatching();
+        
+        // Initialize offline service (which also enables Redux dispatching)
+        await offlineService.initialize();
+        
+        // Now connect websocket after services are ready
+        webSocketService.connect();
+        
+        setServicesInitialized(true);
+        console.log('Services initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize services:', error);
+      }
+    }, 100); // Small delay to ensure React is fully mounted
 
     // Set up viewport meta tag for mobile
     const viewport = document.querySelector('meta[name="viewport"]');
@@ -91,6 +107,7 @@ function App() {
 
     // Cleanup on unmount
     return () => {
+      clearTimeout(timer);
       webSocketService.disconnect();
       offlineService.destroy();
       document.removeEventListener('touchstart', preventDefaultTouch);

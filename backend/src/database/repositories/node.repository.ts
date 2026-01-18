@@ -48,18 +48,22 @@ export class NodeRepository extends BaseRepository<Node, CreateNodeInput, Update
   }
 
   protected async findManyImpl(options: any = {}): Promise<Node[]> {
-    const pagination = applyPagination(options);
+    // Use provided skip/take if available, otherwise apply pagination
+    const paginationOptions = options.skip !== undefined && options.take !== undefined
+      ? { skip: options.skip, take: options.take }
+      : applyPagination(options);
     
     return this.db.node.findMany({
-      ...pagination,
+      ...paginationOptions,
       where: options.where,
-      include: {
+      include: options.include || {
         network: true,
         positions: {
           orderBy: { timestamp: 'desc' },
           take: 1
         }
-      }
+      },
+      orderBy: options.orderBy
     }) as Promise<Node[]>;
   }
 

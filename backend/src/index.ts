@@ -88,9 +88,8 @@ async function initializeMQTTManager() {
       {
         networks,
         defaultTopics: [
-          'msh/+/+/+',
-          'meshtastic/+/+/+',
-          '+/+/+/+' // Catch-all pattern
+          'msh/#',           // Subscribe to all msh topics
+          'meshtastic/#',    // Subscribe to all meshtastic topics
         ]
       },
       nodeRepository,
@@ -147,6 +146,9 @@ async function initializeMQTTManager() {
 
     await mqttManager.initialize();
     logger.info('MQTT Manager initialized successfully');
+    
+    // Attach MQTT Manager to app for route access
+    (app as any).mqttManagerService = mqttManager;
   } catch (error) {
     logger.error('Failed to initialize MQTT Manager:', error);
   }

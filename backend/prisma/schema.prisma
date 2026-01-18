@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -198,6 +199,7 @@ model Message {
   routingPath  String[]        // Array of node IDs in routing path
   rssi         Int?            // Signal strength
   snr          Float?          // Signal-to-noise ratio
+  topic        String?         // MQTT topic the message was received on
 
   // Relations
   fromNode Node  @relation("SentMessages", fields: [fromNodeId], references: [id], onDelete: Cascade)

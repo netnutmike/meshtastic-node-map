@@ -270,12 +270,14 @@ const Statistics: React.FC<StatisticsProps> = ({ networkId }) => {
             <div className="hardware-breakdown">
               <h3>Hardware Distribution</h3>
               <div className="breakdown-list">
-                {Object.entries(statistics.nodeBreakdown.byHardware).map(([hardware, count]) => (
-                  <div key={hardware} className="breakdown-item">
-                    <span className="label">{hardware}</span>
-                    <span className="value">{count}</span>
-                  </div>
-                ))}
+                {Object.entries(statistics.nodeBreakdown.byHardware)
+                  .filter(([hardware]) => hardware.toLowerCase() !== 'unknown')
+                  .map(([hardware, count]) => (
+                    <div key={hardware} className="breakdown-item">
+                      <span className="label">{hardware}</span>
+                      <span className="value">{count}</span>
+                    </div>
+                  ))}
               </div>
             </div>
 

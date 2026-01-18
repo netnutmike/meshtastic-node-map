@@ -1,10 +1,15 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apk add --no-cache python3 make g++
+# Install system dependencies including OpenSSL for Prisma
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -26,8 +31,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs && useradd -u 1001 -g nodejs -s /bin/bash -m nodejs
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app

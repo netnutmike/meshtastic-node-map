@@ -1,11 +1,13 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { Marker, Popup, useMap } from 'react-leaflet';
+import { Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { RootState } from '../../store';
 import { Node, openDetailsPanel, closeDetailsPanel, activateNeighborVisualization, deactivateNeighborVisualization } from '../../store/slices/nodeSlice';
 import NodeDetailsPanel from '../NodeDetailsPanel';
 import NeighborArrows from './NeighborArrows';
+import NodeClusters, { useNodeClusters } from './NodeClusters';
 
 // Create custom icons for different node states with enhanced styling and age-based effects
 const createNodeIcon = (
@@ -165,9 +167,22 @@ const addNodeMarkerStyles = () => {
   document.head.appendChild(style);
 };
 
-const getNodeStatus = (node: Node): 'online' | 'disconnected' | 'offline' => {
-  if (!node.isOnline) return 'offline';
-  if (!node.mqttConnected) return 'disconnected';
+const getNodeStatus = (node: Node, nodesOfflineAge: number, nodesDisconnectedAge: number): 'online' | 'disconnected' | 'offline' => {
+  if (!node.lastSeen) return 'offline';
+  
+  const ageSeconds = (Date.now() - new Date(node.lastSeen).getTime()) / 1000;
+  
+  // Offline if last seen is older than offline threshold
+  if (ageSeconds > nodesOfflineAge) {
+    return 'offline';
+  }
+  
+  // Disconnected if MQTT not connected or last seen is older than disconnected threshold
+  if (!node.mqttConnected || ageSeconds > nodesDisconnectedAge) {
+    return 'disconnected';
+  }
+  
+  // Online if within thresholds and MQTT connected
   return 'online';
 };
 
@@ -181,22 +196,37 @@ const isRecentlyUpdated = (node: Node): boolean => {
 
 const NodeMarkers: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { 
     nodes, 
     selectedNodeId, 
-    detailsPanelOpen, 
+    detailsPanelOpen,
+    returnPath,
     neighborVisualizationActive,
     neighborVisualizationNodeId 
   } = useSelector((state: RootState) => state.nodes);
   const { showNodes, animationsEnabled, nodeDisplayMode, viewMode } = useSelector((state: RootState) => state.map);
-  const { showAll, nodesMaxAge } = useSelector((state: RootState) => state.settings);
+  const { showAll, nodesMaxAge, nodesOfflineAge, nodesDisconnectedAge } = useSelector((state: RootState) => state.settings);
   const map = useMap();
   const prevNodesRef = useRef<Node[]>([]);
+  const [zoom, setZoom] = React.useState(map.getZoom());
+  const [mapBounds, setMapBounds] = React.useState(map.getBounds());
 
   // Add styles on component mount
   useEffect(() => {
     addNodeMarkerStyles();
   }, []);
+
+  // Track zoom and bounds changes
+  useMapEvents({
+    zoomend: () => {
+      setZoom(map.getZoom());
+      setMapBounds(map.getBounds());
+    },
+    moveend: () => {
+      setMapBounds(map.getBounds());
+    },
+  });
 
   // Handle real-time position updates with smooth animations
   useEffect(() => {
@@ -224,7 +254,7 @@ const NodeMarkers: React.FC = () => {
 
   // Memoize filtered and processed nodes for performance
   const processedNodes = useMemo(() => {
-    return nodes
+    const filtered = nodes
       .filter(node => node.position) // Only show nodes with valid position data
       .filter(node => {
         // Node display mode filtering (Requirements 8.2)
@@ -254,7 +284,7 @@ const NodeMarkers: React.FC = () => {
         return nodeAgeSeconds <= nodesMaxAge;
       })
       .map(node => {
-        const status = getNodeStatus(node);
+        const status = getNodeStatus(node, nodesOfflineAge, nodesDisconnectedAge);
         const isRecent = isRecentlyUpdated(node);
         const shouldAnimate = animationsEnabled && isRecent;
         
@@ -286,16 +316,73 @@ const NodeMarkers: React.FC = () => {
           icon,
         };
       });
-  }, [nodes, animationsEnabled, showAll, nodesMaxAge, nodeDisplayMode, viewMode]);
+    
+    return filtered;
+  }, [nodes, animationsEnabled, showAll, nodesMaxAge, nodesOfflineAge, nodesDisconnectedAge, nodeDisplayMode, viewMode]);
+
+  // Get clustered node IDs to hide individual markers
+  const clusteredNodeIds = useNodeClusters(processedNodes, zoom, mapBounds);
+
+  // Filter out nodes that are part of clusters
+  const visibleNodes = useMemo(() => {
+    const baseNodes = processedNodes.filter(node => !clusteredNodeIds.has(node.id));
+    
+    // Detect and handle co-located nodes (nodes at the exact same position)
+    const positionMap = new Map<string, any[]>();
+    
+    baseNodes.forEach(node => {
+      const key = `${node.position!.latitude.toFixed(7)},${node.position!.longitude.toFixed(7)}`;
+      if (!positionMap.has(key)) {
+        positionMap.set(key, []);
+      }
+      positionMap.get(key)!.push(node);
+    });
+    
+    // For co-located nodes, offset them slightly in a circle pattern
+    const result: any[] = [];
+    positionMap.forEach((nodesAtPosition, posKey) => {
+      if (nodesAtPosition.length === 1) {
+        // Single node at this position - no offset needed
+        result.push(nodesAtPosition[0]);
+      } else {
+        // Multiple nodes at same position - offset them in a circle
+        const offsetDistance = 0.00005; // ~5 meters at this latitude
+        nodesAtPosition.forEach((node, index) => {
+          const angle = (index / nodesAtPosition.length) * 2 * Math.PI;
+          const offsetLat = Math.cos(angle) * offsetDistance;
+          const offsetLng = Math.sin(angle) * offsetDistance;
+          
+          result.push({
+            ...node,
+            position: {
+              ...node.position,
+              latitude: node.position!.latitude + offsetLat,
+              longitude: node.position!.longitude + offsetLng,
+            },
+            isColocated: true,
+            colocatedCount: nodesAtPosition.length,
+          });
+        });
+      }
+    });
+    
+    return result;
+  }, [processedNodes, clusteredNodeIds]);
 
   // Get the selected node for the details panel
   const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) || null : null;
 
-  if (!showNodes) return null;
+  if (!showNodes) {
+    return null;
+  }
+
+  // Removed excessive logging - only cluster click events are logged now
 
   return (
     <>
-      {processedNodes.map(node => (
+      <NodeClusters nodes={processedNodes} />
+      
+      {visibleNodes.map(node => (
         <Marker
           key={node.id}
           position={[node.position!.latitude, node.position!.longitude]}
@@ -472,7 +559,7 @@ const NodeMarkers: React.FC = () => {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      dispatch(openDetailsPanel(node.id));
+                      dispatch(openDetailsPanel({ nodeId: node.id }));
                     }}
                   >
                     Show Full Details
@@ -536,7 +623,12 @@ const NodeMarkers: React.FC = () => {
       <NodeDetailsPanel
         node={selectedNode}
         isOpen={detailsPanelOpen}
-        onClose={() => dispatch(closeDetailsPanel())}
+        onClose={() => {
+          dispatch(closeDetailsPanel());
+          if (returnPath) {
+            navigate(returnPath);
+          }
+        }}
       />
     </>
   );

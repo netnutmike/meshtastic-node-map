@@ -30,7 +30,7 @@ const positionFiltersSchema = Joi.object({
 router.get('/',
   applyRateLimit('read'),
   optionalAuth,
-  validate(positionFiltersSchema, 'query'),
+  validate(positionFiltersSchema, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -118,7 +118,7 @@ router.get('/',
 router.get('/:id',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -167,7 +167,7 @@ router.put('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('write'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(Joi.object({
     latitude: Joi.number().min(-90).max(90).optional(),
     longitude: Joi.number().min(-180).max(180).optional(),
@@ -199,7 +199,7 @@ router.delete('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -229,7 +229,7 @@ router.get('/latest',
       east: Joi.number().min(-180).max(180).required(),
       west: Joi.number().min(-180).max(180).required()
     }).optional()
-  }), 'query'),
+  }), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { networkId, bounds } = req.query;
 
@@ -288,8 +288,8 @@ router.get('/latest',
 router.get('/track/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
-  validate(schemas.pagination.concat(schemas.dateRange), 'query'),
+  validate(Joi.object({ nodeId: Joi.string().required() }), { property: 'params' }), // Accept CUID format
+  validate(schemas.pagination.concat(schemas.dateRange), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { nodeId } = req.params;
     const { page = 1, limit = 100, startDate, endDate } = req.query;

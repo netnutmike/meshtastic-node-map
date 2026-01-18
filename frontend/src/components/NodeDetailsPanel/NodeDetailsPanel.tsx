@@ -405,7 +405,13 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
 
   return (
     <div className="node-details-overlay">
-      <div className="node-details-panel">
+      <div 
+        className="node-details-panel"
+        onWheel={(e) => {
+          // Prevent wheel events from bubbling to the map
+          e.stopPropagation();
+        }}
+      >
         <div className="panel-header">
           <h1>Node Details</h1>
           <button className="close-btn" onClick={onClose}>

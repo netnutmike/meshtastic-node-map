@@ -23,7 +23,7 @@ const telemetryFiltersSchema = Joi.object({
 router.get('/',
   applyRateLimit('read'),
   optionalAuth,
-  validate(telemetryFiltersSchema, 'query'),
+  validate(telemetryFiltersSchema, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -97,7 +97,7 @@ router.get('/',
 router.get('/:id',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -146,7 +146,7 @@ router.put('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('write'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(Joi.object({
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional(),
     timestamp: Joi.date().iso().optional(),
@@ -176,7 +176,7 @@ router.delete('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -198,10 +198,10 @@ router.delete('/:id',
 router.get('/latest/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
+  validate(Joi.object({ nodeId: Joi.string().required() }), { property: 'params' }), // Accept CUID format
   validate(Joi.object({
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional()
-  }), 'query'),
+  }), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { nodeId } = req.params;
     const { type } = req.query;
@@ -247,11 +247,11 @@ router.get('/latest/:nodeId',
 router.get('/stats/:nodeId',
   applyRateLimit('read'),
   optionalAuth,
-  validate(Joi.object({ nodeId: Joi.string().required() }), 'params'), // Accept CUID format
+  validate(Joi.object({ nodeId: Joi.string().required() }), { property: 'params' }), // Accept CUID format
   validate(schemas.dateRange.concat(Joi.object({
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional(),
     interval: Joi.string().valid('hour', 'day', 'week', 'month').default('hour')
-  })), 'query'),
+  })), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { nodeId } = req.params;
     const { type, startDate, endDate, interval = 'hour' } = req.query;
@@ -372,7 +372,7 @@ router.get('/summary',
   validate(Joi.object({
     networkId: Joi.string().optional(), // Accept CUID format
     type: Joi.string().valid('DEVICE_METRICS', 'ENVIRONMENT_METRICS', 'POWER_METRICS').optional()
-  }).concat(schemas.dateRange), 'query'),
+  }).concat(schemas.dateRange), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { networkId, type, startDate, endDate } = req.query;
 

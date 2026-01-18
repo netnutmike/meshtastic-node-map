@@ -70,6 +70,70 @@ sudo chmod +x /usr/local/bin/docker-compose
 docker-compose --version
 ```
 
+## Disk Space Issues
+
+### Problem: "No space left on device" error
+
+This is a critical error that prevents Docker containers from starting.
+
+#### Quick Fix:
+```bash
+# Run the disk space diagnostic
+./scripts/check-disk-space.sh
+
+# Or manually clean Docker
+docker system prune -a --volumes
+```
+
+#### Check Disk Space:
+```bash
+# Check overall disk usage
+df -h
+
+# Check Docker disk usage
+docker system df
+
+# Find what's using space
+du -sh ~/* | sort -h | tail -20
+```
+
+#### Clean Up Docker:
+```bash
+# Stop all containers
+docker compose down
+
+# Remove all unused Docker resources (SAFE)
+docker system prune -a --volumes
+
+# Remove specific volumes (BE CAREFUL)
+docker volume ls
+docker volume rm <volume_name>
+```
+
+#### Clean Up System:
+```bash
+# Clean package cache (Ubuntu/Debian)
+sudo apt clean
+sudo apt autoclean
+sudo apt autoremove
+
+# Clean npm cache
+npm cache clean --force
+
+# Clean old logs
+sudo journalctl --vacuum-time=3d
+
+# Clean temporary files
+sudo rm -rf /tmp/*
+```
+
+#### Use Minimal Configuration:
+If you have limited disk space, use the minimal setup:
+```bash
+# Uses smaller Alpine images and minimal volumes
+docker compose -f docker-compose.minimal.yml up -d
+```
+
 ## Build Issues
 
 ### Problem: Backend build fails with "npm run build" exit code 127

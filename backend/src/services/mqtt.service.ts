@@ -183,24 +183,111 @@ export class MQTTService extends EventEmitter {
   /**
    * Handle incoming MQTT messages
    */
-  private handleMessage(topic: string, message: Buffer): void {
+  private async handleMessage(topic: string, message: Buffer): Promise<void> {
     try {
-      const messageStr = message.toString();
-      logger.debug(`Received message on topic ${topic}:`, messageStr);
-
       // Emit raw message for monitoring
-      this.emit('rawMessage', topic, messageStr, { qos: 0, retain: false });
+      this.emit('rawMessage', topic, message.toString(), { qos: 0, retain: false });
 
-      // Parse the message based on topic structure
-      const parsedData = this.parseMessage(topic, messageStr);
-      
-      if (parsedData) {
-        this.emit('data', parsedData);
-        logger.debug('Parsed Meshtastic data:', parsedData);
+      // Try to detect message format: protobuf or JSON
+      const isProtobuf = this.isProtobufMessage(message);
+
+      if (isProtobuf) {
+        // Handle protobuf message
+        logger.debug(`Received protobuf message on topic ${topic}`);
+        const parsedData = await this.parseProtobufMessage(message, topic);
+        
+        if (parsedData) {
+          this.emit('data', parsedData);
+          logger.debug('Parsed protobuf Meshtastic data:', parsedData);
+        }
+      } else {
+        // Handle JSON message
+        const messageStr = message.toString();
+        
+        // Skip non-JSON messages (like bridge status messages "online", "offline")
+        if (!messageStr.trim().startsWith('{')) {
+          logger.debug(`Skipping non-JSON message on topic ${topic}: ${messageStr.substring(0, 50)}`);
+          return;
+        }
+
+        logger.debug(`Received JSON message on topic ${topic}:`, messageStr.substring(0, 200));
+
+        // Parse the JSON message
+        const parsedData = this.parseMessage(topic, messageStr);
+        
+        if (parsedData) {
+          // Add topic to message if it exists
+          if (parsedData.message) {
+            parsedData.message.topic = topic;
+          }
+          this.emit('data', parsedData);
+          logger.debug('Parsed JSON Meshtastic data:', parsedData);
+        }
       }
     } catch (error) {
       logger.error('Error handling MQTT message:', error);
       this.emit('parseError', { topic, message: message.toString(), error });
+    }
+  }
+
+  /**
+   * Check if a buffer is likely a protobuf message
+   */
+  private isProtobufMessage(buffer: Buffer): boolean {
+    // Protobuf messages are binary and typically start with field tags
+    // Check if it's not valid UTF-8 text (which would indicate JSON)
+    try {
+      const str = buffer.toString('utf-8');
+      // If it starts with { or [, it's likely JSON
+      if (str.trim().startsWith('{') || str.trim().startsWith('[')) {
+        return false;
+      }
+      // If it contains mostly printable ASCII, it's likely not protobuf
+      const printableRatio = str.split('').filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126).length / str.length;
+      return printableRatio < 0.7; // If less than 70% printable, likely binary
+    } catch {
+      return true; // If UTF-8 decode fails, it's binary
+    }
+  }
+
+  /**
+   * Parse protobuf message using the protobuf decoder service
+   */
+  private async parseProtobufMessage(buffer: Buffer, topic: string): Promise<ParsedMeshtasticData | null> {
+    try {
+      // Import the protobuf decoder (lazy load to avoid circular dependencies)
+      const { protobufDecoder } = require('./protobuf-decoder.service');
+      
+      // Extract channel name from topic (e.g., msh/US/DMV/2/e/LongFast/!xxxxx)
+      // Topic format: msh/<region>/<area>/<hop_limit>/e/<channel_name>/<node_id>
+      // But some topics have more parts: msh/US/VA/VPM/2/e/LongFast/!xxxxx
+      let channelName: string | undefined;
+      const topicParts = topic.split('/');
+      
+      // Find the 'e' marker and get the next part as channel name
+      const eIndex = topicParts.indexOf('e');
+      if (eIndex !== -1 && eIndex + 1 < topicParts.length) {
+        channelName = topicParts[eIndex + 1];
+      }
+      
+      // Decode the ServiceEnvelope
+      const envelope = await protobufDecoder.decodeServiceEnvelope(buffer);
+      if (!envelope) {
+        return null;
+      }
+
+      // Parse the envelope into our database format
+      const parsedData = protobufDecoder.parseServiceEnvelope(envelope, channelName);
+      
+      // Add topic to message if it exists
+      if (parsedData && parsedData.message) {
+        parsedData.message.topic = topic;
+      }
+      
+      return parsedData;
+    } catch (error) {
+      logger.error('Error parsing protobuf message:', error);
+      return null;
     }
   }
 
@@ -263,56 +350,88 @@ export class MQTTService extends EventEmitter {
 
   /**
    * Parse raw MQTT message string into MeshtasticMQTTMessage
+   * Handles the actual Meshtastic MQTT JSON format from public brokers
    */
   parseRawMessage(messageStr: string): MeshtasticMQTTMessage | null {
     try {
       const parsed = JSON.parse(messageStr);
       
-      // Validate required fields
-      if (!parsed.from || typeof parsed.from !== 'string') {
-        throw new Error('Invalid from field');
+      // Handle the actual Meshtastic MQTT format
+      // Example: { "channel": 1, "from": 2224786404, "sender": "!849a248c", "type": "text", "payload": {"text": "..."}, ... }
+      
+      // Extract node ID - prefer 'sender' field, fallback to 'from' as hex
+      let fromNodeId: string;
+      if (parsed.sender && typeof parsed.sender === 'string') {
+        fromNodeId = parsed.sender.startsWith('!') ? parsed.sender : `!${parsed.sender}`;
+      } else if (parsed.from && typeof parsed.from === 'number') {
+        // Convert numeric ID to hex format
+        fromNodeId = `!${parsed.from.toString(16).padStart(8, '0')}`;
+      } else {
+        throw new Error('Missing sender/from field');
       }
       
-      if (!parsed.type || !Object.values(MessageType).includes(parsed.type)) {
-        throw new Error('Invalid message type');
+      // Extract 'to' field
+      let toNodeId: string | undefined;
+      if (parsed.to && typeof parsed.to === 'number') {
+        // 4294967295 (0xFFFFFFFF) is broadcast address
+        if (parsed.to !== 4294967295) {
+          toNodeId = `!${parsed.to.toString(16).padStart(8, '0')}`;
+        }
       }
       
-      if (typeof parsed.encrypted !== 'boolean') {
-        throw new Error('Invalid encrypted field');
+      // Validate and normalize message type
+      let messageType: MessageType;
+      if (parsed.type && typeof parsed.type === 'string') {
+        const typeUpper = parsed.type.toUpperCase();
+        if (Object.values(MessageType).includes(typeUpper as MessageType)) {
+          messageType = typeUpper as MessageType;
+        } else {
+          // Map common type names
+          switch (parsed.type.toLowerCase()) {
+            case 'text':
+              messageType = MessageType.TEXT;
+              break;
+            case 'nodeinfo':
+            case 'node_info':
+              messageType = MessageType.NODEINFO;
+              break;
+            case 'position':
+              messageType = MessageType.POSITION;
+              break;
+            case 'telemetry':
+              messageType = MessageType.TELEMETRY;
+              break;
+            default:
+              messageType = MessageType.TEXT; // Default to TEXT for unknown types
+          }
+        }
+      } else {
+        messageType = MessageType.TEXT; // Default to TEXT for unknown types
       }
       
-      if (typeof parsed.wantAck !== 'boolean') {
-        throw new Error('Invalid wantAck field');
-      }
+      // Extract channel (default to 0 if not present)
+      const channel = typeof parsed.channel === 'number' ? parsed.channel : 0;
       
-      if (!parsed.priority || !Object.values(MessagePriority).includes(parsed.priority)) {
-        throw new Error('Invalid priority field');
-      }
+      // Extract timestamp (use current time if not present)
+      const timestamp = typeof parsed.timestamp === 'number' ? parsed.timestamp : Math.floor(Date.now() / 1000);
       
-      if (typeof parsed.channel !== 'number' || parsed.channel < 0 || parsed.channel > 7) {
-        throw new Error('Invalid channel field');
-      }
-      
-      if (typeof parsed.timestamp !== 'number') {
-        throw new Error('Invalid timestamp field');
-      }
-      
+      // Build the normalized message
       return {
-        id: parsed.id,
-        from: parsed.from,
-        to: parsed.to,
-        type: parsed.type,
+        id: parsed.id?.toString(),
+        from: fromNodeId,
+        to: toNodeId,
+        type: messageType,
         payload: parsed.payload || {},
-        encrypted: parsed.encrypted,
-        hopLimit: parsed.hopLimit,
-        hopStart: parsed.hopStart,
-        wantAck: parsed.wantAck,
-        priority: parsed.priority,
-        channel: parsed.channel,
-        timestamp: parsed.timestamp,
-        routingPath: parsed.routingPath,
-        rssi: parsed.rssi,
-        snr: parsed.snr
+        encrypted: typeof parsed.encrypted === 'boolean' ? parsed.encrypted : false,
+        hopLimit: typeof parsed.hops_away === 'number' ? parsed.hops_away : undefined,
+        hopStart: typeof parsed.hop_start === 'number' ? parsed.hop_start : undefined,
+        wantAck: typeof parsed.want_ack === 'boolean' ? parsed.want_ack : false,
+        priority: MessagePriority.DEFAULT, // Not typically in MQTT messages
+        channel,
+        timestamp,
+        routingPath: parsed.routing_path || parsed.routingPath,
+        rssi: typeof parsed.rssi === 'number' ? parsed.rssi : undefined,
+        snr: typeof parsed.snr === 'number' ? parsed.snr : undefined
       };
     } catch (error) {
       logger.error('Error parsing raw MQTT message:', error);

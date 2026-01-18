@@ -10,6 +10,7 @@ import NodeMarkers from './NodeMarkers';
 import NetworkTopologyGraph from './NetworkTopologyGraph';
 import MapOptions from './MapOptions';
 import MapLegend from './MapLegend';
+import MapDebugInfo from './MapDebugInfo';
 import { MobileControls } from '../Mobile';
 
 // Fix for default markers in react-leaflet
@@ -62,14 +63,30 @@ const TILE_LAYERS = {
 const MapEventHandler: React.FC = () => {
   const dispatch = useDispatch();
   const map = useMap();
+  const lastCenter = useRef<[number, number] | null>(null);
+  const lastZoom = useRef<number | null>(null);
 
   useMapEvents({
     moveend: () => {
       const center = map.getCenter();
-      dispatch(setCenter([center.lat, center.lng]));
+      const newCenter: [number, number] = [center.lat, center.lng];
+      
+      // Only dispatch if center actually changed significantly (more than 0.0001 degrees)
+      if (!lastCenter.current || 
+          Math.abs(lastCenter.current[0] - newCenter[0]) > 0.0001 ||
+          Math.abs(lastCenter.current[1] - newCenter[1]) > 0.0001) {
+        lastCenter.current = newCenter;
+        dispatch(setCenter(newCenter));
+      }
     },
     zoomend: () => {
-      dispatch(setZoom(map.getZoom()));
+      const newZoom = map.getZoom();
+      
+      // Only dispatch if zoom actually changed
+      if (lastZoom.current !== newZoom) {
+        lastZoom.current = newZoom;
+        dispatch(setZoom(newZoom));
+      }
     },
     click: (e) => {
       // Handle map clicks for future features (e.g., adding waypoints)
@@ -125,6 +142,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const { center, zoom, tileLayer, topologyGraphOpen } = useSelector((state: RootState) => state.map);
+  const { showDebugInfo } = useSelector((state: RootState) => state.settings);
   const [mapOptionsOpen, setMapOptionsOpen] = useState(false);
   
   const selectedTileLayer = TILE_LAYERS[tileLayer as keyof typeof TILE_LAYERS] || TILE_LAYERS.openstreetmap;
@@ -159,8 +177,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         fadeAnimation={true}
         markerZoomAnimation={true}
         // Mobile-specific options
-        tap={isMobile}
-        tapTolerance={15}
         zoomSnap={isMobile ? 0.5 : 1}
         zoomDelta={isMobile ? 0.5 : 1}
       >
@@ -183,6 +199,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
         <MapViewController />
         <NodeMarkers />
       </MapContainer>
+      
+      {/* Debug Info - Conditionally shown based on settings */}
+      {showDebugInfo && <MapDebugInfo />}
       
       {/* Mobile Controls */}
       <MobileControls

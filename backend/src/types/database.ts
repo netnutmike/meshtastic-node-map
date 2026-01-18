@@ -197,6 +197,7 @@ export interface Message {
   routingPath: string[];
   rssi?: number;
   snr?: number;
+  topic?: string;
   fromNode?: Node;
   toNode?: Node;
 }
@@ -292,6 +293,7 @@ export interface CreateMessageInput {
   routingPath?: string[];
   rssi?: number;
   snr?: number;
+  topic?: string;
 }
 
 export interface CreateChannelInput {

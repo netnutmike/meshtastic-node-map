@@ -60,6 +60,7 @@ const Settings: React.FC<SettingsProps> = ({ open, onClose }) => {
       temperatureFormat: 'celsius',
       autoUpdatePositionInUrl: true,
       showAll: false,
+      showDebugInfo: false,
     });
   };
 
@@ -200,6 +201,27 @@ const Settings: React.FC<SettingsProps> = ({ open, onClose }) => {
             />
             <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
               Disable age-based filtering and show all nodes regardless of last update time
+            </Typography>
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Developer Settings */}
+          <Typography variant="h6" gutterBottom>
+            Developer Options
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formValues.showDebugInfo}
+                  onChange={(e) => handleInputChange('showDebugInfo', e.target.checked)}
+                />
+              }
+              label="Show Map Debug Info"
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+              Display debug information overlay on the map showing node counts and settings
             </Typography>
           </Box>
         </Box>

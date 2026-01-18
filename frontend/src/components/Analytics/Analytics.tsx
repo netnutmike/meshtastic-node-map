@@ -56,7 +56,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { api } from '../../services/api';
+import apiService from '../../services/api';
 import './Analytics.css';
 
 // Register Chart.js components
@@ -188,22 +188,22 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
         alertsRes,
         healthRes
       ] = await Promise.all([
-        api.get('/analytics/predictions/failures', {
+        apiService.get('/analytics/predictions/failures', {
           params: { networkId, lookAheadDays }
         }),
-        api.get('/analytics/anomalies', {
+        apiService.get('/analytics/anomalies', {
           params: { networkId, timeWindow }
         }),
-        api.get('/analytics/optimizations', {
+        apiService.get('/analytics/optimizations', {
           params: { networkId }
         }),
-        api.get('/analytics/trends', {
+        apiService.get('/analytics/trends', {
           params: { networkId, metrics: 'nodes,messages,utilization,battery' }
         }),
-        api.get('/analytics/alerts', {
+        apiService.get('/analytics/alerts', {
           params: { networkId }
         }),
-        networkId ? api.get(`/analytics/network/${networkId}/health-score`) : Promise.resolve({ data: null })
+        networkId ? apiService.get(`/analytics/network/${networkId}/health-score`) : Promise.resolve({ data: null })
       ]);
 
       setPredictions(predictionsRes.data);

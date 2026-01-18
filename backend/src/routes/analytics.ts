@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AnalyticsService } from '../services/analytics.service';
-import { authenticateToken } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { body, query, param } from 'express-validator';
+import { optionalAuth } from '../middleware/auth';
+import { validate, schemas } from '../middleware/validation';
+import { asyncHandler } from '../middleware/error-handler';
+import { applyRateLimit } from '../middleware/rate-limit';
 import { logger } from '../utils/logger';
+import Joi from 'joi';
 
 const router = Router();
 const db = new PrismaClient();

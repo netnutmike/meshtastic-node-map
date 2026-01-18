@@ -5,7 +5,6 @@ import {
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
-  IconButton,
   Snackbar,
   Alert,
   useTheme,
@@ -180,7 +179,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({
         open={speedDialOpen}
         direction="up"
       >
-        {speedDialActions.map((action) => (
+        {speedDialActions.filter(action => !action.disabled).map((action) => (
           <SpeedDialAction
             key={action.name}
             icon={action.icon}
@@ -189,7 +188,6 @@ const MobileControls: React.FC<MobileControlsProps> = ({
               action.onClick?.();
               setSpeedDialOpen(false);
             }}
-            disabled={action.disabled}
           />
         ))}
       </SpeedDial>

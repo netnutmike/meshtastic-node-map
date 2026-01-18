@@ -684,4 +684,152 @@ export class StatisticsService {
       };
     });
   }
+
+  async getDatabaseOverview() {
+    logger.info('Generating database overview');
+
+    const [
+      networksCount,
+      nodesCount,
+      positionsCount,
+      telemetryCount,
+      messagesCount,
+      neighborsCount,
+      channelsCount
+    ] = await Promise.all([
+      this.db.network.count(),
+      this.db.node.count(),
+      this.db.position.count(),
+      this.db.telemetryReading.count(),
+      this.db.message.count(),
+      this.db.nodeNeighbor.count(),
+      this.db.channel.count()
+    ]);
+
+    return {
+      tables: {
+        networks: networksCount,
+        nodes: nodesCount,
+        positions: positionsCount,
+        telemetryReadings: telemetryCount,
+        messages: messagesCount,
+        nodeNeighbors: neighborsCount,
+        channels: channelsCount
+      },
+      total: networksCount + nodesCount + positionsCount + telemetryCount + messagesCount + neighborsCount + channelsCount,
+      generatedAt: new Date()
+    };
+  }
+
+  async getMessageTimeline(networkId?: string, days: number = 3, intervalMinutes: number = 15) {
+    logger.info('Generating message timeline', { networkId, days, intervalMinutes });
+
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // Use raw SQL for time-series aggregation with TimescaleDB
+    let timeline;
+    
+    if (networkId) {
+      // Query with network filter
+      timeline = await this.db.$queryRaw<Array<{ time_bucket: Date; count: bigint }>>`
+        SELECT 
+          time_bucket(INTERVAL '${intervalMinutes} minutes', timestamp) as time_bucket,
+          COUNT(*) as count
+        FROM messages
+        WHERE timestamp >= ${startDate}
+          AND timestamp <= ${endDate}
+          AND "fromNodeId" IN (SELECT id FROM nodes WHERE "networkId" = ${networkId})
+        GROUP BY time_bucket
+        ORDER BY time_bucket ASC
+      `;
+    } else {
+      // Query without network filter
+      timeline = await this.db.$queryRaw<Array<{ time_bucket: Date; count: bigint }>>`
+        SELECT 
+          time_bucket(INTERVAL '${intervalMinutes} minutes', timestamp) as time_bucket,
+          COUNT(*) as count
+        FROM messages
+        WHERE timestamp >= ${startDate}
+          AND timestamp <= ${endDate}
+        GROUP BY time_bucket
+        ORDER BY time_bucket ASC
+      `;
+    }
+
+    return {
+      startDate,
+      endDate,
+      intervalMinutes,
+      dataPoints: timeline.map(row => ({
+        timestamp: row.time_bucket,
+        count: Number(row.count)
+      }))
+    };
+  }
+
+  async getTopTalkers(limit: number = 20, networkId?: string, requireShortName: boolean = true) {
+    logger.info('Generating top talkers', { limit, networkId, requireShortName });
+
+    // Build the query dynamically based on whether networkId is provided
+    // Optionally filter to only nodes with shortName populated
+    let query = `
+      SELECT 
+        n.id as "nodeId",
+        n."nodeId" as "nodeIdHex",
+        n."shortName" as "shortName",
+        n."longName" as "longName",
+        COUNT(m.id) as "messageCount",
+        MAX(m.timestamp) as "lastActive",
+        CASE WHEN n."shortName" IS NOT NULL AND n."shortName" != '' THEN true ELSE false END as "hasShortName"
+      FROM nodes n
+      INNER JOIN messages m ON m."fromNodeId" = n.id
+      WHERE 1=1
+    `;
+
+    if (requireShortName) {
+      query += ` AND n."shortName" IS NOT NULL AND n."shortName" != ''`;
+    }
+
+    if (networkId) {
+      query += ` AND n."networkId" = '${networkId}'`;
+    }
+
+    query += `
+      GROUP BY n.id, n."nodeId", n."shortName", n."longName"
+      ORDER BY "messageCount" DESC
+      LIMIT ${limit}
+    `;
+
+    const topTalkers = await this.db.$queryRawUnsafe<Array<{
+      nodeId: string;
+      nodeIdHex: string;
+      shortName: string | null;
+      longName: string | null;
+      messageCount: bigint;
+      lastActive: Date;
+      hasShortName: boolean;
+    }>>(query);
+
+    // Get total message count for percentage calculation
+    const totalMessages = await this.messageRepository.count({
+      where: networkId ? { fromNode: { networkId } } : {}
+    });
+
+    return {
+      talkers: topTalkers.map(talker => ({
+        nodeId: talker.nodeId,
+        nodeIdHex: talker.nodeIdHex,
+        shortName: talker.shortName,
+        longName: talker.longName,
+        displayName: talker.shortName || talker.nodeIdHex || 'Unknown',
+        messageCount: Number(talker.messageCount),
+        percentage: totalMessages > 0 ? (Number(talker.messageCount) / totalMessages) * 100 : 0,
+        lastActive: talker.lastActive,
+        hasShortName: talker.hasShortName
+      })),
+      totalMessages,
+      generatedAt: new Date()
+    };
+  }
 }

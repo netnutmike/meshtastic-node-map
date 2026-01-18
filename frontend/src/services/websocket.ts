@@ -25,6 +25,7 @@ class WebSocketServiceImpl implements WebSocketService {
   private maxReconnectDelay = 30000; // Max 30 seconds
   private connectionStatus: 'connected' | 'disconnected' | 'connecting' | 'error' = 'disconnected';
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private canDispatchToRedux = false;
 
   constructor() {
     this.connect = this.connect.bind(this);
@@ -32,8 +33,18 @@ class WebSocketServiceImpl implements WebSocketService {
     this.handleConnect = this.handleConnect.bind(this);
     this.handleDisconnect = this.handleDisconnect.bind(this);
     this.handleReconnect = this.handleReconnect.bind(this);
+    this.handleConnectError = this.handleConnectError.bind(this);
     this.handleNodeUpdate = this.handleNodeUpdate.bind(this);
     this.handleNetworkStatus = this.handleNetworkStatus.bind(this);
+    this.handleMqttStatus = this.handleMqttStatus.bind(this);
+    this.dispatchConnectionStatus = this.dispatchConnectionStatus.bind(this);
+    this.dispatchNetworkStatus = this.dispatchNetworkStatus.bind(this);
+    this.dispatchMqttStatus = this.dispatchMqttStatus.bind(this);
+  }
+
+  // Enable Redux dispatching after React is ready
+  public enableReduxDispatching(): void {
+    this.canDispatchToRedux = true;
   }
 
   connect(): void {
@@ -156,6 +167,11 @@ class WebSocketServiceImpl implements WebSocketService {
   private handleNodeUpdate(data: any): void {
     console.log('Received node update:', data);
     
+    if (!this.canDispatchToRedux) {
+      console.warn('Redux not ready, skipping node update');
+      return;
+    }
+    
     try {
       const { type, nodeId, data: nodeData } = data;
       
@@ -191,6 +207,11 @@ class WebSocketServiceImpl implements WebSocketService {
   private handleNetworkStatus(data: any): void {
     console.log('Received network status:', data);
     
+    if (!this.canDispatchToRedux) {
+      console.warn('Redux not ready, skipping network status update');
+      return;
+    }
+    
     // Update network connection status in store if needed
     // This could be expanded to handle multiple networks
     const { networkId, status, error } = data;
@@ -201,6 +222,11 @@ class WebSocketServiceImpl implements WebSocketService {
 
   private handleMqttStatus(data: any): void {
     console.log('Received MQTT status:', data);
+    
+    if (!this.canDispatchToRedux) {
+      console.warn('Redux not ready, skipping MQTT status update');
+      return;
+    }
     
     // Handle MQTT broker status updates
     // This could include connection counts, message rates, etc.
@@ -237,39 +263,39 @@ class WebSocketServiceImpl implements WebSocketService {
 
   private dispatchConnectionStatus(status: 'connected' | 'disconnected' | 'error'): void {
     console.log('Connection status changed:', status);
-    store.dispatch(setWebSocketStatus({ 
-      status, 
-      reconnectAttempts: this.reconnectAttempts 
-    }));
+    if (this.canDispatchToRedux) {
+      store.dispatch(setWebSocketStatus({ 
+        status, 
+        reconnectAttempts: this.reconnectAttempts 
+      }));
+    }
   }
 
   private dispatchNetworkStatus(networkId: string, status: string, error?: string): void {
     console.log(`Network ${networkId} status: ${status}`, error ? `Error: ${error}` : '');
-    store.dispatch(setNetworkStatus({ 
-      networkId, 
-      status: status as 'connected' | 'disconnected' | 'error', 
-      error 
-    }));
+    if (this.canDispatchToRedux) {
+      store.dispatch(setNetworkStatus({ 
+        networkId, 
+        status: status as 'connected' | 'disconnected' | 'error', 
+        error 
+      }));
+    }
   }
 
   private dispatchMqttStatus(data: any): void {
     console.log('MQTT status update:', data);
-    store.dispatch(setMqttStatus({
-      status: data.connected ? 'connected' : 'disconnected',
-      brokerUrl: data.brokerUrl,
-      messageCount: data.messageCount,
-      lastMessage: data.lastMessage
-    }));
+    if (this.canDispatchToRedux) {
+      store.dispatch(setMqttStatus({
+        status: data.connected ? 'connected' : 'disconnected',
+        brokerUrl: data.brokerUrl,
+        messageCount: data.messageCount,
+        lastMessage: data.lastMessage
+      }));
+    }
   }
 }
 
 // Create singleton instance
 export const webSocketService = new WebSocketServiceImpl();
-
-// Auto-connect when the service is imported
-if (typeof window !== 'undefined') {
-  // Only connect in browser environment
-  webSocketService.connect();
-}
 
 export default webSocketService;

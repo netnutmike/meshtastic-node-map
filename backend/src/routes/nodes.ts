@@ -17,7 +17,7 @@ const telemetryRepository = new TelemetryRepository();
 router.get('/',
   applyRateLimit('read'),
   optionalAuth,
-  validate(extendedSchemas.nodeFilters, 'query'),
+  validate(extendedSchemas.nodeFilters, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -128,7 +128,7 @@ router.get('/',
 router.get('/:id',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -193,7 +193,7 @@ router.put('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('write'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(schemas.updateNode),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -219,7 +219,7 @@ router.delete('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -241,8 +241,8 @@ router.delete('/:id',
 router.get('/:id/positions',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
-  validate(schemas.pagination.concat(schemas.dateRange), 'query'),
+  validate(schemas.uuidParam, { property: 'params' }),
+  validate(schemas.pagination.concat(schemas.dateRange), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { page = 1, limit = 50, startDate, endDate } = req.query;
@@ -286,8 +286,8 @@ router.get('/:id/positions',
 router.get('/:id/telemetry',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
-  validate(schemas.pagination.concat(schemas.dateRange), 'query'),
+  validate(schemas.uuidParam, { property: 'params' }),
+  validate(schemas.pagination.concat(schemas.dateRange), { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { page = 1, limit = 100, startDate, endDate, type } = req.query;
@@ -333,7 +333,7 @@ router.get('/:id/telemetry',
 router.get('/:id/neighbors',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 

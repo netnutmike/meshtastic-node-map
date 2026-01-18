@@ -36,12 +36,23 @@ class OfflineServiceImpl implements OfflineService {
   private db: IDBDatabase | null = null;
   private syncQueue: SyncQueueItem[] = [];
   private isInitialized = false;
+  private canDispatchToRedux = false;
   private onlineStatusListener: (() => void) | null = null;
 
   constructor() {
-    this.initializeDB();
+    // Don't initialize immediately - wait for explicit init call
+  }
+
+  // Public method to initialize the service after React is ready
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    await this.initializeDB();
     this.setupOnlineStatusListener();
-    this.loadSyncQueue();
+    await this.loadSyncQueue();
+    this.canDispatchToRedux = true;
   }
 
   private async initializeDB(): Promise<void> {
@@ -90,8 +101,10 @@ class OfflineServiceImpl implements OfflineService {
       const isOnline = navigator.onLine;
       console.log('Online status changed:', isOnline);
       
-      // Update Redux store
-      store.dispatch(setOfflineMode(!isOnline));
+      // Only dispatch to Redux if we're allowed to
+      if (this.canDispatchToRedux) {
+        store.dispatch(setOfflineMode(!isOnline));
+      }
 
       if (isOnline) {
         // Process sync queue when coming back online
@@ -102,8 +115,10 @@ class OfflineServiceImpl implements OfflineService {
     window.addEventListener('online', this.onlineStatusListener);
     window.addEventListener('offline', this.onlineStatusListener);
 
-    // Set initial state
-    store.dispatch(setOfflineMode(!navigator.onLine));
+    // Set initial state only if we're allowed to dispatch
+    if (this.canDispatchToRedux) {
+      store.dispatch(setOfflineMode(!navigator.onLine));
+    }
   }
 
   private async loadSyncQueue(): Promise<void> {

@@ -11,7 +11,7 @@ import { utilizationAnalysisRoutes } from './utilization-analysis';
 import { apiKeyRoutes } from './api-keys';
 import { securityAuditRoutes } from './security-audit';
 import { dataExportRoutes } from './data-export';
-import analyticsRoutes from './analytics';
+// import analyticsRoutes from './analytics'; // Temporarily disabled due to validation errors
 import coverageAnalysisRoutes from './coverage-analysis';
 import { trackApiUsage } from '../middleware/rateLimiting';
 
@@ -36,7 +36,7 @@ router.use(`${API_VERSION}/utilization-analysis`, utilizationAnalysisRoutes);
 router.use(`${API_VERSION}/api-keys`, apiKeyRoutes);
 router.use(`${API_VERSION}/security`, securityAuditRoutes);
 router.use(`${API_VERSION}/export`, dataExportRoutes);
-router.use(`${API_VERSION}/analytics`, analyticsRoutes);
+// router.use(`${API_VERSION}/analytics`, analyticsRoutes); // Temporarily disabled
 router.use(`${API_VERSION}/coverage-analysis`, coverageAnalysisRoutes);
 
 // API info endpoint

@@ -25,7 +25,7 @@ const networkFiltersSchema = Joi.object({
 router.get('/',
   applyRateLimit('read'),
   optionalAuth,
-  validate(networkFiltersSchema, 'query'),
+  validate(networkFiltersSchema, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -93,7 +93,7 @@ router.get('/',
 router.get('/:id',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -167,7 +167,7 @@ router.put('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   validate(schemas.updateNetwork),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -199,7 +199,7 @@ router.delete('/:id',
   applyRateLimit('write'),
   optionalAuth,
   requirePermission('admin'),
-  validate(schemas.uuidParam, 'params'),
+  validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -221,8 +221,8 @@ router.delete('/:id',
 router.get('/:id/stats',
   applyRateLimit('read'),
   optionalAuth,
-  validate(schemas.uuidParam, 'params'),
-  validate(schemas.dateRange, 'query'),
+  validate(schemas.uuidParam, { property: 'params' }),
+  validate(schemas.dateRange, { property: 'query' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { startDate, endDate } = req.query;

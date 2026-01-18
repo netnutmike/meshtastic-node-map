@@ -57,6 +57,7 @@ interface NodeState {
   filteredNodes: Node[];
   selectedNodeId: string | null;
   detailsPanelOpen: boolean;
+  returnPath: string | null; // Track where to return when closing details panel
   neighborVisualizationActive: boolean;
   neighborVisualizationNodeId: string | null;
   neighborVisualizationDirection: 'heard-us' | 'we-heard' | null;
@@ -70,6 +71,7 @@ const initialState: NodeState = {
   filteredNodes: [],
   selectedNodeId: null,
   detailsPanelOpen: false,
+  returnPath: null,
   neighborVisualizationActive: false,
   neighborVisualizationNodeId: null,
   neighborVisualizationDirection: null,
@@ -149,8 +151,11 @@ const nodeSlice = createSlice({
   initialState,
   reducers: {
     setNodes: (state, action: PayloadAction<Node[]>) => {
+      console.log('nodeSlice: setNodes called with', action.payload.length, 'nodes');
+      console.log('nodeSlice: Nodes with positions:', action.payload.filter(n => n.position).length);
       state.nodes = action.payload;
       state.filteredNodes = applyFilters(action.payload, state.searchFilters);
+      console.log('nodeSlice: Filtered nodes:', state.filteredNodes.length);
       state.loading = false;
       state.error = null;
     },
@@ -166,20 +171,30 @@ const nodeSlice = createSlice({
     updateNode: (state, action: PayloadAction<Partial<Node> & { id: string }>) => {
       const index = state.nodes.findIndex(node => node.id === action.payload.id);
       if (index >= 0) {
+        // Update existing node
         state.nodes[index] = { ...state.nodes[index], ...action.payload };
+      } else {
+        // Add new node if it doesn't exist (treat as addNode)
+        // This handles the case where WebSocket sends node_updated for a new node
+        if (action.payload.position) {
+          // Only add if we have enough data to create a valid node
+          state.nodes.push(action.payload as Node);
+        }
       }
       state.filteredNodes = applyFilters(state.nodes, state.searchFilters);
     },
     selectNode: (state, action: PayloadAction<string | null>) => {
       state.selectedNodeId = action.payload;
     },
-    openDetailsPanel: (state, action: PayloadAction<string>) => {
-      state.selectedNodeId = action.payload;
+    openDetailsPanel: (state, action: PayloadAction<{ nodeId: string; returnPath?: string }>) => {
+      state.selectedNodeId = action.payload.nodeId;
       state.detailsPanelOpen = true;
+      state.returnPath = action.payload.returnPath || null;
     },
     closeDetailsPanel: (state) => {
       state.detailsPanelOpen = false;
       state.selectedNodeId = null;
+      state.returnPath = null;
     },
     activateNeighborVisualization: (state, action: PayloadAction<{ nodeId: string; direction: 'heard-us' | 'we-heard' }>) => {
       state.neighborVisualizationActive = true;

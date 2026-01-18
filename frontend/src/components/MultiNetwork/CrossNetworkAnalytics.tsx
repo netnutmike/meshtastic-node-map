@@ -79,8 +79,8 @@ export const CrossNetworkAnalytics: React.FC<CrossNetworkAnalyticsProps> = ({
       setError(null);
 
       const [analyticsResponse, statusResponse] = await Promise.all([
-        apiService.request<CrossNetworkAnalytics>('/multi-network/analytics'),
-        apiService.request<any>('/multi-network/status')
+        apiService.get<CrossNetworkAnalytics>('/multi-network/analytics'),
+        apiService.get<any>('/multi-network/status')
       ]);
 
       setAnalytics(analyticsResponse.data);
@@ -262,7 +262,7 @@ export const CrossNetworkAnalytics: React.FC<CrossNetworkAnalyticsProps> = ({
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percentage }) => `${name}: ${percentage}%`}
+                        label={({ name, value }) => `${name}: ${value}%`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"

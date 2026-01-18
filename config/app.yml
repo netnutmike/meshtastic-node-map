@@ -70,3 +70,12 @@ seo:
   description: "Real-time visualization and monitoring of Meshtastic mesh networks"
   keywords: "meshtastic, mesh network, LoRa, MQTT, mapping, visualization"
   author: "Meshtastic Community"
+
+# Encryption Configuration
+encryption:
+  channels:
+    - name: "LongFast"
+      key: "AQ=="  # Base64 encoded key (1 byte, padded to 32 bytes by the service)
+      default: true
+    - name: "Primary"
+      key: "1PG7OiApB3XvvX7g8kYzDYQD+CW+3Oi+Qs/LoIWh/gg="  # Base64 encoded 32-byte key

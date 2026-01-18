@@ -139,7 +139,7 @@ export class MQTTMonitorService extends EventEmitter {
     // Apply filters
     if (query.filters.type) {
       filteredMessages = filteredMessages.filter(msg => 
-        msg.parsed?.type === query.filters.type
+        msg.parsed?.type?.toLowerCase() === query.filters.type?.toLowerCase()
       );
     }
 
