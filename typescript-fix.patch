@@ -1,0 +1,11 @@
+--- a/backend/src/index.ts
++++ b/backend/src/index.ts
+@@ -82,7 +82,7 @@ const networkRepository = new NetworkRepository();
+ async function initializeMQTTManager() {
+   try {
+     // Get networks from database with retry logic
+-    let networks = [];
++    let networks: any[] = [];
+     let retries = 5;
+     
+     while (retries > 0) {

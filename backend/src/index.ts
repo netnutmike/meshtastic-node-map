@@ -82,12 +82,15 @@ let mqttManager: MQTTManagerService;
 async function initializeMQTTManager() {
   try {
     // Get networks from database with retry logic
-    let networks = [];
+    let networks: any[] = [];
     let retries = 5;
+    let networksLoaded = false;
     
     while (retries > 0) {
       try {
-        networks = await networkRepository.findActiveNetworks();
+        const loadedNetworks = await networkRepository.findActiveNetworks();
+        networks = loadedNetworks;
+        networksLoaded = true;
         break;
       } catch (error: any) {
         if (error.code === 'P2021' || error.message?.includes('does not exist')) {
@@ -105,7 +108,7 @@ async function initializeMQTTManager() {
       }
     }
     
-    if (networks.length === 0) {
+    if (!networksLoaded || networks.length === 0) {
       logger.warn('No active networks found in database. MQTT Manager will not be initialized.');
       logger.info('Please create a network using the API or run the database initialization script.');
       return;
