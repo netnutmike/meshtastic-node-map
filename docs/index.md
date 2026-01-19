@@ -1,92 +1,116 @@
 # Meshtastic Node Mapper Documentation
 
-Welcome to the Meshtastic Node Mapper documentation. This comprehensive guide will help you understand, install, configure, and use the Meshtastic Node Mapper application.
+Welcome to the Meshtastic Node Mapper documentation. Whether you're a user wanting to monitor your mesh network or a developer looking to contribute, you'll find everything you need here.
 
-## Table of Contents
+## 📚 Documentation for Users
 
-### User Documentation
-- [Installation Guide](installation.md) - Complete setup and deployment instructions
-- [User Guide](user-guide.md) - How to use the application features
-- [Configuration Guide](configuration.md) - Customizing the application settings
+Perfect for anyone who wants to install, configure, and use the application.
+
+### Getting Started
+- **[Installation Guide](installation.md)** - Step-by-step setup instructions
+- **[Features Overview](features.md)** - Visual tour of all features with screenshots
+- **[User Guide](user-guide.md)** - Complete feature walkthrough and how-to guides
+- **[Troubleshooting](troubleshooting.md)** - Solutions to common problems
+
+### Deployment
+- **[Production Deployment](production-deployment.md)** - Deploy on port 80 for production use
+- **[Production Quick Start](production-quickstart.md)** - Fast production deployment reference
+
+### Reference
+- **[API Guide](api-guide.md)** - REST API and WebSocket documentation for integrations
+
+## 👨‍💻 Documentation for Developers
+
+For developers who want to contribute, extend, or understand the codebase.
 
 ### Developer Documentation
-- [Developer Guide](developer-guide.md) - Development setup and contribution guidelines
-- [API Documentation](api-guide.md) - REST API and WebSocket reference
-- [Architecture Overview](architecture.md) - System design and components
+- **[Developer Hub](developer/)** - Main developer documentation index
+- **[Architecture Overview](developer/architecture.md)** - System design and technical details
+- **[Contributing Guidelines](developer/contributing.md)** - How to contribute to the project
+- **[Development Setup](developer/development-setup.md)** - Set up your dev environment
 
-### Deployment Documentation
-- [Docker Deployment](docker-deployment.md) - Container-based deployment
-- [Production Setup](production-setup.md) - Production environment configuration
-- [Monitoring and Maintenance](monitoring.md) - System monitoring and troubleshooting
+## Quick Navigation
 
-## Quick Start
+### I want to...
 
-1. **Installation**: Follow the [Installation Guide](installation.md) to set up the application
-2. **Configuration**: Customize settings using the [Configuration Guide](configuration.md)
-3. **Usage**: Learn the features with the [User Guide](user-guide.md)
+**...install and use the application**
+1. Follow the [Installation Guide](installation.md)
+2. Read the [User Guide](user-guide.md)
+3. Check [Troubleshooting](troubleshooting.md) if you have issues
 
-## Overview
+**Deploy to production**
+1. Review [Production Deployment](production-deployment.md)
+2. Use the [Production Quick Start](production-quickstart.md)
+3. Set up monitoring and backups
 
-The Meshtastic Node Mapper is a comprehensive web-based application designed to visualize, monitor, and analyze Meshtastic mesh networks through real-time MQTT data consumption. The system provides:
+**...integrate with the API**
+1. Read the [API Guide](api-guide.md)
+2. Review authentication methods
+3. Test with the interactive API docs
 
-- **Interactive Map Visualization**: Real-time node positioning and status display
-- **Comprehensive Monitoring**: Node telemetry, message tracking, and network analytics
-- **Multi-Network Support**: Manage multiple mesh networks simultaneously
-- **Advanced Analytics**: Predictive analysis, coverage planning, and performance optimization
-- **Mobile-Friendly**: Responsive design with offline capabilities
+**...contribute to development**
+1. Read [Contributing Guidelines](developer/contributing.md)
+2. Set up your [Development Environment](developer/development-setup.md)
+3. Review the [Architecture](developer/architecture.md)
+4. Check out [Good First Issues](https://github.com/your-org/meshtastic-node-mapper/labels/good%20first%20issue)
 
-## Key Features
+## What is Meshtastic Node Mapper?
 
-### Core Functionality
-- Real-time node visualization on interactive maps
-- Comprehensive node details with telemetry data
-- Message history and routing path analysis
-- Network topology visualization
-- Search and filtering capabilities
+A comprehensive web-based application for visualizing, monitoring, and analyzing Meshtastic mesh networks through real-time MQTT data.
 
-### Advanced Features
-- Multi-network management and federation
-- Coverage analysis and network planning
-- Predictive analytics and anomaly detection
-- Data export and backup functionality
-- Authentication and role-based access control
+### Key Features
 
-### Technical Features
-- Docker-based containerized deployment
-- RESTful API with WebSocket real-time updates
-- PostgreSQL with TimescaleDB for time-series data
-- Redis caching and session management
-- MQTT integration with Mosquitto broker
+**For Network Operators:**
+- 📍 Interactive map with real-time node visualization
+- 📊 Network analytics and performance monitoring
+- 🗺️ Coverage analysis and planning tools
+- 📱 Mobile-friendly with offline capabilities
+- 🌐 Multi-network management
+
+**For Developers:**
+- 🔌 RESTful API with WebSocket support
+- 🐳 Docker-based deployment
+- 📚 Comprehensive documentation
+- 🧪 Full test coverage
+- 🔧 Extensible architecture
+
+### Technology Stack
+
+- **Frontend**: React 18+ with TypeScript, Material-UI, Leaflet maps
+- **Backend**: Node.js with Express, Socket.IO for real-time updates
+- **Database**: PostgreSQL 15+ with TimescaleDB for time-series data
+- **Cache**: Redis for performance optimization
+- **MQTT**: Mosquitto broker integration
+- **Deployment**: Docker with multi-stage builds
 
 ## System Requirements
 
-### Minimum Requirements
-- **CPU**: 2 cores, 2.0 GHz
-- **RAM**: 4 GB
-- **Storage**: 20 GB available space
-- **Network**: Stable internet connection
-- **Docker**: Docker 20.10+ and Docker Compose 2.0+
+### For Users
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: Version 2.0 or higher
+- **RAM**: 4 GB minimum (8 GB recommended)
+- **Storage**: 20 GB minimum (50 GB recommended)
+- **OS**: Linux, macOS, or Windows with Docker
 
-### Recommended Requirements
-- **CPU**: 4 cores, 2.5 GHz or higher
-- **RAM**: 8 GB or more
-- **Storage**: 50 GB SSD storage
-- **Network**: High-speed internet connection
-- **OS**: Linux (Ubuntu 20.04+, CentOS 8+, or similar)
+### For Developers
+- **Node.js**: Version 18.0 or higher
+- **npm**: Version 8.0 or higher
+- **Git**: Latest version
+- **IDE**: VS Code recommended
+- All user requirements above
 
-## Support and Community
+## Getting Help
 
-### Getting Help
-- **Documentation**: Comprehensive guides and references
-- **Issues**: Report bugs and request features on GitHub
-- **Community**: Join discussions and share experiences
+### For Users
+- **Documentation**: Start with the [User Guide](user-guide.md)
+- **Issues**: Report problems on [GitHub Issues](https://github.com/your-org/meshtastic-node-mapper/issues)
+- **Community**: Ask questions in [GitHub Discussions](https://github.com/your-org/meshtastic-node-mapper/discussions)
 
-### Contributing
-We welcome contributions! Please see the [Developer Guide](developer-guide.md) for information on:
-- Setting up the development environment
-- Code style and standards
-- Testing requirements
-- Pull request process
+### For Developers
+- **Developer Docs**: See the [Developer Hub](developer/)
+- **API Reference**: Check the [API Guide](api-guide.md)
+- **Contributing**: Read [Contributing Guidelines](developer/contributing.md)
+- **Code Review**: Submit [Pull Requests](https://github.com/your-org/meshtastic-node-mapper/pulls)
 
 ## License
 
@@ -96,10 +120,12 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 
 - **Current Version**: 1.0.0
 - **Release Date**: December 2024
-- **Compatibility**: Meshtastic firmware 2.0+
+- **Meshtastic Compatibility**: Firmware 2.0+
 - **Node.js**: 18.0+ required
 - **Docker**: 20.10+ required
 
 ---
 
-For detailed information on any topic, please refer to the specific documentation sections linked above.
+**New to the project?** Start with the [Installation Guide](installation.md) or [User Guide](user-guide.md).
+
+**Want to contribute?** Check out the [Developer Documentation](developer/).

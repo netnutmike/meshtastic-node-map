@@ -2,6 +2,8 @@
 
 This guide provides comprehensive instructions for installing and setting up the Meshtastic Node Mapper application.
 
+> **Production Deployment?** See the [Production Deployment Guide](production-deployment.md) for deploying on port 80 with optimized settings.
+
 > **Having issues?** Check the [Troubleshooting Guide](troubleshooting.md) for common problems and solutions.
 
 ## Prerequisites

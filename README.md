@@ -1,230 +1,173 @@
 # Meshtastic Node Mapper
 
-A comprehensive web-based application for visualizing and monitoring Meshtastic mesh networks through real-time MQTT data consumption.
+A web application for visualizing and monitoring your Meshtastic mesh network in real-time.
 
-## 🌟 Features
+![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
-- **Real-time Node Visualization**: Interactive map showing all active Meshtastic nodes
-- **Comprehensive Monitoring**: Node telemetry, message tracking, and network analytics
-- **Multi-Network Support**: Manage multiple mesh networks simultaneously
-- **Advanced Analytics**: Predictive analysis, coverage planning, and performance optimization
-- **Mobile-Friendly**: Responsive design with offline capabilities
-- **Docker-Ready**: Complete containerized deployment solution
+## What is This?
 
-## 🚀 Quick Start
+Meshtastic Node Mapper shows you all the nodes in your mesh network on an interactive map. See who's online, track messages, view telemetry data, and analyze your network coverage - all in real-time through your web browser.
 
-### Prerequisites
+## Quick Start
 
-- Docker 20.10+ and Docker Compose 2.0+
-- 4GB RAM minimum (8GB recommended)
-- 20GB storage space
+### What You Need
 
-### Installation
+- A computer with Docker installed
+- 4GB of RAM (8GB recommended)
+- 20GB of free disk space
+- Your Meshtastic network's MQTT connection details
 
-#### Option 1: Quick Start (Recommended for Development)
+### Installation (5 Minutes)
+
+1. **Download the application:**
+   ```bash
+   git clone https://github.com/your-org/meshtastic-node-mapper.git
+   cd meshtastic-node-mapper
+   ```
+
+2. **Run the setup script:**
+   ```bash
+   ./scripts/setup.sh
+   ```
+   
+   The script will automatically:
+   - Install all required components
+   - Set up the database
+   - Start all services
+   - Configure everything for you
+
+3. **Open your browser:**
+   - Go to: http://localhost:3000
+   - That's it! You're ready to use the application.
+
+### First Time Setup
+
+After opening the application:
+
+1. Click the **Settings** icon (⚙️)
+2. Enter your MQTT broker details:
+   - **Broker URL**: Your Meshtastic MQTT server address
+   - **Username/Password**: If your broker requires authentication
+   - **Topic**: Usually `msh/US/2/json/LongFast/!#` (adjust for your region)
+3. Click **Save**
+
+Your nodes will start appearing on the map within seconds!
+
+## Key Features
+
+### 📍 Interactive Map
+- See all your nodes on a real-time map
+- Color-coded status indicators (online/offline)
+- Click any node for detailed information
+- Zoom and pan to explore your network
+
+### 📊 Network Analytics
+- View network statistics and trends
+- Monitor message traffic
+- Analyze coverage areas
+- Track node performance
+
+### 📱 Mobile Friendly
+- Works on phones and tablets
+- Offline mode for field use
+- GPS integration for location tracking
+
+### 🔍 Search & Filter
+- Find nodes by name or ID
+- Filter by hardware type or status
+- Search message history
+- Export data for analysis
+
+### 🌐 Multi-Network Support
+- Manage multiple mesh networks
+- Switch between networks easily
+- Compare network performance
+
+**[📸 See All Features with Screenshots →](docs/features.md)**
+
+## Common Tasks
+
+### Viewing Node Details
+1. Click any node marker on the map
+2. View real-time telemetry (battery, signal strength, etc.)
+3. See message history
+4. Check neighbor connections
+
+### Exporting Data
+1. Go to **Settings** → **Data Export**
+2. Choose your format (CSV, JSON, or KML)
+3. Select what to export (nodes, messages, telemetry)
+4. Click **Export**
+
+### Monitoring Network Health
+1. Open the **Network Insights** page
+2. View statistics dashboard
+3. Check coverage analysis
+4. Review top talkers and message patterns
+
+## Need Help?
+
+### Documentation
+- **[User Guide](docs/user-guide.md)** - Complete feature walkthrough
+- **[Installation Guide](docs/installation.md)** - Detailed setup instructions
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+
+### Getting Support
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/your-org/meshtastic-node-mapper/issues)
+- **Questions**: Ask in [GitHub Discussions](https://github.com/your-org/meshtastic-node-mapper/discussions)
+- **Community**: Join the Meshtastic community forums
+
+### Common Issues
+
+**Can't connect to MQTT broker?**
+- Check your broker URL is correct
+- Verify username/password if required
+- Ensure your firewall allows the connection
+
+**No nodes showing up?**
+- Verify your MQTT topic is correct
+- Check that nodes are actively transmitting
+- Look at the connection status indicator
+
+**Application won't start?**
+- Run: `./scripts/fix-docker-permissions.sh`
+- Check you have enough disk space
+- See the [Troubleshooting Guide](docs/troubleshooting.md)
+
+## Updating
+
+To update to the latest version:
+
 ```bash
-git clone https://github.com/your-org/meshtastic-node-mapper.git
-cd meshtastic-node-mapper
-./scripts/quick-start.sh
+# Stop the application
+docker compose down
+
+# Get the latest code
+git pull
+
+# Restart with updates
+docker compose up -d
 ```
 
-#### Option 2: Full Setup (Production-Ready)
-```bash
-git clone https://github.com/your-org/meshtastic-node-mapper.git
-cd meshtastic-node-mapper
-./scripts/setup.sh
-```
+Your data is preserved during updates.
 
-#### If you get Docker permission errors:
-```bash
-# Run the permission fix script
-./scripts/fix-docker-permissions.sh
+## For Developers
 
-# Then try setup again
-./scripts/setup.sh
-```
+Want to contribute or customize the application? See the [Developer Documentation](docs/developer/).
 
-3. **Access the Application**:
-- 🌐 **Frontend**: http://localhost:3000
-- 🔧 **Backend API**: http://localhost:3001
-- 📚 **API Docs**: http://localhost:3001/api/v1/docs
+## License
 
-That's it! The setup script handles everything automatically.
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
-### Troubleshooting
-
-If you encounter issues:
-- 🔧 **Docker Permissions**: Run `./scripts/fix-docker-permissions.sh`
-- 📖 **Common Issues**: Check [docs/troubleshooting.md](docs/troubleshooting.md)
-- 🐛 **Bug Reports**: Open an issue on GitHub
-
-## 📖 Documentation
-
-Comprehensive documentation is available in the `docs/` directory:
-
-- **[📋 Installation Guide](docs/installation.md)** - Complete setup instructions
-- **[👤 User Guide](docs/user-guide.md)** - How to use all features
-- **[⚙️ Configuration Guide](docs/configuration.md)** - Customization options
-- **[👨‍💻 Developer Guide](docs/developer-guide.md)** - Development and contribution
-- **[🔌 API Documentation](docs/api-guide.md)** - REST API and WebSocket reference
-- **[🏗️ Architecture Overview](docs/architecture.md)** - System design details
-
-## 🛠️ Development
-
-### Quick Development Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Start development environment
-docker-compose -f docker-compose.dev.yml up -d
-
-# Start backend (terminal 1)
-cd backend && npm run dev
-
-# Start frontend (terminal 2)
-cd frontend && npm start
-```
-
-### Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Run integration tests
-npm run test:integration
-```
-
-See the [Developer Guide](docs/developer-guide.md) for detailed development instructions.
-
-## 🌐 API Overview
-
-The API provides comprehensive access to mesh network data:
-
-### REST API Examples
-
-```javascript
-// Get all online nodes
-const nodes = await fetch('/api/v1/nodes?isOnline=true');
-
-// Get telemetry data
-const telemetry = await fetch('/api/v1/telemetry?nodeId=123456789');
-
-// Export data
-const csv = await fetch('/api/v1/export/nodes?format=csv');
-```
-
-### WebSocket Real-time Updates
-
-```javascript
-const socket = io('http://localhost:3001');
-
-socket.on('nodeUpdate', (data) => {
-  console.log('Node updated:', data);
-});
-
-socket.on('messageReceived', (message) => {
-  console.log('New message:', message);
-});
-```
-
-Full API documentation: [API Guide](docs/api-guide.md)
-
-## 🚢 Production Deployment
-
-### Docker Production Setup
-
-```bash
-# Production deployment
-./scripts/setup.sh --prod
-
-# Or manually
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Key Production Features
-
-- 🔒 **Security**: JWT authentication, rate limiting, input validation
-- 📊 **Monitoring**: Health checks, metrics, logging
-- 🔄 **High Availability**: Load balancing, auto-restart, graceful shutdown
-- 📈 **Performance**: Caching, connection pooling, optimized queries
-- 🔧 **Maintenance**: Automated backups, log rotation, updates
-
-See [Installation Guide](docs/installation.md) for detailed deployment instructions.
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend API   │    │   MQTT Broker   │
-│   (React)       │◄──►│   (Node.js)     │◄──►│   (Mosquitto)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       ▼                       │
-         │              ┌─────────────────┐              │
-         │              │   PostgreSQL    │              │
-         │              │   + TimescaleDB │              │
-         │              └─────────────────┘              │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│      Nginx      │    │      Redis      │    │   Monitoring    │
-│   (Reverse      │    │    (Cache)      │    │  (Prometheus)   │
-│    Proxy)       │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-**Technology Stack:**
-- **Frontend**: React 18+, TypeScript, Material-UI, Leaflet
-- **Backend**: Node.js, Express, Socket.IO, Prisma ORM
-- **Database**: PostgreSQL 15+ with TimescaleDB
-- **Cache**: Redis for sessions and caching
-- **MQTT**: Mosquitto broker integration
-- **Deployment**: Docker with multi-stage builds
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-1. **Read the [Developer Guide](docs/developer-guide.md)**
-2. **Fork the repository**
-3. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-4. **Make your changes and add tests**
-5. **Submit a pull request**
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write tests for new features
-- Update documentation as needed
-- Follow conventional commit messages
-- Ensure all tests pass
-
-## 📄 License
-
-This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support & Community
-
-- **📖 Documentation**: Complete guides in `docs/` directory
-- **🐛 Issues**: Report bugs on [GitHub Issues](https://github.com/your-org/meshtastic-node-mapper/issues)
-- **💬 Discussions**: Join [GitHub Discussions](https://github.com/your-org/meshtastic-node-mapper/discussions)
-- **📧 Security**: Report security issues privately
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **[Meshtastic Project](https://meshtastic.org/)** - The amazing mesh networking platform
 - **[OpenStreetMap](https://www.openstreetmap.org/)** - Open map data
-- **Open Source Community** - All the amazing libraries and tools
-- **Contributors** - Everyone who helps make this project better
+- **Community Contributors** - Everyone who helps improve this project
 
 ---
 
-**⭐ Star this repository if you find it useful!**
+**⭐ If you find this useful, please star the repository!**
 
-For detailed information on any topic, please refer to the comprehensive documentation in the `docs/` directory.
+For complete documentation, visit the [docs](docs/) directory.

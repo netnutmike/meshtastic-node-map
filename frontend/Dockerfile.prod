@@ -47,27 +47,19 @@ COPY --from=build /app/build /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create nginx user and set permissions
-RUN addgroup -g 1001 -S nginx-app && \
-    adduser -S nginx-app -u 1001 && \
-    chown -R nginx-app:nginx-app /usr/share/nginx/html && \
-    chown -R nginx-app:nginx-app /var/cache/nginx && \
-    chown -R nginx-app:nginx-app /var/log/nginx && \
-    chown -R nginx-app:nginx-app /etc/nginx/conf.d
-
-# Create pid file directory
-RUN mkdir -p /var/run/nginx && \
-    chown -R nginx-app:nginx-app /var/run/nginx
-
-# Switch to non-root user
-USER nginx-app
+# Create necessary directories and set permissions for non-root user
+RUN mkdir -p /tmp/client_temp /tmp/proxy_temp_path /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
+    chmod -R 777 /tmp && \
+    chmod -R 755 /usr/share/nginx/html && \
+    touch /var/log/nginx/error.log /var/log/nginx/access.log && \
+    chmod 666 /var/log/nginx/error.log /var/log/nginx/access.log
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+    CMD curl -f http://localhost:8080/ || exit 1
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
-# Start nginx
+# Start nginx (runs as nginx user by default in alpine)
 CMD ["nginx", "-g", "daemon off;"]

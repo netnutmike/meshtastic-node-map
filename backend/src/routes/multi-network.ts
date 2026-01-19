@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { MultiNetworkManagerService } from '../services/multi-network-manager.service';
 import { NetworkRepository } from '../database/repositories/network.repository';
 import { validate, schemas } from '../middleware/validation';
-import { optionalAuth, requirePermission, getUserPermissions } from '../middleware/auth';
+import { optionalAuth, requirePermission, AuthenticatedRequest, ApiKeyRequest } from '../middleware/auth';
 import { applyRateLimit } from '../middleware/rateLimiting';
 import { asyncHandler, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -16,6 +16,17 @@ import Joi from 'joi';
 
 const router = Router();
 const networkRepository = new NetworkRepository();
+
+// Helper function to get user permissions from request
+const getUserPermissions = (req: AuthenticatedRequest | ApiKeyRequest): string[] => {
+  if ('user' in req && req.user) {
+    return req.user.permissions || [];
+  }
+  if ('apiKey' in req && req.apiKey) {
+    return req.apiKey.permissions || [];
+  }
+  return [];
+};
 
 // Multi-network manager instance (would be injected in real implementation)
 let multiNetworkManager: MultiNetworkManagerService;
@@ -55,12 +66,13 @@ router.get('/status',
   applyRateLimit('read'),
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const userPermissions = getUserPermissions(req);
+    const userPermissions = getUserPermissions(req as AuthenticatedRequest);
     
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     const status = multiNetworkManager.getConnectionStatus(userPermissions);
@@ -81,12 +93,13 @@ router.get('/networks',
   applyRateLimit('read'),
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const userPermissions = getUserPermissions(req);
+    const userPermissions = getUserPermissions(req as AuthenticatedRequest);
     
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     const networks = multiNetworkManager.getNetworkSelectionFilters(userPermissions);
@@ -111,9 +124,10 @@ router.post('/networks/:id/connect',
     const accessControls = req.body;
 
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     // Get network from database
@@ -147,9 +161,10 @@ router.delete('/networks/:id/disconnect',
     const { id } = req.params;
 
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     logger.info(`Disconnecting from network ${id}`);
@@ -175,9 +190,10 @@ router.put('/networks/:id/access-controls',
     const accessControls = req.body;
 
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     // Get network from database
@@ -206,12 +222,13 @@ router.get('/analytics',
   optionalAuth,
   validate(schemas.dateRange, { property: 'query' }),
   asyncHandler(async (req, res) => {
-    const userPermissions = getUserPermissions(req);
+    const userPermissions = getUserPermissions(req as AuthenticatedRequest);
     
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     const analytics = await multiNetworkManager.getCrossNetworkAnalytics(userPermissions);
@@ -231,9 +248,10 @@ router.get('/federation/status',
   requirePermission('operator'),
   asyncHandler(async (req, res) => {
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     const stats = multiNetworkManager.getStats();
@@ -259,9 +277,10 @@ router.post('/federation/configure',
     const federationSettings = req.body;
 
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     logger.info('Configuring federation settings:', federationSettings);
@@ -282,9 +301,10 @@ router.post('/reload',
   requirePermission('admin'),
   asyncHandler(async (req, res) => {
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     logger.info('Reloading network configurations');
@@ -311,12 +331,13 @@ router.get('/networks/:id/isolation-test',
   validate(schemas.uuidParam, { property: 'params' }),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userPermissions = getUserPermissions(req);
+    const userPermissions = getUserPermissions(req as AuthenticatedRequest);
 
     if (!multiNetworkManager) {
-      return res.status(503).json({ 
+      res.status(503).json({ 
         error: 'Multi-network manager not initialized' 
       });
+      return;
     }
 
     // Test network isolation by checking data access
