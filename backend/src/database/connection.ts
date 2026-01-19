@@ -51,9 +51,9 @@ export function initializeDatabase(config?: Partial<DatabaseConfig>): PrismaClie
 
   const dbConfig: DatabaseConfig = {
     url: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/meshtastic_mapper',
-    maxConnections: config?.maxConnections || 10,
-    connectionTimeout: config?.connectionTimeout || 10000,
-    queryTimeout: config?.queryTimeout || 30000,
+    maxConnections: config?.maxConnections || 50,
+    connectionTimeout: config?.connectionTimeout || 30000,
+    queryTimeout: config?.queryTimeout || 60000,
     logLevel: config?.logLevel || (process.env.NODE_ENV === 'development' ? 'query' : 'error')
   };
 
@@ -69,7 +69,15 @@ export function initializeDatabase(config?: Partial<DatabaseConfig>): PrismaClie
         { level: 'error', emit: 'event' },
         { level: 'info', emit: 'event' },
         { level: 'warn', emit: 'event' }
-      ]
+      ],
+      // Connection pool configuration
+      // @ts-ignore - Prisma types don't expose these options but they work
+      __internal: {
+        engine: {
+          connection_limit: dbConfig.maxConnections,
+          pool_timeout: Math.floor((dbConfig.connectionTimeout || 30000) / 1000)
+        }
+      }
     });
 
     // Set up logging
