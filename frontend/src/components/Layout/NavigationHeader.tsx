@@ -127,12 +127,23 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       <Toolbar>
         {/* Logo and Site Name */}
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+          <Box
+            component="img"
+            src="/logo.png"
+            alt="Meshtastic Node Mapper Logo"
+            sx={{
+              height: 40,
+              width: 'auto',
+              mr: 1.5,
+              display: 'block'
+            }}
+          />
           <Typography
             variant="h6"
             component="div"
             sx={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
           >
-            🗺️ Meshtastic Node Mapper
+            Meshtastic Node Mapper
           </Typography>
         </Box>
 
