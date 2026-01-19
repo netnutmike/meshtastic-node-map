@@ -29,9 +29,21 @@ fi
 
 echo ""
 echo "Step 1: Setting environment variables..."
-export REACT_APP_API_URL="https://${DOMAIN}/api"
-export REACT_APP_WS_URL="wss://${DOMAIN}/api"
-export FRONTEND_URL="https://${DOMAIN}"
+
+# Check if we should use HTTP or HTTPS based on .env.prod
+if [ -f ".env.prod" ] && grep -q "REACT_APP_API_URL=http://" .env.prod; then
+    # Use HTTP (no SSL)
+    export REACT_APP_API_URL="http://${DOMAIN}/api"
+    export REACT_APP_WS_URL="ws://${DOMAIN}/api"
+    export FRONTEND_URL="http://${DOMAIN}"
+    echo "Using HTTP (no SSL detected)"
+else
+    # Use HTTPS (SSL)
+    export REACT_APP_API_URL="https://${DOMAIN}/api"
+    export REACT_APP_WS_URL="wss://${DOMAIN}/api"
+    export FRONTEND_URL="https://${DOMAIN}"
+    echo "Using HTTPS (SSL)"
+fi
 
 echo "API URL: $REACT_APP_API_URL"
 echo "WebSocket URL: $REACT_APP_WS_URL"
