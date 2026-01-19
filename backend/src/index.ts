@@ -81,8 +81,35 @@ let mqttManager: MQTTManagerService;
 
 async function initializeMQTTManager() {
   try {
-    // Get networks from database
-    const networks = await networkRepository.findActiveNetworks();
+    // Get networks from database with retry logic
+    let networks = [];
+    let retries = 5;
+    
+    while (retries > 0) {
+      try {
+        networks = await networkRepository.findActiveNetworks();
+        break;
+      } catch (error: any) {
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          logger.warn(`Database tables not ready yet, retrying in 5 seconds... (${retries} attempts left)`);
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          } else {
+            logger.error('Database tables still not ready after retries. Please run database initialization script.');
+            return;
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+    
+    if (networks.length === 0) {
+      logger.warn('No active networks found in database. MQTT Manager will not be initialized.');
+      logger.info('Please create a network using the API or run the database initialization script.');
+      return;
+    }
     
     mqttManager = new MQTTManagerService(
       {

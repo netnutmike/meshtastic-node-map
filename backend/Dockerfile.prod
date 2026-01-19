@@ -38,6 +38,10 @@ COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
 COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
 
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Create necessary directories
 RUN mkdir -p logs backups && \
     chown -R nodejs:nodejs logs backups
@@ -53,7 +57,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 EXPOSE 3001
 
 # Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "docker-entrypoint.sh"]
 
 # Start the application
 CMD ["node", "dist/index.js"]
