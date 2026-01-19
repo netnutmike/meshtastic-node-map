@@ -4,6 +4,163 @@ This directory contains utility scripts for managing the Meshtastic Node Mapper 
 
 ## Available Scripts
 
+### `fix-frontend-502.sh`
+
+Fixes 502 Bad Gateway errors by rebuilding the frontend container with the production Dockerfile.
+
+**Usage:**
+```bash
+./scripts/fix-frontend-502.sh
+```
+
+**What it does:**
+- Stops and removes the frontend container
+- Removes old frontend images
+- Rebuilds frontend with Dockerfile.prod
+- Starts the frontend container
+- Verifies it's working correctly
+- Restarts nginx to clear cached errors
+- Tests connectivity from host
+
+**When to use:**
+- Getting 502 Bad Gateway errors
+- Frontend container not responding
+- After updating frontend code
+- Frontend using wrong Dockerfile
+
+**Output:**
+- Step-by-step progress messages
+- Success/failure indicators
+- Diagnostic information if issues occur
+
+---
+
+### `diagnose-frontend.sh`
+
+Comprehensive diagnostic tool for troubleshooting frontend container issues.
+
+**Usage:**
+```bash
+./scripts/diagnose-frontend.sh
+```
+
+**What it checks:**
+- Frontend container status
+- Frontend container logs
+- Processes running inside frontend
+- Port 8080 listening status
+- Network configuration
+- HTTP connectivity tests
+- Build directory contents
+- Nginx configuration
+- Nginx error logs
+
+**When to use:**
+- Before running fix-frontend-502.sh
+- Investigating 502 errors
+- Frontend not accessible
+- Debugging deployment issues
+
+**Output:**
+- Detailed diagnostic information
+- Suggested next steps
+- Commands for manual fixes
+
+---
+
+### `quick-install.sh`
+
+One-command installation using pre-built Docker images.
+
+**Usage:**
+```bash
+./quick-install.sh
+```
+
+**What it does:**
+- Downloads docker-compose.images.yml
+- Creates .env file with generated passwords
+- Pulls pre-built Docker images
+- Starts all services
+- Shows access instructions
+
+**When to use:**
+- First-time installation
+- Quick deployment
+- Production setup
+- No build tools available
+
+---
+
+### `build-and-push.sh`
+
+Builds and publishes Docker images to Docker Hub (for maintainers).
+
+**Usage:**
+```bash
+./build-and-push.sh [version]
+```
+
+**What it does:**
+- Builds backend and frontend images
+- Tags images with version and latest
+- Pushes to Docker Hub registry
+- Verifies successful push
+
+**When to use:**
+- Publishing new releases
+- Creating Docker Hub images
+- Maintainer deployments only
+
+---
+
+### `deploy-production.sh`
+
+Deploys or updates production environment.
+
+**Usage:**
+```bash
+./deploy-production.sh
+```
+
+**What it does:**
+- Checks prerequisites
+- Creates/updates .env file
+- Builds production images
+- Starts services
+- Runs health checks
+- Shows access information
+
+**When to use:**
+- Production deployments
+- Building from source
+- Custom configurations
+
+---
+
+### `check-disk-space.sh`
+
+Checks available disk space and Docker resource usage.
+
+**Usage:**
+```bash
+./check-disk-space.sh
+```
+
+**What it does:**
+- Shows disk space usage
+- Shows Docker disk usage
+- Identifies large files/directories
+- Suggests cleanup commands
+
+**When to use:**
+- "No space left on device" errors
+- Before major updates
+- Regular maintenance
+- Performance issues
+
+---
+
 ### `clear-nodes.sh`
 
 Clears all nodes and their associated data from the database.
@@ -41,7 +198,7 @@ Clears all nodes and their associated data from the database.
 
 ### `setup.sh`
 
-Initial setup script for the application (existing script).
+Initial setup script for the application.
 
 **Usage:**
 ```bash
@@ -53,6 +210,11 @@ Initial setup script for the application (existing script).
 - Sets up configuration files
 - Initializes the database
 - Prepares the application for first run
+
+**When to use:**
+- First-time setup
+- Development environment
+- Local testing
 
 ---
 

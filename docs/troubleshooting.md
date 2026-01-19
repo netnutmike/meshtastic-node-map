@@ -145,8 +145,8 @@ The issue has been fixed in the updated Dockerfile. If you're still seeing this:
 
 ```bash
 # Clean rebuild
-docker-compose down --rmi all
-docker-compose up --build -d
+docker compose down --rmi all
+docker compose up --build -d
 
 # Or use the quick start script
 ./scripts/quick-start.sh
@@ -156,38 +156,99 @@ docker-compose up --build -d
 
 ```bash
 # Clear npm cache and rebuild
-docker-compose down
+docker compose down
 docker system prune -f
 ./scripts/quick-start.sh
 ```
 
 ## Service Startup Issues
 
+### Problem: 502 Bad Gateway Error (Production)
+
+If you're getting a 502 Bad Gateway error when accessing your production deployment, this usually means the frontend container is not responding properly.
+
+#### Quick Fix (Automated):
+```bash
+# Run the automated fix script
+./scripts/fix-frontend-502.sh
+```
+
+This script will:
+1. Stop and remove the frontend container
+2. Remove old frontend images
+3. Rebuild frontend with the production Dockerfile
+4. Start the frontend container
+5. Verify it's working correctly
+6. Restart nginx to clear cached errors
+
+#### Manual Fix:
+```bash
+# 1. Stop frontend
+docker compose -f docker-compose.prod.yml stop frontend
+
+# 2. Remove frontend container and images
+docker compose -f docker-compose.prod.yml rm -f frontend
+docker images | grep frontend | awk '{print $3}' | xargs docker rmi -f
+
+# 3. Rebuild with production Dockerfile
+docker compose -f docker-compose.prod.yml build --no-cache frontend
+
+# 4. Start frontend
+docker compose -f docker-compose.prod.yml up -d frontend
+
+# 5. Wait 30 seconds for startup
+sleep 30
+
+# 6. Restart nginx
+docker compose -f docker-compose.prod.yml restart nginx
+```
+
+#### Diagnose the Issue:
+```bash
+# Run the diagnostic script
+./scripts/diagnose-frontend.sh
+```
+
+This will check:
+- Frontend container status
+- Nginx process inside frontend
+- Port 8080 listening status
+- Network connectivity
+- Build directory contents
+- Nginx configuration and logs
+
+#### Common Causes:
+1. **Wrong Dockerfile**: Frontend using dev Dockerfile instead of Dockerfile.prod
+2. **Build failure**: React build failed during Docker build
+3. **Nginx not starting**: Nginx inside frontend container failed to start
+4. **Port mismatch**: Frontend not listening on port 8080
+5. **Memory issues**: Container crashed due to insufficient memory
+
 ### Problem: Services fail to start
 
 #### Check service logs
 ```bash
 # View all service logs
-docker-compose logs
+docker compose logs
 
 # View specific service logs
-docker-compose logs backend
-docker-compose logs postgres
-docker-compose logs mosquitto
+docker compose logs backend
+docker compose logs postgres
+docker compose logs mosquitto
 ```
 
 #### Common fixes
 ```bash
 # Restart all services
-docker-compose restart
+docker compose restart
 
 # Rebuild and restart
-docker-compose down
-docker-compose up --build -d
+docker compose down
+docker compose up --build -d
 
 # Clean restart (removes volumes - BE CAREFUL)
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ### Problem: Port conflicts
@@ -209,23 +270,23 @@ sudo netstat -tulpn | grep :5432
 
 ```bash
 # Check if PostgreSQL is running
-docker-compose ps postgres
+docker compose ps postgres
 
 # Check PostgreSQL logs
-docker-compose logs postgres
+docker compose logs postgres
 
 # Connect to database manually
-docker-compose exec postgres psql -U meshtastic -d meshtastic_mapper
+docker compose exec postgres psql -U meshtastic -d meshtastic_mapper
 ```
 
 ### Problem: Database migrations fail
 
 ```bash
 # Run migrations manually
-docker-compose exec backend npm run prisma:deploy
+docker compose exec backend npm run prisma:deploy
 
 # Reset database (BE CAREFUL - loses all data)
-docker-compose exec backend npm run prisma:reset
+docker compose exec backend npm run prisma:reset
 ```
 
 ## Network Issues
@@ -240,8 +301,8 @@ docker network ls
 docker network inspect meshtastic-node-map_meshtastic-network
 
 # Restart networking
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ## Performance Issues
@@ -265,7 +326,7 @@ services:
 
 ```bash
 # Check if all dependencies are ready
-docker-compose ps
+docker compose ps
 
 # Increase health check timeouts in docker-compose.yml
 healthcheck:
@@ -281,11 +342,11 @@ healthcheck:
 # System info
 uname -a
 docker --version
-docker-compose --version
+docker compose version
 
 # Service status
-docker-compose ps
-docker-compose logs --tail=50
+docker compose ps
+docker compose logs --tail=50
 
 # Resource usage
 docker stats --no-stream
@@ -296,26 +357,26 @@ free -h
 ### Common commands for debugging
 ```bash
 # Enter a running container
-docker-compose exec backend bash
-docker-compose exec postgres bash
+docker compose exec backend bash
+docker compose exec postgres bash
 
 # Check container processes
-docker-compose top
+docker compose top
 
 # View real-time logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Restart specific service
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### Reset everything (nuclear option)
 ```bash
 # Stop and remove everything
-docker-compose down -v --remove-orphans
+docker compose down -v --remove-orphans
 
 # Remove all images
-docker-compose down --rmi all
+docker compose down --rmi all
 
 # Clean Docker system
 docker system prune -a
