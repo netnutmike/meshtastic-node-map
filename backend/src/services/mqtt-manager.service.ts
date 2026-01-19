@@ -161,134 +161,170 @@ export class MQTTManagerService extends EventEmitter {
 
   /**
    * Handle parsed Meshtastic data and store to database
+   * Uses transactions to batch operations and prevent connection pool exhaustion
    */
   private async handleMeshtasticData(data: ParsedMeshtasticData, networkId: string): Promise<void> {
     try {
       logger.debug(`Processing data for node ${data.nodeId} in network ${networkId}`);
 
-      // Ensure node exists
-      let node = await this.nodeRepository.findByNodeId(data.nodeId);
-      
-      if (!node && data.nodeUpdate) {
-        // Create new node
-        try {
-          const createData = {
-            nodeId: data.nodeId,
-            hexId: data.nodeId.replace('!', ''),
-            ...data.nodeUpdate,
-            networkId,
-            isOnline: true,
-            mqttConnected: true
-          };
-          node = await this.nodeRepository.create(createData);
-          logger.info(`Created new node: ${data.nodeId}`);
-        } catch (error: any) {
-          // Handle race condition - node was created by another request
-          if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
-            node = await this.nodeRepository.findByNodeId(data.nodeId);
-            if (node) {
-              logger.debug(`Node ${data.nodeId} was created by concurrent request, using existing node`);
-            }
-          } else {
-            throw error;
-          }
-        }
-      } else if (node && data.nodeUpdate) {
-        // Update existing node
-        node = await this.nodeRepository.update(node.id, data.nodeUpdate);
-        logger.debug(`Updated node: ${data.nodeId}`);
-      }
-
-      if (!node) {
-        logger.warn(`Could not create or find node: ${data.nodeId}`);
-        return;
-      }
-
-      // Store position data
-      if (data.position) {
-        await this.positionRepository.create({
-          ...data.position,
-          nodeId: node.id
+      // Use a transaction to batch all operations for this message
+      // This ensures all operations use a single connection and release it quickly
+      await this.nodeRepository['db'].$transaction(async (tx) => {
+        // Ensure node exists
+        let node = await tx.node.findUnique({
+          where: { nodeId: data.nodeId }
         });
-        logger.debug(`Stored position for node: ${data.nodeId}`);
-      }
-
-      // Store telemetry data
-      if (data.telemetry) {
-        await this.telemetryRepository.create({
-          ...data.telemetry,
-          nodeId: node.id
-        });
-        logger.debug(`Stored telemetry for node: ${data.nodeId}`);
-      }
-
-      // Store message data
-      if (data.message) {
-        // Find or create sender node
-        let fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
-        if (!fromNode) {
+        
+        if (!node && data.nodeUpdate) {
+          // Create new node
           try {
-            fromNode = await this.nodeRepository.create({
-              nodeId: data.message.fromNodeId,
-              hexId: data.message.fromNodeId.replace('!', ''),
+            const createData = {
+              nodeId: data.nodeId,
+              hexId: data.nodeId.replace('!', ''),
+              ...data.nodeUpdate,
               networkId,
-              role: 'CLIENT' as any,
               isOnline: true,
               mqttConnected: true
-            });
+            };
+            node = await tx.node.create({ data: createData });
+            logger.info(`Created new node: ${data.nodeId}`);
           } catch (error: any) {
             // Handle race condition - node was created by another request
-            if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
-              fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
-              if (fromNode) {
-                logger.debug(`Sender node ${data.message.fromNodeId} was created by concurrent request`);
+            if (error.code === 'P2002') {
+              node = await tx.node.findUnique({
+                where: { nodeId: data.nodeId }
+              });
+              if (node) {
+                logger.debug(`Node ${data.nodeId} was created by concurrent request, using existing node`);
               }
             } else {
               throw error;
             }
           }
+        } else if (node && data.nodeUpdate) {
+          // Update existing node
+          node = await tx.node.update({
+            where: { id: node.id },
+            data: data.nodeUpdate
+          });
+          logger.debug(`Updated node: ${data.nodeId}`);
         }
 
-        // Find receiver node if specified
-        let toNode = null;
-        if (data.message.toNodeId) {
-          toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
-          if (!toNode) {
+        if (!node) {
+          logger.warn(`Could not create or find node: ${data.nodeId}`);
+          return;
+        }
+
+        // Store position data
+        if (data.position) {
+          await tx.position.create({
+            data: {
+              ...data.position,
+              nodeId: node.id
+            }
+          });
+          logger.debug(`Stored position for node: ${data.nodeId}`);
+        }
+
+        // Store telemetry data
+        if (data.telemetry) {
+          await tx.telemetryReading.create({
+            data: {
+              ...data.telemetry,
+              nodeId: node.id,
+              data: data.telemetry.data as any // Cast to satisfy Prisma JSON type
+            }
+          });
+          logger.debug(`Stored telemetry for node: ${data.nodeId}`);
+        }
+
+        // Store message data
+        if (data.message) {
+          // Find or create sender node
+          let fromNode = await tx.node.findUnique({
+            where: { nodeId: data.message.fromNodeId }
+          });
+          
+          if (!fromNode) {
             try {
-              toNode = await this.nodeRepository.create({
-                nodeId: data.message.toNodeId,
-                hexId: data.message.toNodeId.replace('!', ''),
-                networkId,
-                role: 'CLIENT' as any,
-                isOnline: true,
-                mqttConnected: true
+              fromNode = await tx.node.create({
+                data: {
+                  nodeId: data.message.fromNodeId,
+                  hexId: data.message.fromNodeId.replace('!', ''),
+                  networkId,
+                  role: 'CLIENT' as any,
+                  isOnline: true,
+                  mqttConnected: true
+                }
               });
             } catch (error: any) {
-              // Handle race condition - node was created by another request
-              if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
-                toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
-                if (toNode) {
-                  logger.debug(`Receiver node ${data.message.toNodeId} was created by concurrent request`);
+              // Handle race condition
+              if (error.code === 'P2002') {
+                fromNode = await tx.node.findUnique({
+                  where: { nodeId: data.message.fromNodeId }
+                });
+                if (fromNode) {
+                  logger.debug(`Sender node ${data.message.fromNodeId} was created by concurrent request`);
                 }
               } else {
                 throw error;
               }
             }
           }
-        }
 
-        if (fromNode) {
-          await this.messageRepository.create({
-            ...data.message,
-            fromNodeId: fromNode.id,
-            toNodeId: toNode?.id,
-            receivedAt: new Date()
-          });
-          logger.debug(`Stored message from node: ${data.nodeId}`);
-        } else {
-          logger.warn(`Could not create or find sender node: ${data.message.fromNodeId}`);
+          // Find receiver node if specified
+          let toNode = null;
+          if (data.message.toNodeId) {
+            toNode = await tx.node.findUnique({
+              where: { nodeId: data.message.toNodeId }
+            });
+            
+            if (!toNode) {
+              try {
+                toNode = await tx.node.create({
+                  data: {
+                    nodeId: data.message.toNodeId,
+                    hexId: data.message.toNodeId.replace('!', ''),
+                    networkId,
+                    role: 'CLIENT' as any,
+                    isOnline: true,
+                    mqttConnected: true
+                  }
+                });
+              } catch (error: any) {
+                // Handle race condition
+                if (error.code === 'P2002') {
+                  toNode = await tx.node.findUnique({
+                    where: { nodeId: data.message.toNodeId }
+                  });
+                  if (toNode) {
+                    logger.debug(`Receiver node ${data.message.toNodeId} was created by concurrent request`);
+                  }
+                } else {
+                  throw error;
+                }
+              }
+            }
+          }
+
+          if (fromNode) {
+            await tx.message.create({
+              data: {
+                ...data.message,
+                fromNodeId: fromNode.id,
+                toNodeId: toNode?.id,
+                receivedAt: new Date()
+              }
+            });
+            logger.debug(`Stored message from node: ${data.nodeId}`);
+          } else {
+            logger.warn(`Could not create or find sender node: ${data.message.fromNodeId}`);
+          }
         }
-      }
+      }, {
+        maxWait: 5000, // Maximum time to wait for a transaction slot
+        timeout: 30000, // Maximum time for the transaction to complete
+      });
 
       // Emit real-time update event
       this.emit('dataUpdate', {
