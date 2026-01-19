@@ -190,7 +190,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3001}
+        # Use relative path for API URL - works with any domain/protocol via nginx proxy
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-/api/v1}
+        # WebSocket URL should be the full domain URL
         REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:3001}
         NODE_ENV: production
     container_name: meshtastic-frontend-prod

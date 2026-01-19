@@ -99,14 +99,43 @@ docker compose -f docker-compose.prod.yml logs mosquitto --tail=50
 
 ## Success Criteria
 
-- [ ] Backend container running (not restarting)
-- [ ] Backend health check returns 200
-- [ ] MQTT connection established
-- [ ] Node count > 0 and increasing
-- [ ] Message count > 0 and increasing
-- [ ] No "Unique constraint" errors in logs
-- [ ] "Created new node" messages in logs
-- [ ] Frontend accessible at http://localhost (or your domain)
+- [x] Backend container running (not restarting)
+- [x] Backend health check returns 200
+- [x] MQTT connection established
+- [x] Node count > 0 and increasing
+- [x] Message count > 0 and increasing
+- [x] No "Unique constraint" errors in logs
+- [x] "Created new node" messages in logs
+- [x] No connection pool exhaustion errors
+- [ ] Frontend accessible and showing data (NEEDS FIX - see below)
+
+## Frontend Fix Required
+
+The backend is working, but the frontend needs to be rebuilt with correct URLs.
+
+### Quick Fix (5 minutes)
+
+```bash
+./scripts/rebuild-frontend-for-domain.sh villagesmesh.com
+```
+
+### What This Does
+- Rebuilds frontend with `REACT_APP_API_URL=https://villagesmesh.com/api`
+- Rebuilds frontend with `REACT_APP_WS_URL=wss://villagesmesh.com/api`
+- Restarts frontend container
+
+### Verify Frontend Fix
+1. Open `https://villagesmesh.com` in browser
+2. Press F12 for DevTools
+3. Check Console - should see no `localhost` errors
+4. Check Network tab - API calls should go to `villagesmesh.com/api`
+5. Map should display nodes
+
+### Documentation
+- **Quick Guide:** `DEPLOY_FRONTEND_FIX.md`
+- **Commands:** `FRONTEND_FIX_COMMANDS.md`
+- **Detailed:** `FRONTEND_URL_FIX.md`
+- **Visual:** `FRONTEND_URL_DIAGRAM.md`
 
 ## Rollback Plan (if needed)
 
