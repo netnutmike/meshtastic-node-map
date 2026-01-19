@@ -16,8 +16,9 @@ In `backend/src/services/mqtt-manager.service.ts`, the `handleMeshtasticData` me
 2. If not found, it creates the node
 3. **Problem:** Multiple simultaneous messages for the same node could all pass the `if (!fromNode)` check before any of them created the node
 4. All concurrent requests would then try to CREATE the same node
-5. Only one would succeed, the rest would fail with unique constraint violation
-6. The failed requests would crash and not store the message data
+5. Only one would succeed, the rest would fail with unique constraint violation (Prisma error P2002)
+6. **Additional complication:** The `BaseRepository.create()` method wraps all Prisma errors through `executeWithErrorHandling()`, which converts P2002 into `DatabaseValidationError`
+7. The failed requests would crash and not store the message data
 
 ## The Fix
 
@@ -38,8 +39,11 @@ if (!fromNode) {
     });
   } catch (error: any) {
     // Handle race condition - node was created by another request
-    if (error.code === 'P2002') {
+    if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
       fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
+      if (fromNode) {
+        logger.debug(`Sender node ${data.message.fromNodeId} was created by concurrent request`);
+      }
     } else {
       throw error;
     }
@@ -64,8 +68,11 @@ if (data.message.toNodeId) {
       });
     } catch (error: any) {
       // Handle race condition - node was created by another request
-      if (error.code === 'P2002') {
+      if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
         toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
+        if (toNode) {
+          logger.debug(`Receiver node ${data.message.toNodeId} was created by concurrent request`);
+        }
       } else {
         throw error;
       }
@@ -92,10 +99,29 @@ if (fromNode) {
 ### How It Works
 
 1. **Try to create the node** - If it doesn't exist, attempt creation
-2. **Catch P2002 error** - Prisma error code for unique constraint violation
-3. **Retry the find** - Another request already created it, so fetch it
-4. **Null check** - Ensure we have a valid node before using it
-5. **Continue processing** - Store the message with the correct node reference
+2. **Catch DatabaseValidationError** - The BaseRepository wraps Prisma P2002 errors into DatabaseValidationError
+3. **Check error message** - Verify it's a unique constraint violation
+4. **Retry the find** - Another request already created it, so fetch it
+5. **Null check** - Ensure we have a valid node before using it
+6. **Continue processing** - Store the message with the correct node reference
+
+## Technical Details
+
+**Why DatabaseValidationError instead of P2002?**
+
+The codebase uses a `BaseRepository` class that wraps all database operations with `executeWithErrorHandling()`. This function (in `backend/src/database/connection.ts`) catches Prisma errors and converts them into custom error types:
+
+```typescript
+// From backend/src/database/connection.ts
+if (error.code === 'P2002') {
+  throw new DatabaseValidationError(
+    `Unique constraint violation in ${operationName}`,
+    error.meta?.target
+  );
+}
+```
+
+So we must catch `DatabaseValidationError` instead of checking `error.code === 'P2002'`.
 
 ## Deployment Instructions
 
@@ -198,13 +224,30 @@ This fix also resolves:
 
 ## Technical Details
 
+**Why DatabaseValidationError instead of P2002?**
+
+The codebase uses a `BaseRepository` class that wraps all database operations with `executeWithErrorHandling()`. This function (in `backend/src/database/connection.ts`) catches Prisma errors and converts them into custom error types:
+
+```typescript
+// From backend/src/database/connection.ts
+if (error.code === 'P2002') {
+  throw new DatabaseValidationError(
+    `Unique constraint violation in ${operationName}`,
+    error.meta?.target
+  );
+}
+```
+
+So we must catch `DatabaseValidationError` instead of checking `error.code === 'P2002'`.
+
 **Prisma Error Code P2002:**
 - Unique constraint violation
 - Thrown when trying to create a record with a duplicate unique field
 - In this case: `nodeId` field has a unique constraint
+- Gets wrapped into DatabaseValidationError by the error handler
 
 **Why the retry works:**
-- If we catch P2002, we know another request successfully created the node
+- If we catch DatabaseValidationError with "Unique constraint" message, we know another request successfully created the node
 - We can safely retry the `findByNodeId` query
 - The node will now exist and be returned
 - We can continue processing with the found node

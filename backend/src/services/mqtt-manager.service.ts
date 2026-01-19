@@ -14,6 +14,7 @@ import { TelemetryRepository } from '../database/repositories/telemetry.reposito
 import { MessageRepository } from '../database/repositories/message.repository';
 import { NetworkRepository } from '../database/repositories/network.repository';
 import { Network } from '../types/database';
+import { DatabaseValidationError } from '../database/connection';
 
 export interface MQTTManagerConfig {
   networks: Network[];
@@ -170,16 +171,28 @@ export class MQTTManagerService extends EventEmitter {
       
       if (!node && data.nodeUpdate) {
         // Create new node
-        const createData = {
-          nodeId: data.nodeId,
-          hexId: data.nodeId.replace('!', ''),
-          ...data.nodeUpdate,
-          networkId,
-          isOnline: true,
-          mqttConnected: true
-        };
-        node = await this.nodeRepository.create(createData);
-        logger.info(`Created new node: ${data.nodeId}`);
+        try {
+          const createData = {
+            nodeId: data.nodeId,
+            hexId: data.nodeId.replace('!', ''),
+            ...data.nodeUpdate,
+            networkId,
+            isOnline: true,
+            mqttConnected: true
+          };
+          node = await this.nodeRepository.create(createData);
+          logger.info(`Created new node: ${data.nodeId}`);
+        } catch (error: any) {
+          // Handle race condition - node was created by another request
+          if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
+            node = await this.nodeRepository.findByNodeId(data.nodeId);
+            if (node) {
+              logger.debug(`Node ${data.nodeId} was created by concurrent request, using existing node`);
+            }
+          } else {
+            throw error;
+          }
+        }
       } else if (node && data.nodeUpdate) {
         // Update existing node
         node = await this.nodeRepository.update(node.id, data.nodeUpdate);
@@ -225,8 +238,11 @@ export class MQTTManagerService extends EventEmitter {
             });
           } catch (error: any) {
             // Handle race condition - node was created by another request
-            if (error.code === 'P2002') {
+            if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
               fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
+              if (fromNode) {
+                logger.debug(`Sender node ${data.message.fromNodeId} was created by concurrent request`);
+              }
             } else {
               throw error;
             }
@@ -249,8 +265,11 @@ export class MQTTManagerService extends EventEmitter {
               });
             } catch (error: any) {
               // Handle race condition - node was created by another request
-              if (error.code === 'P2002') {
+              if (error instanceof DatabaseValidationError && error.message.includes('Unique constraint')) {
                 toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
+                if (toNode) {
+                  logger.debug(`Receiver node ${data.message.toNodeId} was created by concurrent request`);
+                }
               } else {
                 throw error;
               }
