@@ -1,5 +1,17 @@
 # Production MQTT Troubleshooting
 
+## CRITICAL BUG FIXED: Race Condition in Node Creation
+
+**Issue:** Backend was throwing "Unique constraint failed on the fields: (`nodeId`)" errors when processing MQTT messages, preventing nodes from being created.
+
+**Root Cause:** When multiple MQTT messages arrived simultaneously for the same node, multiple concurrent requests would all try to create the same node, causing unique constraint violations.
+
+**Fix Applied:** Added proper race condition handling with try-catch blocks and retry logic in `backend/src/services/mqtt-manager.service.ts`.
+
+**To Deploy Fix:** Run `./scripts/deploy-mqtt-race-condition-fix.sh` on your production server.
+
+---
+
 ## Your Issue
 - MQTT traffic is visible in MQTT Explorer on production
 - Node count remains at 0

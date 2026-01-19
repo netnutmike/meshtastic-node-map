@@ -214,14 +214,23 @@ export class MQTTManagerService extends EventEmitter {
         // Find or create sender node
         let fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
         if (!fromNode) {
-          fromNode = await this.nodeRepository.create({
-            nodeId: data.message.fromNodeId,
-            hexId: data.message.fromNodeId.replace('!', ''),
-            networkId,
-            role: 'CLIENT' as any,
-            isOnline: true,
-            mqttConnected: true
-          });
+          try {
+            fromNode = await this.nodeRepository.create({
+              nodeId: data.message.fromNodeId,
+              hexId: data.message.fromNodeId.replace('!', ''),
+              networkId,
+              role: 'CLIENT' as any,
+              isOnline: true,
+              mqttConnected: true
+            });
+          } catch (error: any) {
+            // Handle race condition - node was created by another request
+            if (error.code === 'P2002') {
+              fromNode = await this.nodeRepository.findByNodeId(data.message.fromNodeId);
+            } else {
+              throw error;
+            }
+          }
         }
 
         // Find receiver node if specified
@@ -229,24 +238,37 @@ export class MQTTManagerService extends EventEmitter {
         if (data.message.toNodeId) {
           toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
           if (!toNode) {
-            toNode = await this.nodeRepository.create({
-              nodeId: data.message.toNodeId,
-              hexId: data.message.toNodeId.replace('!', ''),
-              networkId,
-              role: 'CLIENT' as any,
-              isOnline: true,
-              mqttConnected: true
-            });
+            try {
+              toNode = await this.nodeRepository.create({
+                nodeId: data.message.toNodeId,
+                hexId: data.message.toNodeId.replace('!', ''),
+                networkId,
+                role: 'CLIENT' as any,
+                isOnline: true,
+                mqttConnected: true
+              });
+            } catch (error: any) {
+              // Handle race condition - node was created by another request
+              if (error.code === 'P2002') {
+                toNode = await this.nodeRepository.findByNodeId(data.message.toNodeId);
+              } else {
+                throw error;
+              }
+            }
           }
         }
 
-        await this.messageRepository.create({
-          ...data.message,
-          fromNodeId: fromNode.id,
-          toNodeId: toNode?.id,
-          receivedAt: new Date()
-        });
-        logger.debug(`Stored message from node: ${data.nodeId}`);
+        if (fromNode) {
+          await this.messageRepository.create({
+            ...data.message,
+            fromNodeId: fromNode.id,
+            toNodeId: toNode?.id,
+            receivedAt: new Date()
+          });
+          logger.debug(`Stored message from node: ${data.nodeId}`);
+        } else {
+          logger.warn(`Could not create or find sender node: ${data.message.fromNodeId}`);
+        }
       }
 
       // Emit real-time update event
