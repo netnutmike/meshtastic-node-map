@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Backend OpenSSL Fix Script
-# Rebuilds backend with OpenSSL 1.1 compatibility
+# Rebuilds backend with correct OpenSSL 3.x support
 
 echo "=========================================="
 echo "Fixing Backend OpenSSL Issue"
@@ -30,35 +30,43 @@ docker images | grep backend | awk '{print $3}' | xargs -r docker rmi -f 2>/dev/
 echo "✓ Old images removed"
 echo ""
 
-echo "Step 4: Rebuilding backend with OpenSSL fix..."
+echo "Step 4: Clearing Docker build cache..."
+docker builder prune -f
+echo "✓ Build cache cleared"
+echo ""
+
+echo "Step 5: Rebuilding backend with OpenSSL 3.x support..."
 echo "This may take a few minutes..."
-docker compose -f docker-compose.prod.yml build --no-cache backend
+docker compose -f docker-compose.prod.yml build --no-cache --pull backend
 if [ $? -eq 0 ]; then
     echo "✓ Backend built successfully"
 else
     echo "✗ Backend build failed"
+    echo ""
+    echo "Checking Dockerfile.prod for issues..."
+    grep -n "openssl" backend/Dockerfile.prod || echo "No openssl references found"
     exit 1
 fi
 echo ""
 
-echo "Step 5: Starting backend container..."
+echo "Step 6: Starting backend container..."
 docker compose -f docker-compose.prod.yml up -d backend
 echo "✓ Backend started"
 echo ""
 
-echo "Step 6: Waiting for backend to initialize (60 seconds)..."
+echo "Step 7: Waiting for backend to initialize (60 seconds)..."
 sleep 60
 echo ""
 
-echo "Step 7: Checking backend status..."
+echo "Step 8: Checking backend status..."
 docker compose -f docker-compose.prod.yml ps backend
 echo ""
 
-echo "Step 8: Checking backend logs..."
+echo "Step 9: Checking backend logs..."
 docker compose -f docker-compose.prod.yml logs --tail=50 backend | grep -E "running|error|MQTT|Prisma" || echo "No relevant logs found"
 echo ""
 
-echo "Step 9: Testing backend health..."
+echo "Step 10: Testing backend health..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health 2>/dev/null)
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✓ Backend is healthy (HTTP $HTTP_CODE)"
@@ -71,7 +79,7 @@ else
 fi
 echo ""
 
-echo "Step 10: Running database migrations..."
+echo "Step 11: Running database migrations..."
 docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
 if [ $? -eq 0 ]; then
     echo "✓ Migrations completed"
@@ -80,11 +88,11 @@ else
 fi
 echo ""
 
-echo "Step 11: Seeding database..."
+echo "Step 12: Seeding database..."
 docker compose -f docker-compose.prod.yml exec backend npx prisma db seed 2>/dev/null || echo "⚠️  Seeding skipped (may already have data)"
 echo ""
 
-echo "Step 12: Updating network MQTT broker..."
+echo "Step 13: Updating network MQTT broker..."
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper <<EOF
 INSERT INTO networks (id, name, description, "mqttBroker", "mqttCredentials", region, "isActive", "createdAt", "updatedAt")
 VALUES (
@@ -104,15 +112,15 @@ EOF
 echo "✓ Network configuration updated"
 echo ""
 
-echo "Step 13: Restarting backend to apply all changes..."
+echo "Step 14: Restarting backend to apply all changes..."
 docker compose -f docker-compose.prod.yml restart backend
 echo ""
 
-echo "Step 14: Waiting for backend to reconnect (30 seconds)..."
+echo "Step 15: Waiting for backend to reconnect (30 seconds)..."
 sleep 30
 echo ""
 
-echo "Step 15: Final health check..."
+echo "Step 16: Final health check..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health 2>/dev/null)
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✓ Backend is healthy (HTTP $HTTP_CODE)"
@@ -121,7 +129,7 @@ else
 fi
 echo ""
 
-echo "Step 16: Checking MQTT connection..."
+echo "Step 17: Checking MQTT connection..."
 docker compose -f docker-compose.prod.yml logs --tail=20 backend | grep -i "mqtt\|connected" || echo "No MQTT logs yet"
 echo ""
 
@@ -130,7 +138,7 @@ echo "Backend OpenSSL Fix Complete!"
 echo "=========================================="
 echo ""
 echo "What was fixed:"
-echo "  ✓ Rebuilt backend with OpenSSL 1.1 compatibility"
+echo "  ✓ Rebuilt backend with OpenSSL 3.x support (modern Alpine)"
 echo "  ✓ Ran database migrations"
 echo "  ✓ Configured default network with correct MQTT broker"
 echo ""
