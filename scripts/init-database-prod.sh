@@ -32,25 +32,46 @@ TABLES=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U mesh
 echo "   Found $TABLES tables in database"
 echo ""
 
-echo "Step 3: Running Prisma migrations..."
-docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
-if [ $? -eq 0 ]; then
-    echo "✓ Migrations completed successfully"
-else
-    echo "✗ Migrations failed"
-    echo ""
-    echo "Attempting to push schema directly..."
-    docker compose -f docker-compose.prod.yml exec backend npx prisma db push --accept-data-loss
-    if [ $? -eq 0 ]; then
-        echo "✓ Schema pushed successfully"
-    else
-        echo "✗ Schema push failed"
-        exit 1
-    fi
+echo "Step 3: Checking if migrations directory exists in container..."
+docker compose -f docker-compose.prod.yml exec backend ls -la /app/prisma/migrations 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "✗ Migrations directory not found in container!"
+    echo "This indicates a Docker build issue. Rebuilding backend image..."
+    docker compose -f docker-compose.prod.yml build --no-cache backend
+    docker compose -f docker-compose.prod.yml up -d backend
+    sleep 10
 fi
 echo ""
 
-echo "Step 4: Verifying tables were created..."
+echo "Step 4: Running Prisma migrations..."
+# First, try to deploy migrations
+docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
+MIGRATE_EXIT=$?
+
+if [ $MIGRATE_EXIT -ne 0 ] || [ "$TABLES" -eq "1" ]; then
+    echo "⚠️  Migration deploy had issues or no tables created"
+    echo ""
+    echo "Step 4a: Resetting migration state and pushing schema..."
+    # Drop all tables and recreate from schema
+    docker compose -f docker-compose.prod.yml exec backend npx prisma migrate reset --force --skip-seed
+    if [ $? -eq 0 ]; then
+        echo "✓ Schema reset and migrations applied successfully"
+    else
+        echo "✗ Migration reset failed, trying db push..."
+        docker compose -f docker-compose.prod.yml exec backend npx prisma db push --force-reset --accept-data-loss
+        if [ $? -eq 0 ]; then
+            echo "✓ Schema pushed successfully"
+        else
+            echo "✗ Schema push failed"
+            exit 1
+        fi
+    fi
+else
+    echo "✓ Migrations completed successfully"
+fi
+echo ""
+
+echo "Step 5: Verifying tables were created..."
 TABLES_AFTER=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ')
 echo "   Now have $TABLES_AFTER tables in database"
 
@@ -62,11 +83,11 @@ else
 fi
 echo ""
 
-echo "Step 5: Listing created tables..."
+echo "Step 6: Listing created tables..."
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper -c "\dt"
 echo ""
 
-echo "Step 6: Creating default network..."
+echo "Step 7: Creating default network..."
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper <<EOF
 INSERT INTO networks (id, name, description, "mqttBroker", "mqttCredentials", region, "isActive", "createdAt", "updatedAt")
 VALUES (
@@ -92,11 +113,11 @@ else
 fi
 echo ""
 
-echo "Step 7: Verifying network configuration..."
+echo "Step 8: Verifying network configuration..."
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper -c "SELECT id, name, \"mqttBroker\", \"isActive\" FROM networks;"
 echo ""
 
-echo "Step 8: Seeding database (if needed)..."
+echo "Step 9: Seeding database (if needed)..."
 docker compose -f docker-compose.prod.yml exec backend npx prisma db seed 2>/dev/null
 if [ $? -eq 0 ]; then
     echo "✓ Database seeded"
@@ -105,16 +126,16 @@ else
 fi
 echo ""
 
-echo "Step 9: Restarting backend to apply changes..."
+echo "Step 10: Restarting backend to apply changes..."
 docker compose -f docker-compose.prod.yml restart backend
 echo "✓ Backend restarted"
 echo ""
 
-echo "Step 10: Waiting for backend to initialize (30 seconds)..."
+echo "Step 11: Waiting for backend to initialize (30 seconds)..."
 sleep 30
 echo ""
 
-echo "Step 11: Checking backend health..."
+echo "Step 12: Checking backend health..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health 2>/dev/null)
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✓ Backend is healthy (HTTP $HTTP_CODE)"
@@ -126,11 +147,11 @@ else
 fi
 echo ""
 
-echo "Step 12: Verifying MQTT connection..."
+echo "Step 13: Verifying MQTT connection..."
 docker compose -f docker-compose.prod.yml logs --tail=20 backend | grep -i "mqtt\|connected" || echo "⚠️  No MQTT connection logs found yet"
 echo ""
 
-echo "Step 13: Checking database statistics..."
+echo "Step 14: Checking database statistics..."
 echo "   Networks:"
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U meshtastic -d meshtastic_mapper -c "SELECT COUNT(*) FROM networks;"
 echo ""
