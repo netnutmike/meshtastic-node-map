@@ -4,6 +4,26 @@ This directory contains historical documentation of bug fixes, enhancements, and
 
 ## Table of Contents
 
+### Production Deployment Fixes (January 2026)
+- [Complete Deployment Guide](COMPLETE_DEPLOYMENT_GUIDE.md) - Comprehensive production deployment guide
+- [Current Status](CURRENT_STATUS.md) - Current production deployment status
+- [Deployment Issue Fix](DEPLOYMENT_ISSUE_FIX.md) - Database initialization and Prisma migration fixes
+- [Connection Pool Fix](CONNECTION_POOL_FIX.md) - PostgreSQL connection pool exhaustion fix
+- [Transaction Fix](TRANSACTION_FIX.md) - Database transaction implementation to prevent connection leaks
+- [MQTT Race Condition Fix](MQTT_RACE_CONDITION_FIX.md) - Concurrent node creation error handling
+- [MQTT Race Condition Fix V2](MQTT_RACE_CONDITION_FIX_V2.md) - Updated race condition handling with DatabaseValidationError
+- [Frontend URL Fix](FRONTEND_URL_FIX.md) - HTTP/HTTPS URL configuration for production
+- [WebSocket Fix](WEBSOCKET_FIX.md) - Socket.IO namespace configuration fix
+- [Position Validation Fix](POSITION_VALIDATION_FIX.md) - Handling position data without GPS coordinates
+- [Production Fixes Summary](PRODUCTION_FIXES_SUMMARY.md) - Summary of all production deployment fixes
+- [Production Deployment Success](PRODUCTION_DEPLOYMENT_SUCCESS.md) - Final deployment status and verification
+
+### Quick Reference Guides
+- [Deploy Checklist](DEPLOY_CHECKLIST.md) - Pre-deployment checklist
+- [Quick Fix Commands](QUICK_FIX_COMMANDS.md) - Common fix commands
+- [Start Here](START_HERE.md) - Getting started with fixes
+- [Start Here Production](START_HERE_PRODUCTION.md) - Production-specific getting started guide
+
 ### Encryption & Security
 - [Encryption/Decryption Status](ENCRYPTION_DECRYPTION_STATUS.md) - Status of encryption implementation
 - [Encryption Solution Guide](ENCRYPTION_SOLUTION_GUIDE.md) - Guide for implementing encryption features
@@ -61,9 +81,11 @@ When adding new fix documentation:
 ## Related Documentation
 
 - [Troubleshooting Guide](../troubleshooting.md) - General troubleshooting procedures
-- [Developer Guide](../developer-guide.md) - Development best practices
+- [Troubleshooting Database](../troubleshooting-database.md) - Database-specific troubleshooting
+- [Developer Guide](../developer/README.md) - Development best practices
 - [API Guide](../api-guide.md) - API reference and usage
+- [Production Deployment](../production-deployment.md) - Production deployment guide
 
 ---
 
-Last Updated: January 2026
+Last Updated: January 19, 2026
