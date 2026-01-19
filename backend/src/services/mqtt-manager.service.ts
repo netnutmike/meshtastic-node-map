@@ -215,15 +215,29 @@ export class MQTTManagerService extends EventEmitter {
           return;
         }
 
-        // Store position data
-        if (data.position) {
-          await tx.position.create({
-            data: {
-              ...data.position,
-              nodeId: node.id
-            }
-          });
+        // Store position data (only if latitude and longitude are present)
+        if (data.position && data.position.latitude != null && data.position.longitude != null) {
+          // Only include defined fields to avoid Prisma validation errors
+          const positionData: any = {
+            nodeId: node.id,
+            latitude: data.position.latitude,
+            longitude: data.position.longitude,
+            timestamp: data.position.timestamp,
+            source: data.position.source || 'UNKNOWN'
+          };
+          
+          // Add optional fields only if they're defined
+          if (data.position.altitude != null) {
+            positionData.altitude = data.position.altitude;
+          }
+          if (data.position.precision != null) {
+            positionData.precision = data.position.precision;
+          }
+          
+          await tx.position.create({ data: positionData });
           logger.debug(`Stored position for node: ${data.nodeId}`);
+        } else if (data.position) {
+          logger.debug(`Skipping position for node ${data.nodeId}: missing latitude/longitude (lat: ${data.position.latitude}, lon: ${data.position.longitude})`);
         }
 
         // Store telemetry data
