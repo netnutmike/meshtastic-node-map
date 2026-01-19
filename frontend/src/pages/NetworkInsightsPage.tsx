@@ -17,6 +17,7 @@ import {
   Select,
   MenuItem,
   Chip,
+  Link,
 } from '@mui/material';
 import {
   BarChart,
@@ -35,6 +36,7 @@ import { MQTTMonitor } from '../components/MQTTMonitor';
 import { RootState } from '../store';
 import { setNodes } from '../store/slices/nodeSlice';
 import apiService from '../services/api';
+import { getHardwareName, getHardwareDocUrl } from '../utils/hardwareModels';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -69,17 +71,38 @@ const NetworkInsightsPage: React.FC = () => {
   const [messageTimeline, setMessageTimeline] = useState<any>(null);
   const [topTalkers, setTopTalkers] = useState<any>(null);
   const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const nodes = useSelector((state: RootState) => state.nodes.nodes);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    loadMessages();
-    loadNodes();
-    loadDatabaseOverview();
-    loadMessageTimeline();
-    loadTopTalkers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Prevent duplicate loads
+    if (isLoading) return;
+    
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Load data sequentially with small delays to avoid rate limiting
+        await loadMessages();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        await loadNodes();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        await loadDatabaseOverview();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        await loadMessageTimeline();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        await loadTopTalkers();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []); // Empty array - only run once on mount
 
   const loadMessages = async () => {
     try {
@@ -392,7 +415,8 @@ const NetworkInsightsPage: React.FC = () => {
     const nodesList = nodes; // nodes is already an array
     const hardwareCounts = nodesList.reduce((acc: any, node) => {
       const hw = node.hardwareModel || 'unknown';
-      acc[hw] = (acc[hw] || 0) + 1;
+      const friendlyName = getHardwareName(hw);
+      acc[friendlyName] = (acc[friendlyName] || 0) + 1;
       return acc;
     }, {});
 

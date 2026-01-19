@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
+import { getHardwareName } from '../../utils/hardwareModels';
 import './Statistics.css';
 
 interface NetworkStatistics {
@@ -274,7 +275,7 @@ const Statistics: React.FC<StatisticsProps> = ({ networkId }) => {
                   .filter(([hardware]) => hardware.toLowerCase() !== 'unknown')
                   .map(([hardware, count]) => (
                     <div key={hardware} className="breakdown-item">
-                      <span className="label">{hardware}</span>
+                      <span className="label">{getHardwareName(hardware)}</span>
                       <span className="value">{count}</span>
                     </div>
                   ))}

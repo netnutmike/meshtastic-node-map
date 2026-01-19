@@ -123,7 +123,7 @@ export const rateLimiters = {
   // Read operations - more lenient
   read: createApiKeyAwareRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 2000,
+    max: 5000, // Increased from 2000
     message: 'Too many read requests. Please try again later.'
   }),
 
@@ -137,14 +137,14 @@ export const rateLimiters = {
   // Real-time data endpoints - very lenient for legitimate use
   realtime: createApiKeyAwareRateLimiter({
     windowMs: 60 * 1000, // 1 minute
-    max: 100,
+    max: 200, // Increased from 100
     message: 'Too many real-time requests. Please slow down.'
   }),
 
   // Search endpoints - moderate limits
   search: createApiKeyAwareRateLimiter({
     windowMs: 60 * 1000, // 1 minute
-    max: 30,
+    max: 60, // Increased from 30
     message: 'Too many search requests. Please wait before searching again.'
   }),
 

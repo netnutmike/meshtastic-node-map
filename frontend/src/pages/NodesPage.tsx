@@ -31,6 +31,7 @@ import { setCenter, setZoom } from '../store/slices/mapSlice';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import { MQTTMonitor } from '../components/MQTTMonitor';
 import apiService from '../services/api';
+import { getHardwareName } from '../utils/hardwareModels';
 
 type Order = 'asc' | 'desc';
 
@@ -310,6 +311,8 @@ const NodesPage: React.FC = () => {
         return formatLastSeen(node.lastSeen);
       case 'owner':
         return node.user?.longName || node.user?.shortName || 'Unknown';
+      case 'hardwareModel':
+        return getHardwareName(node.hardwareModel);
       case 'actions':
         return null;
       default:
