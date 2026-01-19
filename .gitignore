@@ -116,3 +116,6 @@ backend/exports/
 backend/backups/
 exports/
 backups/
+
+#local config files
+config/mosquitto/mosquitto.conf
