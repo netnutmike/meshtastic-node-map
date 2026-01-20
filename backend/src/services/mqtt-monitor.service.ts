@@ -20,6 +20,7 @@ export interface MQTTMessage {
     nodeId?: string;
     type?: MessageType;
     encrypted?: boolean;
+    decryptionFailed?: boolean;
     channel?: number;
     priority?: MessagePriority;
     content?: any;
@@ -376,13 +377,17 @@ export class MQTTMonitorService extends EventEmitter {
         type = parsed.type.toUpperCase();
       }
       
-      // Only return parsed data if we have the minimum required fields
-      if (nodeId) {
+      // Check for decryption failure
+      const decryptionFailed = typeof parsed.decryptionFailed === 'boolean' ? parsed.decryptionFailed : false;
+      
+      // Only return parsed data if we have the minimum required fields OR if it's a decryption failure
+      if (nodeId || decryptionFailed) {
         return {
-          nodeId,
+          nodeId: nodeId || 'unknown',
           type,
           encrypted: typeof parsed.encrypted === 'boolean' ? parsed.encrypted : false,
-          channel: typeof parsed.channel === 'number' ? parsed.channel : undefined,
+          decryptionFailed,
+          channel: typeof parsed.channel === 'number' ? parsed.channel : (typeof parsed.channel === 'string' ? parsed.channel : undefined),
           priority: parsed.priority,
           content: parsed.payload || parsed
         };

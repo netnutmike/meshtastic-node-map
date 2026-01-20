@@ -19,6 +19,7 @@ interface MQTTMessage {
     nodeId?: string;
     type?: string;
     encrypted?: boolean;
+    decryptionFailed?: boolean;
     channel?: number;
     priority?: string;
     content?: any;
@@ -399,10 +400,14 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                         {formatSize(message.size)}
                       </div>
                       <div className="col-encrypted">
-                        {message.parsed?.encrypted ? (
-                          <span className="encrypted-badge">🔒</span>
+                        {message.parsed?.decryptionFailed ? (
+                          <span className="decryption-failed-badge" title="Decryption failed - check encryption key">
+                            🔒❌
+                          </span>
+                        ) : message.parsed?.encrypted ? (
+                          <span className="encrypted-badge" title="Encrypted">🔒</span>
                         ) : (
-                          <span className="unencrypted-badge">🔓</span>
+                          <span className="unencrypted-badge" title="Unencrypted">🔓</span>
                         )}
                       </div>
                       <div className="col-actions">

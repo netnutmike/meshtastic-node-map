@@ -4,7 +4,7 @@
 
 | Priority | Description | Status |
 |----------|-------------|--------|
-| High | Decryption and Protobuf decoding are not working properly | Not Started |
+| High | Decryption and Protobuf decoding are not working properly | ✅ Complete - Fixed encryption algorithm, nonce handling, and key management |
 | Medium | Network topology graph link is not working, it takes the user to the map | Complete |
 | Medium | Map center on user is not working | Non-Issue |
 | Medium | Map startup on user location not working | Non-Issue |

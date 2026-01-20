@@ -170,13 +170,25 @@ export class MQTTManagerService extends EventEmitter {
       // Use a transaction to batch all operations for this message
       // This ensures all operations use a single connection and release it quickly
       await this.nodeRepository['db'].$transaction(async (tx) => {
-        // Ensure node exists
+        // Check if node exists
         let node = await tx.node.findUnique({
           where: { nodeId: data.nodeId }
         });
         
+        // Only create new nodes if we have meaningful data (shortName or longName)
+        // This prevents cluttering the database with nodes we can't decrypt
         if (!node && data.nodeUpdate) {
-          // Create new node
+          // Check if we have a shortName or longName
+          const hasName = data.nodeUpdate.shortName || data.nodeUpdate.longName;
+          
+          if (!hasName) {
+            logger.debug(`Skipping node creation for ${data.nodeId} - no name information available`);
+            // Still process position/telemetry/messages if we have them and the node exists
+            // But don't create a new node without a name
+            return;
+          }
+          
+          // Create new node with name information
           try {
             const createData = {
               nodeId: data.nodeId,
@@ -187,7 +199,7 @@ export class MQTTManagerService extends EventEmitter {
               mqttConnected: true
             };
             node = await tx.node.create({ data: createData });
-            logger.info(`Created new node: ${data.nodeId}`);
+            logger.info(`Created new node: ${data.nodeId} (${data.nodeUpdate.shortName || data.nodeUpdate.longName})`);
           } catch (error: any) {
             // Handle race condition - node was created by another request
             if (error.code === 'P2002') {
@@ -259,31 +271,12 @@ export class MQTTManagerService extends EventEmitter {
             where: { nodeId: data.message.fromNodeId }
           });
           
+          // Only create sender node if it doesn't exist and we're processing a message
+          // Don't create nodes without names - they'll be created later when we get their nodeinfo
           if (!fromNode) {
-            try {
-              fromNode = await tx.node.create({
-                data: {
-                  nodeId: data.message.fromNodeId,
-                  hexId: data.message.fromNodeId.replace('!', ''),
-                  networkId,
-                  role: 'CLIENT' as any,
-                  isOnline: true,
-                  mqttConnected: true
-                }
-              });
-            } catch (error: any) {
-              // Handle race condition
-              if (error.code === 'P2002') {
-                fromNode = await tx.node.findUnique({
-                  where: { nodeId: data.message.fromNodeId }
-                });
-                if (fromNode) {
-                  logger.debug(`Sender node ${data.message.fromNodeId} was created by concurrent request`);
-                }
-              } else {
-                throw error;
-              }
-            }
+            logger.debug(`Sender node ${data.message.fromNodeId} not found, skipping message storage`);
+            // Skip storing this message if we don't have the sender node yet
+            return;
           }
 
           // Find receiver node if specified
@@ -293,47 +286,20 @@ export class MQTTManagerService extends EventEmitter {
               where: { nodeId: data.message.toNodeId }
             });
             
-            if (!toNode) {
-              try {
-                toNode = await tx.node.create({
-                  data: {
-                    nodeId: data.message.toNodeId,
-                    hexId: data.message.toNodeId.replace('!', ''),
-                    networkId,
-                    role: 'CLIENT' as any,
-                    isOnline: true,
-                    mqttConnected: true
-                  }
-                });
-              } catch (error: any) {
-                // Handle race condition
-                if (error.code === 'P2002') {
-                  toNode = await tx.node.findUnique({
-                    where: { nodeId: data.message.toNodeId }
-                  });
-                  if (toNode) {
-                    logger.debug(`Receiver node ${data.message.toNodeId} was created by concurrent request`);
-                  }
-                } else {
-                  throw error;
-                }
-              }
-            }
+            // If receiver node doesn't exist, that's okay - it might be a broadcast or unknown node
+            // We'll just store null for toNodeId
           }
 
-          if (fromNode) {
-            await tx.message.create({
-              data: {
-                ...data.message,
-                fromNodeId: fromNode.id,
-                toNodeId: toNode?.id,
-                receivedAt: new Date()
-              }
-            });
-            logger.debug(`Stored message from node: ${data.nodeId}`);
-          } else {
-            logger.warn(`Could not create or find sender node: ${data.message.fromNodeId}`);
-          }
+          // Store the message
+          await tx.message.create({
+            data: {
+              ...data.message,
+              fromNodeId: fromNode.id,
+              toNodeId: toNode?.id,
+              receivedAt: new Date()
+            }
+          });
+          logger.debug(`Stored message from node: ${data.nodeId}`);
         }
       }, {
         maxWait: 5000, // Maximum time to wait for a transaction slot

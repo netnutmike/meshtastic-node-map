@@ -72,10 +72,19 @@ seo:
   author: "Meshtastic Community"
 
 # Encryption Configuration
+# Meshtastic uses AES-128-CTR encryption with keys embedded in encrypted payloads
+# Keys are base64-encoded. The encrypted payload format is: [8-byte nonce][ciphertext]
+# 
+# Special 1-byte PSK shortcuts (Meshtastic convention):
+# - 0x00 (AA==) = No encryption
+# - 0x01 (AQ==) = Default Meshtastic key: d4f1bb3a202907...
+# - 0x02-0x0A = Default key with last byte incremented (simple2-simple10)
+# 
+# For custom encryption, use full 16-byte (AES-128) or 32-byte (AES-256) keys
 encryption:
   channels:
     - name: "LongFast"
-      key: "AQ=="  # Base64 encoded key (1 byte, padded to 32 bytes by the service)
+      key: "AQ=="  # PSK 0x01 = Meshtastic default key (d4 f1 bb 3a 20 29 07 59 f0 bc ff ab cf 4e 69 01)
       default: true
     - name: "Primary"
-      key: "1PG7OiApB3XvvX7g8kYzDYQD+CW+3Oi+Qs/LoIWh/gg="  # Base64 encoded 32-byte key
+      key: "1PG7OiApB3XvvX7g8kYzDYQD+CW+3Oi+Qs/LoIWh/gg="  # Custom 32-byte key (AES-256)

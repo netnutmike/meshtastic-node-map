@@ -185,9 +185,6 @@ export class MQTTService extends EventEmitter {
    */
   private async handleMessage(topic: string, message: Buffer): Promise<void> {
     try {
-      // Emit raw message for monitoring
-      this.emit('rawMessage', topic, message.toString(), { qos: 0, retain: false });
-
       // Try to detect message format: protobuf or JSON
       const isProtobuf = this.isProtobufMessage(message);
 
@@ -199,6 +196,48 @@ export class MQTTService extends EventEmitter {
         if (parsedData) {
           this.emit('data', parsedData);
           logger.debug('Parsed protobuf Meshtastic data:', parsedData);
+          
+          // Emit parsed data for monitoring (after decryption/decoding)
+          if (parsedData.message) {
+            const monitorPayload = JSON.stringify({
+              from: parsedData.nodeId,
+              type: parsedData.message.type,
+              encrypted: parsedData.message.encrypted,
+              decryptionFailed: false,
+              channel: parsedData.message.channel,
+              payload: parsedData.message.content,
+              timestamp: Math.floor(parsedData.message.timestamp.getTime() / 1000)
+            });
+            this.emit('rawMessage', topic, monitorPayload, { qos: 0, retain: false });
+          } else {
+            // For non-message packets (nodeinfo, position, telemetry), create a summary
+            const monitorPayload = JSON.stringify({
+              from: parsedData.nodeId,
+              type: parsedData.position ? 'POSITION' : parsedData.telemetry ? 'TELEMETRY' : parsedData.nodeUpdate ? 'NODEINFO' : 'UNKNOWN',
+              encrypted: false, // Already decrypted
+              decryptionFailed: false,
+              timestamp: Math.floor(Date.now() / 1000)
+            });
+            this.emit('rawMessage', topic, monitorPayload, { qos: 0, retain: false });
+          }
+        } else {
+          // Decryption or parsing failed - emit a failure indicator
+          // Extract channel name from topic for better error reporting
+          const topicParts = topic.split('/');
+          const eIndex = topicParts.indexOf('e');
+          const channelName = eIndex !== -1 && eIndex + 1 < topicParts.length ? topicParts[eIndex + 1] : 'unknown';
+          
+          const monitorPayload = JSON.stringify({
+            from: 'unknown',
+            type: 'ENCRYPTED',
+            encrypted: true,
+            decryptionFailed: true,
+            channel: channelName,
+            payload: { error: 'Failed to decrypt or decode message', channelName },
+            timestamp: Math.floor(Date.now() / 1000)
+          });
+          this.emit('rawMessage', topic, monitorPayload, { qos: 0, retain: false });
+          logger.debug(`Failed to decrypt/decode protobuf message on channel ${channelName}`);
         }
       } else {
         // Handle JSON message
@@ -211,6 +250,9 @@ export class MQTTService extends EventEmitter {
         }
 
         logger.debug(`Received JSON message on topic ${topic}:`, messageStr.substring(0, 200));
+
+        // Emit raw message for monitoring (JSON messages)
+        this.emit('rawMessage', topic, messageStr, { qos: 0, retain: false });
 
         // Parse the JSON message
         const parsedData = this.parseMessage(topic, messageStr);

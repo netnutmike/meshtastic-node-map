@@ -282,12 +282,16 @@ const NetworkInsightsPage: React.FC = () => {
 
   // Messages Tab
   const renderMessagesTab = () => {
-    const chatMessages = messages.filter(m => m.type === 'TEXT_MESSAGE_APP' || m.type === 'chat');
+    // Filter for TEXT type messages only (actual chat messages)
+    const chatMessages = messages.filter(m => m.type === 'TEXT');
 
     return (
       <Box>
         <Typography variant="h5" gutterBottom>
           Chat Messages
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Showing {chatMessages.length} text messages out of {messages.length} total messages
         </Typography>
         <TableContainer component={Paper}>
           <Table>
@@ -295,6 +299,7 @@ const NetworkInsightsPage: React.FC = () => {
               <TableRow>
                 <TableCell>Timestamp</TableCell>
                 <TableCell>Sender</TableCell>
+                <TableCell>Receiver</TableCell>
                 <TableCell>Message</TableCell>
                 <TableCell>Topic</TableCell>
               </TableRow>
@@ -302,21 +307,39 @@ const NetworkInsightsPage: React.FC = () => {
             <TableBody>
               {chatMessages.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary">No messages available</Typography>
+                  <TableCell colSpan={5} align="center">
+                    <Typography color="text.secondary">
+                      No text messages available
+                      {messages.length > 0 && ` (${messages.length} non-text messages in database)`}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                chatMessages.map((msg, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{new Date(msg.timestamp || msg.createdAt).toLocaleString()}</TableCell>
-                    <TableCell>{msg.fromNode?.shortName || msg.from || 'Unknown'}</TableCell>
-                    <TableCell>{msg.text || msg.payload || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip label={msg.topic || 'N/A'} size="small" />
-                    </TableCell>
-                  </TableRow>
-                ))
+                chatMessages.map((msg, idx) => {
+                  // Extract text content from message
+                  let textContent = 'N/A';
+                  if (msg.content) {
+                    if (typeof msg.content === 'string') {
+                      textContent = msg.content;
+                    } else if (msg.content.text) {
+                      textContent = msg.content.text;
+                    } else {
+                      textContent = JSON.stringify(msg.content);
+                    }
+                  }
+
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell>{new Date(msg.timestamp || msg.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{msg.fromNode?.shortName || msg.fromNode?.longName || 'Unknown'}</TableCell>
+                      <TableCell>{msg.toNode?.shortName || msg.toNode?.longName || 'Broadcast'}</TableCell>
+                      <TableCell>{textContent}</TableCell>
+                      <TableCell>
+                        <Chip label={msg.topic || 'N/A'} size="small" />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

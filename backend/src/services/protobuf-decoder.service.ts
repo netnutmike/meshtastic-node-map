@@ -162,7 +162,7 @@ export class ProtobufDecoderService {
   }
 
   /**
-   * Decode a protobuf ServiceEnvelope from binary data
+   * Decode a protobuf ServiceEnvelope or MeshPacket from binary data
    */
   async decodeServiceEnvelope(buffer: Buffer): Promise<any | null> {
     try {
@@ -172,18 +172,50 @@ export class ProtobufDecoderService {
         throw new Error('Protobuf root not initialized');
       }
       
-      const ServiceEnvelope = this.root.lookupType('ServiceEnvelope');
-      const message = ServiceEnvelope.decode(buffer);
-      const object = ServiceEnvelope.toObject(message, {
-        longs: Number,
-        enums: Number,
-        bytes: Buffer,
-        defaults: true
-      });
+      // Try to parse as ServiceEnvelope first
+      try {
+        const ServiceEnvelope = this.root.lookupType('ServiceEnvelope');
+        const message = ServiceEnvelope.decode(buffer);
+        const object = ServiceEnvelope.toObject(message, {
+          longs: Number,
+          enums: Number,
+          bytes: Buffer,
+          defaults: true
+        });
+        
+        // Check if envelope has a packet
+        if (object.packet) {
+          logger.debug('Successfully decoded as ServiceEnvelope with packet');
+          return object;
+        }
+        
+        logger.debug('ServiceEnvelope has no packet field, trying direct MeshPacket parse');
+      } catch (envelopeError) {
+        logger.debug('Failed to parse as ServiceEnvelope, trying direct MeshPacket');
+      }
       
-      return object;
+      // If ServiceEnvelope didn't work, try parsing directly as MeshPacket
+      try {
+        const MeshPacket = this.root.lookupType('MeshPacket');
+        const message = MeshPacket.decode(buffer);
+        const packet = MeshPacket.toObject(message, {
+          longs: Number,
+          enums: Number,
+          bytes: Buffer,
+          defaults: true
+        });
+        
+        logger.debug('Successfully decoded as direct MeshPacket');
+        // Wrap in envelope-like structure for consistent handling
+        return { packet };
+      } catch (packetError) {
+        logger.error('Failed to parse as both ServiceEnvelope and MeshPacket');
+        logger.error(`Payload length: ${buffer.length} bytes`);
+        logger.error(`Payload (first 100 bytes hex): ${buffer.slice(0, Math.min(100, buffer.length)).toString('hex')}`);
+        return null;
+      }
     } catch (error) {
-      logger.error('Failed to decode ServiceEnvelope:', error);
+      logger.error('Failed to decode message:', error);
       return null;
     }
   }
