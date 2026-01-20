@@ -51,6 +51,8 @@ export interface MessageStatistics {
   messagesByChannel: Record<number, number>;
   encryptedMessages: number;
   unencryptedMessages: number;
+  decryptionFailures: number;
+  decryptionFailurePercentage: number;
   averageMessageSize: number;
   messagesPerMinute: number;
   topNodes: Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>;
@@ -207,6 +209,7 @@ export class MQTTMonitorService extends EventEmitter {
     const messagesByChannel: Record<number, number> = {};
     const nodeMessageCounts: Record<string, number> = {};
     let encryptedCount = 0;
+    let decryptionFailureCount = 0;
     let totalSize = 0;
 
     // Initialize message type counts
@@ -231,6 +234,10 @@ export class MQTTMonitorService extends EventEmitter {
         if (msg.parsed.encrypted) {
           encryptedCount++;
         }
+        
+        if (msg.parsed.decryptionFailed) {
+          decryptionFailureCount++;
+        }
       }
       
       totalSize += msg.size;
@@ -242,11 +249,19 @@ export class MQTTMonitorService extends EventEmitter {
       .slice(0, 10)
       .map(([nodeId]) => nodeId);
 
+    logger.debug(`Top node IDs from MQTT monitor: ${topNodeIds.join(', ')}`);
+    logger.debug(`Node message counts: ${JSON.stringify(nodeMessageCounts)}`);
+
     // Fetch node names from database
     const topNodes = await this.fetchNodeNames(topNodeIds, nodeMessageCounts);
 
+    logger.debug(`Top nodes after database lookup: ${JSON.stringify(topNodes)}`);
+
     const timeRangeMinutes = this.getTimeRangeMinutes(timeRange);
     const messagesPerMinute = recentMessages.length / timeRangeMinutes;
+    const decryptionFailurePercentage = encryptedCount > 0 
+      ? (decryptionFailureCount / encryptedCount) * 100 
+      : 0;
 
     return {
       totalMessages: recentMessages.length,
@@ -254,6 +269,8 @@ export class MQTTMonitorService extends EventEmitter {
       messagesByChannel,
       encryptedMessages: encryptedCount,
       unencryptedMessages: recentMessages.length - encryptedCount,
+      decryptionFailures: decryptionFailureCount,
+      decryptionFailurePercentage,
       averageMessageSize: recentMessages.length > 0 ? totalSize / recentMessages.length : 0,
       messagesPerMinute,
       topNodes,
@@ -268,11 +285,19 @@ export class MQTTMonitorService extends EventEmitter {
     nodeIds: string[], 
     counts: Record<string, number>
   ): Promise<Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>> {
+    logger.info(`[MQTT Monitor] Fetching node names for ${nodeIds.length} IDs: ${nodeIds.join(', ')}`);
+    
     try {
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
+      // Use the shared Prisma client from database connection
+      const { getDatabase } = await import('../database/connection');
+      const db = getDatabase();
       
-      const nodes = await prisma.node.findMany({
+      // First, let's check if there are ANY nodes in the database
+      const totalNodes = await db.node.count();
+      logger.info(`[MQTT Monitor] Total nodes in database: ${totalNodes}`);
+      
+      // Try to find nodes with these specific IDs
+      const nodes = await db.node.findMany({
         where: {
           nodeId: {
             in: nodeIds
@@ -285,12 +310,32 @@ export class MQTTMonitorService extends EventEmitter {
         }
       });
 
-      await prisma.$disconnect();
+      logger.info(`[MQTT Monitor] Found ${nodes.length} nodes matching IDs`);
+      
+      if (nodes.length > 0) {
+        logger.info(`[MQTT Monitor] Sample matched node: ${JSON.stringify(nodes[0])}`);
+      }
+      
+      // Also try to get a few nodes with shortNames to see what's in the database
+      const nodesWithShortNames = await db.node.findMany({
+        where: {
+          shortName: {
+            not: null
+          }
+        },
+        select: {
+          nodeId: true,
+          shortName: true
+        },
+        take: 5
+      });
+      
+      logger.info(`[MQTT Monitor] Sample nodes with shortNames: ${JSON.stringify(nodesWithShortNames)}`);
 
       // Map nodes with their counts, filtering out nodes without shortName
       const result = nodeIds
         .map(nodeId => {
-          const node = nodes.find(n => n.nodeId === nodeId);
+          const node = nodes.find((n: any) => n.nodeId === nodeId);
           return {
             nodeId,
             shortName: node?.shortName || undefined,
@@ -300,9 +345,10 @@ export class MQTTMonitorService extends EventEmitter {
         })
         .filter(node => node.shortName); // Only include nodes with a shortName
 
+      logger.info(`[MQTT Monitor] Filtered to ${result.length} nodes with shortName`);
       return result;
     } catch (error) {
-      logger.error('Failed to fetch node names:', error);
+      logger.error('[MQTT Monitor] Failed to fetch node names:', error);
       // Return empty array if database query fails
       return [];
     }

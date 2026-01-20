@@ -272,6 +272,9 @@ export class ProtobufDecoderService {
               throw new Error('Protobuf root not initialized');
             }
             
+            logger.debug(`Attempting to decode decrypted payload as Data message (${decrypted.length} bytes)`);
+            logger.debug(`First 32 bytes of decrypted data: ${decrypted.slice(0, 32).toString('hex')}`);
+            
             const Data = this.root.lookupType('Data');
             const dataMessage = Data.decode(decrypted);
             const decoded = Data.toObject(dataMessage, {
@@ -287,7 +290,8 @@ export class ProtobufDecoderService {
             
             logger.debug(`Successfully decrypted and decoded packet from channel "${channelName}"`);
           } catch (error) {
-            logger.warn(`Failed to decode decrypted payload from channel "${channelName}" - wrong encryption key, skipping packet`);
+            logger.warn(`Failed to decode decrypted payload from channel "${channelName}" - wrong encryption key or invalid protobuf`);
+            logger.debug(`Decode error details: ${error}`);
             // If decryption succeeded but protobuf parsing failed, the key is wrong
             // Don't process this packet
             return null;

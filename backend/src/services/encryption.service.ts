@@ -66,12 +66,16 @@ export class EncryptionService {
             // Decode base64 key
             let keyBuffer = Buffer.from(channel.key, 'base64');
             
+            logger.info(`Processing channel ${index} (${channel.name}): raw key length = ${keyBuffer.length}, first byte = 0x${keyBuffer[0]?.toString(16).padStart(2, '0')}`);
+            
             // Meshtastic uses special 1-byte PSK shortcuts:
             // 0x00 = no encryption
             // 0x01 = default key (fixed 16-byte AES-128 key)
             // 0x02-0x0A = default key with last byte incremented (simple2-simple10)
             if (keyBuffer.length === 1) {
               const pskByte = keyBuffer[0];
+              
+              logger.info(`Detected 1-byte PSK: 0x${pskByte.toString(16).padStart(2, '0')}`);
               
               if (pskByte === 0x00) {
                 // No encryption - skip this channel
@@ -80,20 +84,29 @@ export class EncryptionService {
               } else if (pskByte >= 0x01 && pskByte <= 0x0A) {
                 // Meshtastic default key: d4 f1 bb 3a 20 29 07 59 f0 bc ff ab cf 4e 69 01
                 // For PSK 0x02-0x0A, add (pskByte - 1) to the last byte
-                const defaultKey = Buffer.from([
+                // NOTE: Meshtastic uses AES-256-CTR, so we need to expand to 32 bytes
+                // The 16-byte default key is repeated/padded to 32 bytes
+                const defaultKey16 = Buffer.from([
                   0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
                   0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0x01
                 ]);
                 
+                // Expand to 32 bytes by repeating the key
+                const defaultKey32 = Buffer.alloc(32);
+                defaultKey16.copy(defaultKey32, 0);
+                defaultKey16.copy(defaultKey32, 16);
+                
                 if (pskByte > 0x01) {
                   // For simple2-simple10, increment the last byte
-                  defaultKey[15] = defaultKey[15] + (pskByte - 0x01);
-                  logger.info(`Mapped 1-byte PSK 0x${pskByte.toString(16).padStart(2, '0')} to Meshtastic simple${pskByte} key for channel ${index}: ${channel.name}`);
+                  defaultKey32[15] = defaultKey32[15] + (pskByte - 0x01);
+                  defaultKey32[31] = defaultKey32[31] + (pskByte - 0x01);
+                  logger.info(`Mapped 1-byte PSK 0x${pskByte.toString(16).padStart(2, '0')} to Meshtastic simple${pskByte} key (32 bytes) for channel ${index}: ${channel.name}`);
                 } else {
-                  logger.info(`Mapped 1-byte PSK 0x01 to Meshtastic default key for channel ${index}: ${channel.name}`);
+                  logger.info(`Mapped 1-byte PSK 0x01 to Meshtastic default key (32 bytes) for channel ${index}: ${channel.name}`);
                 }
                 
-                keyBuffer = defaultKey;
+                keyBuffer = defaultKey32;
+                logger.info(`After expansion: keyBuffer length = ${keyBuffer.length}`);
               } else {
                 // Unknown 1-byte PSK, pad with zeros
                 const paddedKey = Buffer.alloc(16, 0);
@@ -102,11 +115,28 @@ export class EncryptionService {
                 logger.warn(`Unknown 1-byte PSK 0x${pskByte.toString(16).padStart(2, '0')} for channel ${index}: ${channel.name}, padding with zeros`);
               }
             } else if (keyBuffer.length < 16) {
-              // For keys shorter than 16 bytes (but not 1 byte), pad with zeros
-              const paddedKey = Buffer.alloc(16, 0);
+              // For keys shorter than 16 bytes (but not 1 byte), expand to 32 bytes for AES-256
+              const expandedKey = Buffer.alloc(32, 0);
+              keyBuffer.copy(expandedKey);
+              // Repeat the key pattern
+              for (let i = keyBuffer.length; i < 32; i++) {
+                expandedKey[i] = keyBuffer[i % keyBuffer.length];
+              }
+              keyBuffer = expandedKey;
+              logger.info(`Expanded encryption key for channel ${index}: ${channel.name} (${Buffer.from(channel.key, 'base64').length} -> 32 bytes)`);
+            } else if (keyBuffer.length === 16) {
+              // Expand 16-byte key to 32 bytes by repeating
+              const expandedKey = Buffer.alloc(32);
+              keyBuffer.copy(expandedKey, 0);
+              keyBuffer.copy(expandedKey, 16);
+              keyBuffer = expandedKey;
+              logger.info(`Expanded 16-byte key to 32 bytes for channel ${index}: ${channel.name}`);
+            } else if (keyBuffer.length > 16 && keyBuffer.length < 32) {
+              // Pad to 32 bytes
+              const paddedKey = Buffer.alloc(32, 0);
               keyBuffer.copy(paddedKey);
               keyBuffer = paddedKey;
-              logger.info(`Padded encryption key for channel ${index}: ${channel.name} (${Buffer.from(channel.key, 'base64').length} -> 16 bytes)`);
+              logger.info(`Padded encryption key for channel ${index}: ${channel.name} (${Buffer.from(channel.key, 'base64').length} -> 32 bytes)`);
             }
             
             logger.info(`Loaded encryption key for channel ${index}: ${channel.name} (${keyBuffer.length} bytes, base64: ${channel.key})`);
@@ -165,6 +195,14 @@ export class EncryptionService {
         return null;
       }
 
+      // Log the full encrypted payload for debugging
+      logger.info(`=== DECRYPTION DEBUG ===`);
+      logger.info(`Encrypted payload length: ${encryptedPayload.length} bytes`);
+      logger.info(`Full encrypted payload (hex): ${encryptedPayload.toString('hex')}`);
+      logger.info(`Packet ID: ${packetId}`);
+      logger.info(`Channel index: ${channelIndex}`);
+      logger.info(`Key (hex): ${key.toString('hex')}`);
+
       // Extract nonce (first 8 bytes) and pad to 16 bytes for CTR mode
       const nonce = Buffer.alloc(16, 0);
       encryptedPayload.copy(nonce, 0, 0, 8);
@@ -172,27 +210,40 @@ export class EncryptionService {
       // Extract ciphertext (everything after the 8-byte nonce)
       const ciphertext = encryptedPayload.slice(8);
 
-      logger.debug(`Decrypting with nonce: ${nonce.toString('hex')}, channel: ${channelIndex}, ciphertext length: ${ciphertext.length}`);
+      logger.info(`Nonce (8 bytes): ${encryptedPayload.slice(0, 8).toString('hex')}`);
+      logger.info(`Nonce padded (16 bytes): ${nonce.toString('hex')}`);
+      logger.info(`Ciphertext length: ${ciphertext.length} bytes`);
+      logger.info(`Ciphertext (first 32 bytes): ${ciphertext.slice(0, 32).toString('hex')}`);
 
       // Determine the algorithm based on key length
-      // Meshtastic uses AES-128-CTR (16-byte key)
+      // Meshtastic uses AES-256-CTR (32-byte key)
       let algorithm: string;
-      if (key.length === 16) {
-        algorithm = 'aes-128-ctr';
-      } else if (key.length === 32) {
+      if (key.length === 32) {
+        algorithm = 'aes-256-ctr';
+      } else if (key.length === 16) {
+        // Expand 16-byte key to 32 bytes for AES-256
+        logger.info(`Expanding 16-byte key to 32 bytes for AES-256-CTR`);
+        const expandedKey = Buffer.alloc(32);
+        key.copy(expandedKey, 0);
+        key.copy(expandedKey, 16);
+        key = expandedKey;
         algorithm = 'aes-256-ctr';
       } else {
         logger.warn(`Unexpected key length: ${key.length} bytes, expected 16 or 32`);
-        // Try to use the key as-is with AES-128
-        algorithm = 'aes-128-ctr';
-        if (key.length < 16) {
-          // Pad key to 16 bytes if too short
-          const paddedKey = Buffer.alloc(16, 0);
+        // Try to expand/pad to 32 bytes for AES-256
+        algorithm = 'aes-256-ctr';
+        if (key.length < 32) {
+          // Pad key to 32 bytes
+          const paddedKey = Buffer.alloc(32, 0);
           key.copy(paddedKey);
+          // If key is 16 bytes or less, repeat it
+          if (key.length <= 16) {
+            key.copy(paddedKey, 16, 0, Math.min(key.length, 16));
+          }
           key = paddedKey;
-        } else if (key.length > 16 && key.length < 32) {
-          // Truncate to 16 bytes
-          key = key.slice(0, 16);
+        } else {
+          // Truncate to 32 bytes
+          key = key.slice(0, 32);
         }
       }
 
@@ -205,7 +256,11 @@ export class EncryptionService {
         decipher.final()
       ]);
 
-      logger.debug(`Successfully decrypted payload (${ciphertext.length} -> ${decrypted.length} bytes)`);
+      logger.info(`Decrypted length: ${decrypted.length} bytes`);
+      logger.info(`Decrypted (first 64 bytes): ${decrypted.slice(0, Math.min(64, decrypted.length)).toString('hex')}`);
+      logger.info(`Decrypted as ASCII: ${decrypted.slice(0, Math.min(64, decrypted.length)).toString('ascii').replace(/[^\x20-\x7E]/g, '.')}`);
+      logger.info(`=== END DECRYPTION DEBUG ===`);
+      
       return decrypted;
     } catch (error) {
       logger.error('Failed to decrypt message:', error);

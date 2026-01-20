@@ -32,6 +32,8 @@ interface MessageStatistics {
   messagesByChannel: Record<number, number>;
   encryptedMessages: number;
   unencryptedMessages: number;
+  decryptionFailures: number;
+  decryptionFailurePercentage: number;
   averageMessageSize: number;
   messagesPerMinute: number;
   topNodes: Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>;
@@ -468,6 +470,18 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                   <div className="stat-card">
                     <h3>Encrypted</h3>
                     <div className="stat-value">{statistics.encryptedMessages}</div>
+                  </div>
+                  
+                  <div className="stat-card">
+                    <h3>Decryption Failures</h3>
+                    <div className="stat-value" style={{ color: statistics.decryptionFailures > 0 ? '#ff6b6b' : 'inherit' }}>
+                      {statistics.decryptionFailures}
+                      {statistics.decryptionFailurePercentage > 0 && (
+                        <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                          ({statistics.decryptionFailurePercentage.toFixed(1)}% of encrypted)
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="stat-card">

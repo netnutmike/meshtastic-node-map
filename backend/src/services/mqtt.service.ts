@@ -222,13 +222,16 @@ export class MQTTService extends EventEmitter {
           }
         } else {
           // Decryption or parsing failed - emit a failure indicator
-          // Extract channel name from topic for better error reporting
+          // Extract channel name and node ID from topic for better error reporting
           const topicParts = topic.split('/');
           const eIndex = topicParts.indexOf('e');
           const channelName = eIndex !== -1 && eIndex + 1 < topicParts.length ? topicParts[eIndex + 1] : 'unknown';
+          // Node ID is typically the last part of the topic (e.g., !9e75f7d4)
+          const nodeId = topicParts[topicParts.length - 1] || 'unknown';
           
           const monitorPayload = JSON.stringify({
-            from: 'unknown',
+            from: nodeId,
+            sender: nodeId,
             type: 'ENCRYPTED',
             encrypted: true,
             decryptionFailed: true,

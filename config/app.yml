@@ -84,7 +84,7 @@ seo:
 encryption:
   channels:
     - name: "LongFast"
-      key: "AQ=="  # PSK 0x01 = Meshtastic default key (d4 f1 bb 3a 20 29 07 59 f0 bc ff ab cf 4e 69 01)
+      key: "d4f1bb3a20290759f0bcffabcf4e6901"  # PSK 0x01 = Meshtastic default key (d4 f1 bb 3a 20 29 07 59 f0 bc ff ab cf 4e 69 01). d4f1bb3a20290759f0bcffabcf4e6901
       default: true
     - name: "Primary"
       key: "1PG7OiApB3XvvX7g8kYzDYQD+CW+3Oi+Qs/LoIWh/gg="  # Custom 32-byte key (AES-256)
