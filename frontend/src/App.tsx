@@ -7,6 +7,8 @@ import { store } from './store';
 import AppRouter from './routes/AppRouter';
 import webSocketService from './services/websocket';
 import offlineService from './services/offline.service';
+import { MOTD } from './components/MOTD';
+import { loadMOTDConfig, MOTDConfig } from './services/config';
 import './App.css';
 import './styles/mobile.css';
 
@@ -66,8 +68,19 @@ const theme = createTheme({
 
 function App() {
   const [servicesInitialized, setServicesInitialized] = React.useState(false);
+  const [motdConfig, setMotdConfig] = React.useState<MOTDConfig>({
+    enabled: false,
+    title: '',
+    message: '',
+    dismissible: true
+  });
 
   useEffect(() => {
+    // Load MOTD configuration
+    loadMOTDConfig().then(config => {
+      setMotdConfig(config);
+    });
+
     // Delay initialization to ensure React and Redux are fully ready
     const timer = setTimeout(async () => {
       try {
@@ -120,6 +133,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AppRouter />
+        <MOTD config={motdConfig} />
       </ThemeProvider>
     </Provider>
   );

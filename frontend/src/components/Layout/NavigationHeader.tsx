@@ -29,6 +29,7 @@ import Settings from '../Settings';
 import CustomLinksMenu from '../CustomLinksMenu';
 import { AuthModal, UserMenu } from '../Auth';
 import { selectIsAuthenticated, selectUser } from '../../store/slices/authSlice';
+import { loadAppName } from '../../services/config';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -87,10 +88,20 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
+  const [appName, setAppName] = useState('Meshtastic Node Mapper');
   const navigate = useNavigate();
   
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectUser);
+
+  // Load app name from config
+  React.useEffect(() => {
+    loadAppName().then(name => {
+      setAppName(name);
+      // Also update document title
+      document.title = name;
+    });
+  }, []);
 
   // Check if authentication is enabled via API
   React.useEffect(() => {
@@ -130,7 +141,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           <Box
             component="img"
             src="/logo.png"
-            alt="Meshtastic Node Mapper Logo"
+            alt={`${appName} Logo`}
             sx={{
               height: 40,
               width: 'auto',
@@ -143,7 +154,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             component="div"
             sx={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
           >
-            Meshtastic Node Mapper
+            {appName}
           </Typography>
         </Box>
 

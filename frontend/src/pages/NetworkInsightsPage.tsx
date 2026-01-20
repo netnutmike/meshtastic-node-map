@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -32,6 +32,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import NavigationHeader from '../components/Layout/NavigationHeader';
+import Footer from '../components/Layout/Footer';
 import { MQTTMonitor } from '../components/MQTTMonitor';
 import { RootState } from '../store';
 import { setNodes } from '../store/slices/nodeSlice';
@@ -74,26 +75,28 @@ const NetworkInsightsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const nodes = useSelector((state: RootState) => state.nodes.nodes);
   const dispatch = useDispatch();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent duplicate loads
-    if (isLoading) return;
+    // Prevent duplicate loads (especially in React StrictMode dev double-invoke)
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
     
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load data sequentially with small delays to avoid rate limiting
+        // Load data sequentially with longer delays to avoid rate limiting
         await loadMessages();
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await loadNodes();
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await loadDatabaseOverview();
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await loadMessageTimeline();
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await loadTopTalkers();
       } finally {
@@ -102,6 +105,7 @@ const NetworkInsightsPage: React.FC = () => {
     };
     
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty array - only run once on mount
 
   const loadMessages = async () => {
@@ -385,8 +389,8 @@ const NetworkInsightsPage: React.FC = () => {
     );
   };
 
-  // Statistics Tab
-  const renderStatisticsTab = () => {
+  // Memoized Statistics Tab to prevent flashing on re-renders
+  const StatisticsTabContent = useMemo(() => {
     // Message type distribution (using 'type' field which is actually stored)
     const typeCounts = messages.reduce((acc: any, msg) => {
       const type = msg.type || 'unknown';
@@ -544,6 +548,7 @@ const NetworkInsightsPage: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    isAnimationActive={false}
                   >
                     {typeData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -598,6 +603,7 @@ const NetworkInsightsPage: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    isAnimationActive={false}
                   >
                     {hardwareData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -630,6 +636,7 @@ const NetworkInsightsPage: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    isAnimationActive={false}
                   >
                     {roleData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -658,7 +665,10 @@ const NetworkInsightsPage: React.FC = () => {
         </Box>
       </Box>
     );
-  };
+  }, [messages, nodes, messageTimeline, databaseOverview]);
+
+  // Statistics Tab - wrapper function
+  const renderStatisticsTab = () => StatisticsTabContent;
 
   // Top Talkers Tab
   const renderTopTalkersTab = () => {
@@ -794,6 +804,8 @@ const NetworkInsightsPage: React.FC = () => {
         isVisible={mqttMonitorOpen}
         onClose={handleCloseMQTTMonitor}
       />
+
+      <Footer />
     </Box>
   );
 };

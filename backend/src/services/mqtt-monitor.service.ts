@@ -52,7 +52,7 @@ export interface MessageStatistics {
   unencryptedMessages: number;
   averageMessageSize: number;
   messagesPerMinute: number;
-  topNodes: Array<{ nodeId: string; count: number }>;
+  topNodes: Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>;
   timeRange: string;
 }
 
@@ -235,10 +235,14 @@ export class MQTTMonitorService extends EventEmitter {
       totalSize += msg.size;
     });
 
-    const topNodes = Object.entries(nodeMessageCounts)
-      .map(([nodeId, count]) => ({ nodeId, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+    // Get top nodes with their names from database
+    const topNodeIds = Object.entries(nodeMessageCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([nodeId]) => nodeId);
+
+    // Fetch node names from database
+    const topNodes = await this.fetchNodeNames(topNodeIds, nodeMessageCounts);
 
     const timeRangeMinutes = this.getTimeRangeMinutes(timeRange);
     const messagesPerMinute = recentMessages.length / timeRangeMinutes;
@@ -254,6 +258,53 @@ export class MQTTMonitorService extends EventEmitter {
       topNodes,
       timeRange
     };
+  }
+
+  /**
+   * Fetch node names from database
+   */
+  private async fetchNodeNames(
+    nodeIds: string[], 
+    counts: Record<string, number>
+  ): Promise<Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>> {
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const nodes = await prisma.node.findMany({
+        where: {
+          nodeId: {
+            in: nodeIds
+          }
+        },
+        select: {
+          nodeId: true,
+          shortName: true,
+          longName: true
+        }
+      });
+
+      await prisma.$disconnect();
+
+      // Map nodes with their counts, filtering out nodes without shortName
+      const result = nodeIds
+        .map(nodeId => {
+          const node = nodes.find(n => n.nodeId === nodeId);
+          return {
+            nodeId,
+            shortName: node?.shortName || undefined,
+            longName: node?.longName || undefined,
+            count: counts[nodeId]
+          };
+        })
+        .filter(node => node.shortName); // Only include nodes with a shortName
+
+      return result;
+    } catch (error) {
+      logger.error('Failed to fetch node names:', error);
+      // Return empty array if database query fails
+      return [];
+    }
   }
 
   /**
@@ -306,19 +357,39 @@ export class MQTTMonitorService extends EventEmitter {
     try {
       const parsed = JSON.parse(payload);
       
-      // Only return parsed data if it has the expected structure
-      if (parsed.from) {
+      // Extract node ID - handle both 'sender' and 'from' fields
+      let nodeId: string | undefined;
+      if (parsed.sender && typeof parsed.sender === 'string') {
+        nodeId = parsed.sender;
+      } else if (parsed.from) {
+        // Convert numeric ID to hex format if needed
+        if (typeof parsed.from === 'number') {
+          nodeId = `!${parsed.from.toString(16).padStart(8, '0')}`;
+        } else if (typeof parsed.from === 'string') {
+          nodeId = parsed.from.startsWith('!') ? parsed.from : `!${parsed.from}`;
+        }
+      }
+      
+      // Extract message type - handle various formats
+      let type: string | undefined;
+      if (parsed.type && typeof parsed.type === 'string') {
+        type = parsed.type.toUpperCase();
+      }
+      
+      // Only return parsed data if we have the minimum required fields
+      if (nodeId) {
         return {
-          nodeId: parsed.from,
-          type: parsed.type,
-          encrypted: parsed.encrypted,
-          channel: parsed.channel,
+          nodeId,
+          type,
+          encrypted: typeof parsed.encrypted === 'boolean' ? parsed.encrypted : false,
+          channel: typeof parsed.channel === 'number' ? parsed.channel : undefined,
           priority: parsed.priority,
-          content: parsed.payload
+          content: parsed.payload || parsed
         };
       }
     } catch (error) {
       // If parsing fails, return null to indicate no parsed data
+      logger.debug('Failed to parse MQTT message payload:', error);
       return null;
     }
     

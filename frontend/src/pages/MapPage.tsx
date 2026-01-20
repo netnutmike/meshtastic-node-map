@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Box, Drawer, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { FilterList as FilterIcon, Map as MapOptionsIcon, MyLocation as MyLocationIcon } from '@mui/icons-material';
 import NavigationHeader from '../components/Layout/NavigationHeader';
+import Footer from '../components/Layout/Footer';
 import MapComponent from '../components/Map/MapComponent';
 import SearchAndFiltering, { SearchFilters } from '../components/SearchAndFiltering';
 import { MQTTMonitor } from '../components/MQTTMonitor';
@@ -409,6 +410,8 @@ const MapPage: React.FC = () => {
         isVisible={mqttMonitorOpen}
         onClose={handleCloseMQTTMonitor}
       />
+
+      <Footer />
     </Box>
   );
 };

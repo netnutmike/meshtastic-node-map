@@ -27,8 +27,9 @@ import {
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { openDetailsPanel, setNodes, setLoading, setError } from '../store/slices/nodeSlice';
-import { setCenter, setZoom } from '../store/slices/mapSlice';
+import { setCenter, setZoom, openTopologyGraph } from '../store/slices/mapSlice';
 import NavigationHeader from '../components/Layout/NavigationHeader';
+import Footer from '../components/Layout/Footer';
 import { MQTTMonitor } from '../components/MQTTMonitor';
 import apiService from '../services/api';
 import { getHardwareName } from '../utils/hardwareModels';
@@ -199,8 +200,8 @@ const NodesPage: React.FC = () => {
 
   const handleOpenTopology = () => {
     // Navigate to map and open topology
-    navigate('/map');
-    // The map page will handle opening the topology
+    dispatch(openTopologyGraph());
+    navigate('/');
   };
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
@@ -498,6 +499,8 @@ const NodesPage: React.FC = () => {
         isVisible={mqttMonitorOpen}
         onClose={handleCloseMQTTMonitor}
       />
+
+      <Footer />
     </Box>
   );
 };

@@ -23,6 +23,13 @@ export interface CustomLink {
   icon?: string;
 }
 
+export interface MOTDConfig {
+  enabled: boolean;
+  title: string;
+  message: string;
+  dismissible: boolean;
+}
+
 export interface AboutPageConfig {
   appInfo: AppConfig;
   customContent?: CustomContentSection[];
@@ -35,9 +42,9 @@ export interface AboutPageConfig {
  */
 export const getAppConfig = (): AppConfig => {
   return {
-    name: packageJson.name || 'Meshtastic Node Mapper',
+    name: 'Meshtastic Node Mapper',
     version: packageJson.version || '1.0.0',
-    description: packageJson.description || 'Web-based visualization for Meshtastic mesh networks',
+    description: 'A Web Based Meshtastic Map',
     author: 'Meshtastic Community',
     license: 'GPL-3.0',
     repository: 'https://github.com/meshtastic/node-mapper',
@@ -135,17 +142,77 @@ export const loadCustomLinks = async (): Promise<CustomLink[]> => {
 };
 
 /**
+ * Load app name from configuration
+ * In a real implementation, this would fetch from the backend API
+ */
+export const loadAppName = async (): Promise<string> => {
+  try {
+    // For now, return static configuration matching the YAML structure
+    // In the future, this could fetch from /api/config/app or similar
+    return "Meshtastic Node Mapper";
+  } catch (error) {
+    console.error('Failed to load app name:', error);
+    return "Meshtastic Node Mapper"; // Default fallback
+  }
+};
+
+/**
+ * Load MOTD configuration
+ * In a real implementation, this would fetch from the backend API
+ */
+export const loadMOTDConfig = async (): Promise<MOTDConfig> => {
+  try {
+    // For now, return static configuration matching the YAML structure
+    // In the future, this could fetch from /api/config/motd or similar
+    const motdConfig: MOTDConfig = {
+      enabled: true,
+      title: "Welcome to Meshtastic Node Mapper",
+      message: "Monitor your mesh network in real-time",
+      dismissible: true
+    };
+
+    return motdConfig;
+  } catch (error) {
+    console.error('Failed to load MOTD configuration:', error);
+    return {
+      enabled: false,
+      title: "",
+      message: "",
+      dismissible: true
+    };
+  }
+};
+
+/**
+ * Detect browser name from user agent
+ */
+const getBrowserName = (): string => {
+  const userAgent = navigator.userAgent;
+  
+  if (userAgent.includes('Firefox/')) {
+    return 'Firefox';
+  } else if (userAgent.includes('Edg/')) {
+    return 'Edge';
+  } else if (userAgent.includes('Chrome/')) {
+    return 'Chrome';
+  } else if (userAgent.includes('Safari/') && !userAgent.includes('Chrome/')) {
+    return 'Safari';
+  } else if (userAgent.includes('Opera/') || userAgent.includes('OPR/')) {
+    return 'Opera';
+  }
+  
+  return 'Unknown';
+};
+
+/**
  * Get system information for display
  */
 export const getSystemInfo = () => {
   return {
     version: getAppConfig().version,
     buildDate: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-    screenResolution: `${window.screen.width} × ${window.screen.height}`,
-    viewport: `${window.innerWidth} × ${window.innerHeight}`,
+    browser: getBrowserName(),
     language: navigator.language,
-    platform: navigator.platform,
     cookieEnabled: navigator.cookieEnabled,
     onlineStatus: navigator.onLine,
   };

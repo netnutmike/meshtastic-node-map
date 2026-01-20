@@ -1,7 +1,7 @@
 # Meshtastic Node Mapper Application Configuration
 app:
   name: "Meshtastic Node Mapper"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Web-based visualization for Meshtastic mesh networks"
   logo: "/assets/logo.png"
   favicon: "/assets/favicon.ico"
@@ -59,7 +59,7 @@ customLinks:
 
 # Message of the Day
 motd:
-  enabled: false
+  enabled: true
   title: "Welcome to Meshtastic Node Mapper"
   message: "Monitor your mesh network in real-time"
   dismissible: true

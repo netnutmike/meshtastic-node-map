@@ -136,20 +136,103 @@ const AboutContent: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Custom Content Sections */}
-        {config.customContent && config.customContent.map((content, index) => (
-          <Grid item xs={12} md={6} key={index}>
-            <Card elevation={2} sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h5" component="h2" gutterBottom>
-                  {content.title}
+        {/* Application Features */}
+        <Grid item xs={12} md={6}>
+          <Card elevation={2} sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h5" component="h2" gutterBottom>
+                Features
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                {`• Real-time node visualization on interactive maps
+• Comprehensive telemetry monitoring and historical data
+• Message tracking and routing path analysis
+• Network topology visualization and analysis
+• Multi-network support for distributed deployments
+• Advanced analytics and predictive insights
+• Mobile-responsive design for field use
+• Configurable alerts and notifications`}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Getting Started */}
+        <Grid item xs={12} md={6}>
+          <Card elevation={2} sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h5" component="h2" gutterBottom>
+                Getting Started
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="body1" paragraph>
+                This application connects to your Meshtastic network via MQTT to provide real-time monitoring and visualization. Nodes appear on the map as colored dots indicating their status:
+              </Typography>
+              <Typography variant="body2" component="div" sx={{ ml: 2 }}>
+                • Green: Online and connected to MQTT<br />
+                • Blue: Disconnected from MQTT but recently seen<br />
+                • Red: Offline for an extended period
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 2 }}>
+                Click on any node to view detailed information, telemetry data, and message history.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Application Resources */}
+        <Grid item xs={12} md={6}>
+          <Card elevation={2}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <DocsIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h5" component="h2">
+                  Application Resources
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
-                {renderCustomContent(content)}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Link
+                  href="https://github.com/netnutmike/meshtastic-node-map"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <GitHubIcon sx={{ mr: 1, fontSize: 20 }} />
+                  GitHub Repository
+                </Link>
+                <Link
+                  href="https://github.com/netnutmike/meshtastic-node-map/blob/main/docs/user-guide.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <DocsIcon sx={{ mr: 1, fontSize: 20 }} />
+                  User Guide
+                </Link>
+                <Link
+                  href="https://github.com/netnutmike/meshtastic-node-map/blob/main/docs/installation.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <DocsIcon sx={{ mr: 1, fontSize: 20 }} />
+                  Installation Guide
+                </Link>
+                <Link
+                  href="https://github.com/netnutmike/meshtastic-node-map/blob/main/docs/api-guide.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <CodeIcon sx={{ mr: 1, fontSize: 20 }} />
+                  API Documentation
+                </Link>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
         {/* Technical Details */}
         {config.showTechnicalDetails && (
@@ -192,21 +275,24 @@ const AboutContent: React.FC = () => {
           </Grid>
         )}
 
-        {/* Links and Resources */}
-        <Grid item xs={12} md={6}>
+        {/* About Meshtastic */}
+        <Grid item xs={12}>
           <Card elevation={2}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <DocsIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h5" component="h2">
-                  Resources
-                </Typography>
-              </Box>
+              <Typography variant="h5" component="h2" gutterBottom>
+                About Meshtastic
+              </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {config.appInfo.homepage && (
+              <Typography variant="body1" paragraph>
+                Meshtastic is an open source, off-grid, decentralized, mesh network built to run on affordable, low-power devices. This application provides real-time visualization and monitoring capabilities for Meshtastic mesh networks.
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Meshtastic Resources
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, ml: 2 }}>
                   <Link
-                    href={config.appInfo.homepage}
+                    href="https://meshtastic.org"
                     target="_blank"
                     rel="noopener noreferrer"
                     sx={{ display: 'flex', alignItems: 'center' }}
@@ -214,36 +300,34 @@ const AboutContent: React.FC = () => {
                     <InfoIcon sx={{ mr: 1, fontSize: 20 }} />
                     Official Website
                   </Link>
-                )}
-                {config.appInfo.repository && (
                   <Link
-                    href={config.appInfo.repository}
+                    href="https://meshtastic.org/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <DocsIcon sx={{ mr: 1, fontSize: 20 }} />
+                    Meshtastic Documentation
+                  </Link>
+                  <Link
+                    href="https://meshtastic.discourse.group"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <InfoIcon sx={{ mr: 1, fontSize: 20 }} />
+                    Community Forum
+                  </Link>
+                  <Link
+                    href="https://github.com/meshtastic"
                     target="_blank"
                     rel="noopener noreferrer"
                     sx={{ display: 'flex', alignItems: 'center' }}
                   >
                     <GitHubIcon sx={{ mr: 1, fontSize: 20 }} />
-                    Source Code
+                    Meshtastic GitHub
                   </Link>
-                )}
-                <Link
-                  href="https://meshtastic.org/docs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <DocsIcon sx={{ mr: 1, fontSize: 20 }} />
-                  Meshtastic Documentation
-                </Link>
-                <Link
-                  href="https://meshtastic.discourse.group"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <InfoIcon sx={{ mr: 1, fontSize: 20 }} />
-                  Community Forum
-                </Link>
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -278,21 +362,9 @@ const AboutContent: React.FC = () => {
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
                         <Typography variant="subtitle2" color="text.secondary">
-                          Platform
+                          Browser
                         </Typography>
-                        <Typography variant="body2">{systemInfo.platform}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Screen Resolution
-                        </Typography>
-                        <Typography variant="body2">{systemInfo.screenResolution}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Viewport Size
-                        </Typography>
-                        <Typography variant="body2">{systemInfo.viewport}</Typography>
+                        <Typography variant="body2">{systemInfo.browser}</Typography>
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
                         <Typography variant="subtitle2" color="text.secondary">

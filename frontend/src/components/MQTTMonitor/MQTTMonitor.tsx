@@ -33,7 +33,7 @@ interface MessageStatistics {
   unencryptedMessages: number;
   averageMessageSize: number;
   messagesPerMinute: number;
-  topNodes: Array<{ nodeId: string; count: number }>;
+  topNodes: Array<{ nodeId: string; shortName?: string; longName?: string; count: number }>;
   timeRange: string;
 }
 
@@ -467,7 +467,7 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                   
                   <div className="stat-card">
                     <h3>Avg Size</h3>
-                    <div className="stat-value">{formatSize(statistics.averageMessageSize)}</div>
+                    <div className="stat-value">{formatSize(Math.round(statistics.averageMessageSize))}</div>
                   </div>
                 </div>
 
@@ -475,24 +475,38 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                   <div className="stats-section">
                     <h3>Messages by Type</h3>
                     <div className="stats-list">
-                      {Object.entries(statistics.messagesByType).map(([type, count]) => (
-                        <div key={type} className="stats-item">
-                          <span className="stats-label">{type}</span>
-                          <span className="stats-count">{count}</span>
+                      {Object.entries(statistics.messagesByType)
+                        .filter(([type, count]) => count > 0)
+                        .map(([type, count]) => (
+                          <div key={type} className="stats-item">
+                            <span className="stats-label">{type}</span>
+                            <span className="stats-count">{count}</span>
+                          </div>
+                        ))}
+                      {Object.entries(statistics.messagesByType).filter(([_, count]) => count > 0).length === 0 && (
+                        <div className="stats-item">
+                          <span className="stats-label">No messages</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
                   <div className="stats-section">
                     <h3>Messages by Channel</h3>
                     <div className="stats-list">
-                      {Object.entries(statistics.messagesByChannel).map(([channel, count]) => (
-                        <div key={channel} className="stats-item">
-                          <span className="stats-label">Channel {channel}</span>
-                          <span className="stats-count">{count}</span>
+                      {Object.entries(statistics.messagesByChannel)
+                        .filter(([channel, count]) => count > 0)
+                        .map(([channel, count]) => (
+                          <div key={channel} className="stats-item">
+                            <span className="stats-label">Channel {channel}</span>
+                            <span className="stats-count">{count}</span>
+                          </div>
+                        ))}
+                      {Object.entries(statistics.messagesByChannel).filter(([_, count]) => count > 0).length === 0 && (
+                        <div className="stats-item">
+                          <span className="stats-label">No messages</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
@@ -501,10 +515,19 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                     <div className="stats-list">
                       {statistics.topNodes.map((node) => (
                         <div key={node.nodeId} className="stats-item">
-                          <span className="stats-label">{node.nodeId}</span>
+                          <span className="stats-label">
+                            {node.shortName && node.longName 
+                              ? `${node.shortName} (${node.longName})`
+                              : node.shortName || node.longName || node.nodeId}
+                          </span>
                           <span className="stats-count">{node.count}</span>
                         </div>
                       ))}
+                      {statistics.topNodes.length === 0 && (
+                        <div className="stats-item">
+                          <span className="stats-label">No nodes</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

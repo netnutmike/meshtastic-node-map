@@ -1,6 +1,6 @@
 {
   "name": "meshtastic-node-mapper-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for Meshtastic Node Mapper",
   "main": "dist/index.js",
   "scripts": {

@@ -1,0 +1,26 @@
+.motd-dialog .MuiDialog-paper {
+  border-radius: 8px;
+}
+
+.motd-dialog .MuiDialogTitle-root {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 24px;
+}
+
+.motd-dialog .MuiDialogContent-root {
+  padding: 24px;
+  min-height: 100px;
+}
+
+.motd-dialog .MuiDialogActions-root {
+  padding: 16px 24px;
+}
+
+.motd-dialog .MuiIconButton-root {
+  color: white;
+}
+
+.motd-dialog .MuiIconButton-root:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
