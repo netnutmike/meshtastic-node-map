@@ -211,10 +211,12 @@ export class MQTTService extends EventEmitter {
             this.emit('rawMessage', topic, monitorPayload, { qos: 0, retain: false });
           } else {
             // For non-message packets (nodeinfo, position, telemetry), create a summary
+            // Check if there's a message object that has the encrypted flag
+            const wasEncrypted = (parsedData.message as CreateMessageInput | undefined)?.encrypted || false;
             const monitorPayload = JSON.stringify({
               from: parsedData.nodeId,
               type: parsedData.position ? 'POSITION' : parsedData.telemetry ? 'TELEMETRY' : parsedData.nodeUpdate ? 'NODEINFO' : 'UNKNOWN',
-              encrypted: false, // Already decrypted
+              encrypted: wasEncrypted,
               decryptionFailed: false,
               timestamp: Math.floor(Date.now() / 1000)
             });

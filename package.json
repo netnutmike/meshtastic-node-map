@@ -1,6 +1,6 @@
 {
   "name": "meshtastic-node-mapper",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Web-based application for visualizing Meshtastic mesh network nodes",
   "main": "index.js",
   "scripts": {

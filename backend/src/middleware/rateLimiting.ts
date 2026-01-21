@@ -74,30 +74,29 @@ export const createApiKeyAwareRateLimiter = (defaultOptions: {
   max: number;
   message?: string;
 }) => {
+  // Create the default limiter once at initialization
+  const defaultLimiter = createRateLimiter(defaultOptions);
+  
   return async (req: Request, res: Response, next: NextFunction) => {
     const apiKey = req.headers['x-api-key'] as string;
-    let rateLimitConfig = defaultOptions;
 
-    // If API key is provided, get its specific rate limit
+    // If API key is provided, check if it has custom limits
     if (apiKey) {
       try {
         const validatedKey = await apiKeyService.validateApiKey(apiKey, req.ip);
         if (validatedKey) {
           const keyRateLimit = apiKeyService.getRateLimit(validatedKey);
-          rateLimitConfig = {
-            windowMs: keyRateLimit.windowMs,
-            max: keyRateLimit.requests,
-            message: defaultOptions.message
-          };
+          // If custom limits differ significantly, we'd need a per-key limiter
+          // For now, just use the default limiter
+          // TODO: Implement per-key rate limiting if needed
         }
       } catch (error) {
         logger.error('Error validating API key for rate limiting:', error);
       }
     }
 
-    // Create rate limiter with appropriate config
-    const limiter = createRateLimiter(rateLimitConfig);
-    limiter(req, res, next);
+    // Use the pre-created limiter
+    defaultLimiter(req, res, next);
   };
 };
 

@@ -8,40 +8,40 @@ import * as crypto from 'crypto';
 
 describe('EncryptionService', () => {
   describe('decrypt', () => {
-    it('should decrypt a message with embedded nonce', () => {
-      // Test with a known key and message
+    it('should decrypt a message using packet metadata for nonce', () => {
+      // Test with a known key and message matching Meshtastic format
       // Using AES-128-CTR with 16-byte key
       const key = Buffer.from('0123456789abcdef'); // 16-byte key
-      const nonce = Buffer.from('0011223344556677', 'hex'); // 8-byte nonce
+      const packetId = 12345;
+      const fromNodeId = 67890;
       const plaintext = Buffer.from('Hello, Meshtastic!');
       
-      // Encrypt the message
-      const noncePadded = Buffer.alloc(16, 0);
-      nonce.copy(noncePadded, 0, 0, 8);
+      // Construct nonce from packet metadata (matching Python implementation)
+      const nonce = Buffer.alloc(16, 0);
+      nonce.writeBigUInt64LE(BigInt(packetId), 0);
+      nonce.writeBigUInt64LE(BigInt(fromNodeId), 8);
       
-      const cipher = crypto.createCipheriv('aes-128-ctr', key, noncePadded);
+      // Encrypt the message
+      const cipher = crypto.createCipheriv('aes-128-ctr', key, nonce);
       const ciphertext = Buffer.concat([
         cipher.update(plaintext),
         cipher.final()
       ]);
       
-      // Create encrypted payload: [8-byte nonce][ciphertext]
-      const encryptedPayload = Buffer.concat([nonce, ciphertext]);
-      
       // Mock the encryption service to use our test key
       (encryptionService as any).channelKeys.set(0, key);
       (encryptionService as any).defaultKey = key;
       
-      // Decrypt
-      const decrypted = encryptionService.decrypt(encryptedPayload, 0, 0);
+      // Decrypt (no nonce prefix in payload - it's constructed from metadata)
+      const decrypted = encryptionService.decrypt(ciphertext, packetId, fromNodeId, 0);
       
       expect(decrypted).not.toBeNull();
       expect(decrypted?.toString()).toBe('Hello, Meshtastic!');
     });
 
-    it('should handle short encrypted payloads', () => {
-      const shortPayload = Buffer.from('short');
-      const decrypted = encryptionService.decrypt(shortPayload, 0, 0);
+    it('should handle empty encrypted payloads', () => {
+      const emptyPayload = Buffer.from('');
+      const decrypted = encryptionService.decrypt(emptyPayload, 0, 0, 0);
       
       expect(decrypted).toBeNull();
     });
@@ -51,8 +51,8 @@ describe('EncryptionService', () => {
       (encryptionService as any).channelKeys.clear();
       (encryptionService as any).defaultKey = null;
       
-      const encryptedPayload = Buffer.from('0011223344556677aabbccdd', 'hex');
-      const decrypted = encryptionService.decrypt(encryptedPayload, 0, 0);
+      const encryptedPayload = Buffer.from('aabbccdd', 'hex');
+      const decrypted = encryptionService.decrypt(encryptedPayload, 0, 0, 0);
       
       expect(decrypted).toBeNull();
     });

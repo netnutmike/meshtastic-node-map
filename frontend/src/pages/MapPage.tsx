@@ -360,23 +360,25 @@ const MapPage: React.FC = () => {
       {/* Center on My Location Button */}
       <Box sx={{ position: 'absolute', top: 200, right: 16, zIndex: 1000 }}>
         <Tooltip title={locating ? "Locating..." : "Center on My Location"}>
-          <IconButton
-            onClick={handleCenterOnMyLocation}
-            disabled={locating}
-            sx={{
-              backgroundColor: 'background.paper',
-              boxShadow: 2,
-              '&:hover': {
+          <span>
+            <IconButton
+              onClick={handleCenterOnMyLocation}
+              disabled={locating}
+              sx={{
                 backgroundColor: 'background.paper',
-                boxShadow: 4,
-              },
-              '&:disabled': {
-                backgroundColor: 'background.paper',
-              },
-            }}
-          >
-            {locating ? <CircularProgress size={24} /> : <MyLocationIcon />}
-          </IconButton>
+                boxShadow: 2,
+                '&:hover': {
+                  backgroundColor: 'background.paper',
+                  boxShadow: 4,
+                },
+                '&:disabled': {
+                  backgroundColor: 'background.paper',
+                },
+              }}
+            >
+              {locating ? <CircularProgress size={24} /> : <MyLocationIcon />}
+            </IconButton>
+          </span>
         </Tooltip>
       </Box>
 

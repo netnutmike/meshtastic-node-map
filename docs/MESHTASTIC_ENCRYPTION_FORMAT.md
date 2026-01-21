@@ -8,74 +8,74 @@ Meshtastic uses AES-CTR (Counter Mode) encryption to protect message payloads. T
 
 - **Cipher:** AES (Advanced Encryption Standard)
 - **Mode:** CTR (Counter Mode)
-- **Key Size:** Typically 16 bytes (AES-128) or 32 bytes (AES-256)
-- **Nonce Size:** 8 bytes (padded to 16 bytes for CTR mode)
+- **Key Size:** 16 bytes (AES-128) or 32 bytes (AES-256)
+- **Nonce Size:** 16 bytes (constructed from packet metadata)
+
+## IMPORTANT: Nonce Construction
+
+**The nonce is NOT embedded in the encrypted payload!**
+
+The nonce is constructed from packet metadata:
+- First 8 bytes: Packet ID (64-bit little-endian)
+- Last 8 bytes: From Node ID (64-bit little-endian)
+
+```python
+# Python example
+nonce_packet_id = packet.id.to_bytes(8, "little")
+nonce_from_node = packet.from.to_bytes(8, "little")
+nonce = nonce_packet_id + nonce_from_node  # 16 bytes total
+```
+
+```typescript
+// TypeScript example
+const nonce = Buffer.alloc(16, 0);
+nonce.writeBigUInt64LE(BigInt(packetId), 0);
+nonce.writeBigUInt64LE(BigInt(fromNodeId), 8);
+```
 
 ## Encrypted Payload Structure
 
 ```
-┌─────────────┬──────────────────────┐
-│   Nonce     │     Ciphertext       │
-│  (8 bytes)  │   (variable length)  │
-└─────────────┴──────────────────────┘
+┌──────────────────────┐
+│     Ciphertext       │
+│   (variable length)  │
+└──────────────────────┘
 ```
 
-### Nonce (8 bytes)
-- Random 8-byte value generated for each message
-- Provides uniqueness for the encryption
-- Padded with 8 zero bytes to create 16-byte IV for CTR mode
-
-### Ciphertext (variable length)
-- Encrypted protobuf Data message
-- Length depends on the original message size
+The encrypted payload contains ONLY the ciphertext. The nonce must be constructed from the packet's `id` and `from` fields.
 
 ## Encryption Process
 
-### 1. Generate Nonce
+### 1. Construct Nonce from Packet Metadata
 ```
-nonce = random_bytes(8)
-```
-
-### 2. Pad Nonce for CTR Mode
-```
-iv = nonce + zeros(8)  // 16 bytes total
+nonce = packet_id (8 bytes LE) + from_node_id (8 bytes LE)
 ```
 
-### 3. Encrypt Plaintext
+### 2. Encrypt Plaintext
 ```
-cipher = AES-CTR(key, iv)
+cipher = AES-CTR(key, nonce)
 ciphertext = cipher.encrypt(plaintext)
 ```
 
-### 4. Create Encrypted Payload
+### 3. Create Encrypted Payload
 ```
-encrypted_payload = nonce + ciphertext
+encrypted_payload = ciphertext  // No nonce prefix!
 ```
 
 ## Decryption Process
 
-### 1. Extract Nonce
+### 1. Construct Nonce from Packet Metadata
 ```
-nonce = encrypted_payload[0:8]
-```
-
-### 2. Extract Ciphertext
-```
-ciphertext = encrypted_payload[8:]
+nonce = packet_id (8 bytes LE) + from_node_id (8 bytes LE)
 ```
 
-### 3. Pad Nonce for CTR Mode
+### 2. Decrypt Ciphertext
 ```
-iv = nonce + zeros(8)  // 16 bytes total
-```
-
-### 4. Decrypt Ciphertext
-```
-decipher = AES-CTR(key, iv)
-plaintext = decipher.decrypt(ciphertext)
+decipher = AES-CTR(key, nonce)
+plaintext = decipher.decrypt(encrypted_payload)
 ```
 
-### 5. Parse Protobuf
+### 3. Parse Protobuf
 ```
 data_message = Data.decode(plaintext)
 ```
@@ -88,7 +88,8 @@ Meshtastic has several default channel keys:
 
 | Channel Name | Base64 Key | Hex Key | Description |
 |--------------|------------|---------|-------------|
-| LongFast     | `AQ==`     | `01`    | Default public channel (1 byte, padded) |
+| LongFast (default) | `1PG7OiApB1nwvP+rz05pAQ==` | `d4f1bb3a20290759f0bcffabcf4e6901` | Default public channel (16 bytes) |
+| LongFast (AQ==) | `AQ==` | `01` | 1-byte PSK (expanded to default key) |
 | Primary      | (varies)   | (varies)| User-configured private channel |
 
 ### Key Format
@@ -105,10 +106,12 @@ encryption:
 
 ### Key Padding
 
+- 1-byte keys (0x01-0x0A) are expanded to the Meshtastic default 16-byte key
 - Keys shorter than 16 bytes are padded with zeros for AES-128
-- Keys of 16 bytes use AES-128-CTR
-- Keys of 32 bytes use AES-256-CTR
-- Keys between 16-32 bytes are truncated to 16 bytes
+- 16-byte keys use AES-128-CTR
+- Keys between 16-32 bytes are padded to 32 bytes for AES-256
+- 32-byte keys use AES-256-CTR
+- Keys longer than 32 bytes are truncated to 32 bytes
 
 ## Implementation Examples
 
@@ -117,13 +120,16 @@ encryption:
 ```typescript
 import * as crypto from 'crypto';
 
-function decrypt(encryptedPayload: Buffer, key: Buffer): Buffer | null {
-  // Extract nonce (first 8 bytes)
+function decrypt(
+  encryptedPayload: Buffer, 
+  packetId: number, 
+  fromNodeId: number, 
+  key: Buffer
+): Buffer | null {
+  // Construct nonce from packet metadata (16 bytes)
   const nonce = Buffer.alloc(16, 0);
-  encryptedPayload.copy(nonce, 0, 0, 8);
-  
-  // Extract ciphertext (remaining bytes)
-  const ciphertext = encryptedPayload.slice(8);
+  nonce.writeBigUInt64LE(BigInt(packetId), 0);
+  nonce.writeBigUInt64LE(BigInt(fromNodeId), 8);
   
   // Determine algorithm based on key length
   const algorithm = key.length === 16 ? 'aes-128-ctr' : 'aes-256-ctr';
@@ -131,9 +137,9 @@ function decrypt(encryptedPayload: Buffer, key: Buffer): Buffer | null {
   // Create decipher
   const decipher = crypto.createDecipheriv(algorithm, key, nonce);
   
-  // Decrypt
+  // Decrypt (entire payload is ciphertext)
   return Buffer.concat([
-    decipher.update(ciphertext),
+    decipher.update(encryptedPayload),
     decipher.final()
   ]);
 }
@@ -145,24 +151,22 @@ function decrypt(encryptedPayload: Buffer, key: Buffer): Buffer | null {
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-def decrypt(encrypted_payload: bytes, key: bytes) -> bytes:
-    # Extract nonce (first 8 bytes) and pad to 16 bytes
-    nonce = encrypted_payload[:8]
-    nonce_padded = nonce + b'\x00' * 8
-    
-    # Extract ciphertext (remaining bytes)
-    ciphertext = encrypted_payload[8:]
+def decrypt(encrypted_payload: bytes, packet_id: int, from_node_id: int, key: bytes) -> bytes:
+    # Construct nonce from packet metadata (16 bytes)
+    nonce_packet_id = packet_id.to_bytes(8, "little")
+    nonce_from_node = from_node_id.to_bytes(8, "little")
+    nonce = nonce_packet_id + nonce_from_node
     
     # Create cipher
     cipher = Cipher(
         algorithms.AES(key),
-        modes.CTR(nonce_padded),
+        modes.CTR(nonce),
         backend=default_backend()
     )
     decryptor = cipher.decryptor()
     
-    # Decrypt
-    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    # Decrypt (entire payload is ciphertext)
+    plaintext = decryptor.update(encrypted_payload) + decryptor.finalize()
     return plaintext
 ```
 
@@ -201,9 +205,9 @@ message Data {
 - Use strong random keys for private channels
 
 ### Nonce Uniqueness
-- Each message must use a unique nonce
-- Reusing nonces with the same key compromises security
-- Meshtastic generates random nonces for each message
+- Each message uses a unique nonce constructed from packet ID and source node
+- Packet IDs increment for each message, ensuring nonce uniqueness
+- The combination of packet ID and source node ID provides strong uniqueness guarantees
 
 ### Key Rotation
 - Consider rotating keys periodically
@@ -215,27 +219,27 @@ message Data {
 ### Test Vector
 
 ```
-Key (base64):     "AQ=="
-Key (hex):        "01"
-Key (padded):     "01000000000000000000000000000000"
+Key (base64):     "1PG7OiApB1nwvP+rz05pAQ=="
+Key (hex):        "d4f1bb3a20290759f0bcffabcf4e6901"
 
-Nonce (hex):      "0123456789abcdef"
+Packet ID:        12345
+From Node ID:     67890
+Nonce (hex):      "39300000000000003209010000000000"
+
 Plaintext:        "Hello, Meshtastic!"
-Ciphertext (hex): (varies based on nonce)
+Ciphertext (hex): "ee04744a7e6f889f12c917af9fa9dcce23e9"
 
-Encrypted Payload: [nonce][ciphertext]
+Encrypted Payload: [ciphertext only, no nonce prefix]
 ```
 
 ### Verification Steps
 
 1. Decode base64 key
 2. Pad key to 16 or 32 bytes if needed
-3. Extract nonce from encrypted payload
-4. Extract ciphertext from encrypted payload
-5. Pad nonce to 16 bytes
-6. Decrypt using AES-CTR
-7. Parse protobuf Data message
-8. Extract payload based on portnum
+3. Construct nonce from packet ID and from node ID (both as 8-byte little-endian)
+4. Decrypt using AES-CTR with the constructed nonce
+5. Parse protobuf Data message
+6. Extract payload based on portnum
 
 ## Common Issues
 
@@ -243,17 +247,13 @@ Encrypted Payload: [nonce][ciphertext]
 **Symptom:** Decryption succeeds but protobuf parsing fails
 **Solution:** Verify key matches the channel configuration
 
-### Wrong Nonce Extraction
-**Symptom:** Decryption produces garbage
-**Solution:** Ensure nonce is extracted from first 8 bytes
+### Wrong Nonce Construction
+**Symptom:** Decryption produces garbage or fails
+**Solution:** Construct nonce from packet ID + from node ID (both 8-byte little-endian), don't extract from payload
 
-### Wrong Algorithm
-**Symptom:** Decryption fails or produces wrong output
-**Solution:** Use AES-128-CTR for 16-byte keys, AES-256-CTR for 32-byte keys
-
-### Payload Too Short
-**Symptom:** Cannot extract nonce
-**Solution:** Verify payload is at least 16 bytes (8-byte nonce + 8-byte minimum ciphertext)
+### Missing Packet Metadata
+**Symptom:** Cannot construct nonce
+**Solution:** Ensure packet ID and from node ID are available from the MeshPacket
 
 ## References
 

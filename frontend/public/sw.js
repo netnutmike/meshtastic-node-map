@@ -3,7 +3,7 @@
  * Provides basic caching for the Meshtastic Node Mapper application
  */
 
-const CACHE_NAME = 'meshtastic-node-mapper-v2';
+const CACHE_NAME = 'meshtastic-node-mapper-v3';
 const STATIC_CACHE_URLS = [
   '/',
   '/static/js/bundle.js',
@@ -84,9 +84,8 @@ self.addEventListener('fetch', (event) => {
             // Clone the response for caching
             const responseToCache = response.clone();
             
-            // Cache API responses and static assets
-            if (request.url.includes('/api/') || 
-                request.url.includes('.js') || 
+            // Cache static assets only (NOT API responses - they should always be fresh)
+            if (request.url.includes('.js') || 
                 request.url.includes('.css') ||
                 request.url.includes('.png') ||
                 request.url.includes('.jpg') ||

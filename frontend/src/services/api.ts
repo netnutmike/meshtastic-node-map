@@ -40,7 +40,9 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    // Ensure endpoint starts with /v1 if it doesn't already
+    const normalizedEndpoint = endpoint.startsWith('/v1/') ? endpoint : `/v1${endpoint}`;
+    const url = `${API_BASE_URL}${normalizedEndpoint}`;
     
     // Get auth token if available (optional)
     const token = localStorage.getItem('authToken');
@@ -142,27 +144,27 @@ class ApiService {
   async getNodes(filters?: SearchFilters): Promise<ApiResponse<any[]>> {
     if (filters && Object.keys(filters).length > 0) {
       const params = this.buildQueryParams(filters);
-      return this.request<any[]>(`/v1/nodes?${params.toString()}`);
+      return this.request<any[]>(`/nodes?${params.toString()}`);
     }
-    return this.request<any[]>('/v1/nodes');
+    return this.request<any[]>('/nodes');
   }
 
   async searchNodes(filters: SearchFilters): Promise<ApiResponse<any[]>> {
     const params = this.buildQueryParams(filters);
-    return this.request<any[]>(`/v1/nodes?${params.toString()}`);
+    return this.request<any[]>(`/nodes?${params.toString()}`);
   }
 
   async getNode(nodeId: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/v1/nodes/${nodeId}`);
+    return this.request<any>(`/nodes/${nodeId}`);
   }
 
   async getNodePositions(nodeId: string, params?: any): Promise<ApiResponse<any[]>> {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
-    return this.request<any[]>(`/v1/nodes/${nodeId}/positions${queryString}`);
+    return this.request<any[]>(`/nodes/${nodeId}/positions${queryString}`);
   }
 
   async getNodeNeighbors(nodeId: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/v1/nodes/${nodeId}/neighbors`);
+    return this.request<any>(`/nodes/${nodeId}/neighbors`);
   }
 
   // Message API methods
@@ -191,12 +193,12 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/messages${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/messages${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any[]>(endpoint);
   }
 
   async getMessage(messageId: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/v1/messages/${messageId}`);
+    return this.request<any>(`/messages/${messageId}`);
   }
 
   async getNodeMessages(
@@ -221,7 +223,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/messages/node/${nodeId}${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/messages/node/${nodeId}${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any[]>(endpoint);
   }
 
@@ -243,7 +245,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/messages/conversation/${nodeId1}/${nodeId2}${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/messages/conversation/${nodeId1}/${nodeId2}${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any[]>(endpoint);
   }
 
@@ -297,7 +299,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/statistics/network${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/network${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -305,7 +307,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/statistics/nodes/distribution${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/nodes/distribution${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any[]>(endpoint);
   }
 
@@ -324,7 +326,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/statistics/messages${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/messages${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -332,7 +334,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/statistics/utilization${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/utilization${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -341,7 +343,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/channel-stats${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/utilization-analysis/channel-stats${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -349,7 +351,7 @@ class ApiService {
     const params = new URLSearchParams();
     params.append('period', period);
     
-    const endpoint = `/v1/utilization-analysis/trends?${params.toString()}`;
+    const endpoint = `/utilization-analysis/trends?${params.toString()}`;
     return this.request<any>(endpoint);
   }
 
@@ -357,7 +359,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/heatmap${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/utilization-analysis/heatmap${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -365,7 +367,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/capacity-planning${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/utilization-analysis/capacity-planning${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -374,7 +376,7 @@ class ApiService {
     params.append('threshold', threshold.toString());
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/high-utilization-nodes?${params.toString()}`;
+    const endpoint = `/utilization-analysis/high-utilization-nodes?${params.toString()}`;
     return this.request<any>(endpoint);
   }
 
@@ -382,7 +384,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/capacity-metrics${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/utilization-analysis/capacity-metrics${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -390,7 +392,7 @@ class ApiService {
     const params = new URLSearchParams();
     params.append('period', period);
     
-    const endpoint = `/v1/utilization-analysis/trend-analysis?${params.toString()}`;
+    const endpoint = `/utilization-analysis/trend-analysis?${params.toString()}`;
     return this.request<any>(endpoint);
   }
 
@@ -398,7 +400,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (networkId) params.append('networkId', networkId);
     
-    const endpoint = `/v1/utilization-analysis/anomalies${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/utilization-analysis/anomalies${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -406,12 +408,12 @@ class ApiService {
     const params = new URLSearchParams();
     params.append('daysAhead', daysAhead.toString());
     
-    const endpoint = `/v1/utilization-analysis/forecast?${params.toString()}`;
+    const endpoint = `/utilization-analysis/forecast?${params.toString()}`;
     return this.request<any>(endpoint);
   }
 
   async checkUtilizationThresholds(config: { warning: number; critical: number; checkInterval?: number }): Promise<ApiResponse<any>> {
-    const endpoint = '/v1/utilization-analysis/check-thresholds';
+    const endpoint = '/utilization-analysis/check-thresholds';
     return this.request<any>(endpoint, {
       method: 'POST',
       body: JSON.stringify(config)
@@ -419,7 +421,7 @@ class ApiService {
   }
 
   async getPerformanceDegradation(): Promise<ApiResponse<any>> {
-    const endpoint = '/v1/utilization-analysis/performance-degradation';
+    const endpoint = '/utilization-analysis/performance-degradation';
     return this.request<any>(endpoint);
   }
 
@@ -556,7 +558,7 @@ class ApiService {
   }
 
   async getDatabaseOverview(): Promise<ApiResponse<any>> {
-    return this.request<any>('/v1/statistics/database-overview');
+    return this.request<any>('/statistics/database-overview');
   }
 
   async getMessageTimeline(
@@ -574,7 +576,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/statistics/message-timeline${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/message-timeline${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 
@@ -593,7 +595,7 @@ class ApiService {
       }
     });
     
-    const endpoint = `/v1/statistics/top-talkers${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/statistics/top-talkers${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
   }
 }

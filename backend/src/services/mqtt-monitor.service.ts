@@ -257,8 +257,25 @@ export class MQTTMonitorService extends EventEmitter {
 
     logger.debug(`Top nodes after database lookup: ${JSON.stringify(topNodes)}`);
 
-    const timeRangeMinutes = this.getTimeRangeMinutes(timeRange);
-    const messagesPerMinute = recentMessages.length / timeRangeMinutes;
+    // Calculate actual time range of messages in buffer
+    let actualTimeRangeMinutes = this.getTimeRangeMinutes(timeRange);
+    if (recentMessages.length > 0) {
+      const oldestMessage = recentMessages[recentMessages.length - 1];
+      const newestMessage = recentMessages[0];
+      const actualTimeRangeMs = newestMessage.timestamp.getTime() - oldestMessage.timestamp.getTime();
+      const actualMinutes = actualTimeRangeMs / (1000 * 60);
+      
+      // Use the smaller of the requested time range or actual time range
+      // This prevents inflated rates when the buffer doesn't contain a full hour
+      if (actualMinutes > 0 && actualMinutes < actualTimeRangeMinutes) {
+        actualTimeRangeMinutes = actualMinutes;
+        logger.debug(`Using actual time range of ${actualMinutes.toFixed(2)} minutes instead of requested ${timeRange}`);
+      }
+    }
+    
+    const messagesPerMinute = actualTimeRangeMinutes > 0 
+      ? recentMessages.length / actualTimeRangeMinutes 
+      : 0;
     const decryptionFailurePercentage = encryptedCount > 0 
       ? (decryptionFailureCount / encryptedCount) * 100 
       : 0;

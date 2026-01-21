@@ -235,8 +235,11 @@ export class ProtobufDecoderService {
 
       const result: ParsedMeshtasticData = { nodeId: fromNodeId };
 
+      // Track if the packet was originally encrypted
+      const wasEncrypted = !!(packet.encrypted && packet.encrypted.length > 0);
+
       // Check if the packet is encrypted
-      if (packet.encrypted && packet.encrypted.length > 0) {
+      if (wasEncrypted) {
         logger.debug(`Packet is encrypted on channel: ${channelName || 'unknown'}`);
         
         // Try to match channel name to get the correct key
@@ -262,6 +265,7 @@ export class ProtobufDecoderService {
         const decrypted = encryptionService.decrypt(
           packet.encrypted,
           packet.id || 0,
+          packet.from || 0,
           channelIndex
         );
         
@@ -339,29 +343,29 @@ export class ProtobufDecoderService {
           case PortNum.NODEINFO_APP:
             result.nodeUpdate = this.parseNodeInfo(fromNodeId, decoded.payload);
             // Also create a message record for NODEINFO
-            result.message = this.parseGenericMessage(packet, decoded, MessageType.NODEINFO);
+            result.message = this.parseGenericMessage(packet, decoded, MessageType.NODEINFO, wasEncrypted);
             break;
 
           case PortNum.POSITION_APP:
             result.position = this.parsePosition(fromNodeId, decoded.payload);
             // Also create a message record for POSITION
-            result.message = this.parseGenericMessage(packet, decoded, MessageType.POSITION);
+            result.message = this.parseGenericMessage(packet, decoded, MessageType.POSITION, wasEncrypted);
             break;
 
           case PortNum.TELEMETRY_APP:
             result.telemetry = this.parseTelemetry(fromNodeId, decoded.payload);
             // Also create a message record for TELEMETRY
-            result.message = this.parseGenericMessage(packet, decoded, MessageType.TELEMETRY);
+            result.message = this.parseGenericMessage(packet, decoded, MessageType.TELEMETRY, wasEncrypted);
             break;
 
           case PortNum.TEXT_MESSAGE_APP:
-            result.message = this.parseTextMessage(packet, decoded);
+            result.message = this.parseTextMessage(packet, decoded, wasEncrypted);
             break;
 
           case PortNum.NEIGHBORINFO_APP:
             logger.debug('Received NEIGHBORINFO_APP message');
             // Create a message record for NEIGHBORINFO
-            result.message = this.parseGenericMessage(packet, decoded, MessageType.NEIGHBOR_INFO_APP);
+            result.message = this.parseGenericMessage(packet, decoded, MessageType.NEIGHBOR_INFO_APP, wasEncrypted);
             break;
 
           default:
@@ -547,7 +551,7 @@ export class ProtobufDecoderService {
   /**
    * Parse Text Message from packet and decoded data
    */
-  private parseTextMessage(packet: any, decoded: any): CreateMessageInput {
+  private parseTextMessage(packet: any, decoded: any, wasEncrypted: boolean = false): CreateMessageInput {
     const fromNodeId = this.formatNodeId(packet.from);
     const toNodeId = packet.to ? this.formatNodeId(packet.to) : undefined;
     const timestamp = packet.rxTime || Math.floor(Date.now() / 1000);
@@ -565,7 +569,7 @@ export class ProtobufDecoderService {
       toNodeId,
       type: MessageType.TEXT,
       content,
-      encrypted: false,
+      encrypted: wasEncrypted,
       hopLimit: packet.hopLimit || undefined,
       hopStart: packet.hopStart || undefined,
       wantAck: packet.wantAck || false,
@@ -581,7 +585,7 @@ export class ProtobufDecoderService {
   /**
    * Parse Generic Message from packet and decoded data (for NODEINFO, POSITION, TELEMETRY, etc.)
    */
-  private parseGenericMessage(packet: any, decoded: any, messageType: MessageType): CreateMessageInput {
+  private parseGenericMessage(packet: any, decoded: any, messageType: MessageType, wasEncrypted: boolean = false): CreateMessageInput {
     const fromNodeId = this.formatNodeId(packet.from);
     const toNodeId = packet.to ? this.formatNodeId(packet.to) : undefined;
     const timestamp = packet.rxTime || Math.floor(Date.now() / 1000);
@@ -601,7 +605,7 @@ export class ProtobufDecoderService {
       toNodeId,
       type: messageType,
       content,
-      encrypted: false,
+      encrypted: wasEncrypted,
       hopLimit: packet.hopLimit || undefined,
       hopStart: packet.hopStart || undefined,
       wantAck: packet.wantAck || false,

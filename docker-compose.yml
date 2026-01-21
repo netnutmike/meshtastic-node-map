@@ -103,7 +103,7 @@ services:
     container_name: meshtastic-frontend
     environment:
       NODE_ENV: development
-      REACT_APP_API_URL: http://localhost:3001/api/v1
+      REACT_APP_API_URL: http://localhost:3001/api
       REACT_APP_WS_URL: ws://localhost:3001
     ports:
       - "3000:3000"

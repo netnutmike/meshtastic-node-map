@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Monitor Test - Decryption Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .message-list {
+            margin-top: 20px;
+        }
+        .message-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .message-item.encrypted {
+            border-left-color: #28a745;
+        }
+        .message-item.decryption-failed {
+            border-left-color: #dc3545;
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .message-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            margin-left: 5px;
+        }
+        .badge.encrypted {
+            background: #28a745;
+            color: white;
+        }
+        .badge.decryption-failed {
+            background: #dc3545;
+            color: white;
+        }
+        .badge.unencrypted {
+            background: #6c757d;
+            color: white;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 MQTT Monitor - Decryption Verification Test</h1>
+        
+        <div id="status" class="status info">
+            Ready to test. Click "Fetch Messages" to verify decryption is working.
+        </div>
+
+        <div>
+            <button onclick="fetchMessages()">Fetch Messages</button>
+            <button onclick="fetchStatistics()">Fetch Statistics</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results" class="message-list"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001/api';
+
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function fetchMessages() {
+            setStatus('Fetching messages...', 'info');
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/v1/mqtt-monitor/messages?page=1&limit=20`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.data || data.data.length === 0) {
+                    setStatus('No messages found. Make sure MQTT traffic is flowing.', 'info');
+                    resultsDiv.innerHTML = '<p>No messages to display.</p>';
+                    return;
+                }
+
+                // Count decryption stats
+                let encrypted = 0;
+                let decryptionFailed = 0;
+                let decryptionSuccess = 0;
+                
+                data.data.forEach(msg => {
+                    if (msg.parsed?.encrypted) {
+                        encrypted++;
+                        if (msg.parsed?.decryptionFailed) {
+                            decryptionFailed++;
+                        } else {
+                            decryptionSuccess++;
+                        }
+                    }
+                });
+
+                setStatus(
+                    `✅ Fetched ${data.data.length} messages. ` +
+                    `Encrypted: ${encrypted}, ` +
+                    `Decrypted: ${decryptionSuccess}, ` +
+                    `Failed: ${decryptionFailed}`,
+                    decryptionFailed > 0 ? 'error' : 'success'
+                );
+
+                // Display messages
+                let html = '<h2>Recent Messages</h2>';
+                data.data.forEach(msg => {
+                    const encrypted = msg.parsed?.encrypted;
+                    const failed = msg.parsed?.decryptionFailed;
+                    const className = failed ? 'decryption-failed' : (encrypted ? 'encrypted' : '');
+                    
+                    let badge = '';
+                    if (failed) {
+                        badge = '<span class="badge decryption-failed">🔒❌ Decryption Failed</span>';
+                    } else if (encrypted) {
+                        badge = '<span class="badge encrypted">🔒✅ Decrypted</span>';
+                    } else {
+                        badge = '<span class="badge unencrypted">🔓 Unencrypted</span>';
+                    }
+
+                    html += `
+                        <div class="message-item ${className}">
+                            <div class="message-header">
+                                <span>${msg.parsed?.type || 'UNKNOWN'} ${badge}</span>
+                                <span>${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div class="message-details">
+                                <strong>Node:</strong> ${msg.parsed?.nodeId || 'N/A'} | 
+                                <strong>Channel:</strong> ${msg.parsed?.channel ?? 'N/A'} | 
+                                <strong>Topic:</strong> ${msg.topic}
+                            </div>
+                            ${msg.parsed?.content ? `<pre>${JSON.stringify(msg.parsed.content, null, 2)}</pre>` : ''}
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                setStatus(`❌ Error: ${error.message}`, 'error');
+                resultsDiv.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+                console.error('Error fetching messages:', error);
+            }
+        }
+
+        async function fetchStatistics() {
+            setStatus('Fetching statistics...', 'info');
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/v1/mqtt-monitor/statistics?timeRange=1h`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const stats = data.data;
+
+                const decryptionRate = stats.encryptedMessages > 0 
+                    ? ((stats.encryptedMessages - stats.decryptionFailures) / stats.encryptedMessages * 100).toFixed(1)
+                    : 'N/A';
+
+                setStatus(
+                    `✅ Statistics loaded. Decryption success rate: ${decryptionRate}%`,
+                    stats.decryptionFailures > 0 ? 'error' : 'success'
+                );
+
+                let html = '<h2>MQTT Statistics (Last Hour)</h2>';
+                html += `
+                    <div class="message-item">
+                        <h3>Overall Stats</h3>
+                        <div class="message-details">
+                            <strong>Total Messages:</strong> ${stats.totalMessages}<br>
+                            <strong>Messages/Minute:</strong> ${stats.messagesPerMinute.toFixed(1)}<br>
+                            <strong>Average Size:</strong> ${stats.averageMessageSize.toFixed(0)} bytes<br>
+                        </div>
+                    </div>
+                    <div class="message-item ${stats.decryptionFailures > 0 ? 'decryption-failed' : 'encrypted'}">
+                        <h3>Encryption Stats</h3>
+                        <div class="message-details">
+                            <strong>Encrypted Messages:</strong> ${stats.encryptedMessages}<br>
+                            <strong>Unencrypted Messages:</strong> ${stats.unencryptedMessages}<br>
+                            <strong>Decryption Failures:</strong> ${stats.decryptionFailures} 
+                            ${stats.decryptionFailurePercentage > 0 ? `(${stats.decryptionFailurePercentage.toFixed(1)}%)` : ''}<br>
+                            <strong>Decryption Success Rate:</strong> ${decryptionRate}%
+                        </div>
+                    </div>
+                `;
+
+                if (Object.keys(stats.messagesByType).length > 0) {
+                    html += '<div class="message-item"><h3>Messages by Type</h3><div class="message-details">';
+                    for (const [type, count] of Object.entries(stats.messagesByType)) {
+                        html += `<strong>${type}:</strong> ${count}<br>`;
+                    }
+                    html += '</div></div>';
+                }
+
+                if (stats.topNodes.length > 0) {
+                    html += '<div class="message-item"><h3>Top Nodes</h3><div class="message-details">';
+                    stats.topNodes.forEach(node => {
+                        const name = node.shortName || node.longName || node.nodeId;
+                        html += `<strong>${name}:</strong> ${node.count} messages<br>`;
+                    });
+                    html += '</div></div>';
+                }
+
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                setStatus(`❌ Error: ${error.message}`, 'error');
+                resultsDiv.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+                console.error('Error fetching statistics:', error);
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            setStatus('Results cleared. Ready to test.', 'info');
+        }
+    </script>
+</body>
+</html>
