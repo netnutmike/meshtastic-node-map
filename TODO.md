@@ -12,8 +12,8 @@
 | Low | Hardware types are not complete and may even be wrong | Complete |
 | Medium | Device Telemetry do not appear to be saving | 🔧 Fixed - Added enhanced logging, needs testing |
 | Medium | Device Neighbors not being recorded | 🔧 Fixed - Added NeighborInfo parsing and storage, needs testing |
-| Low | Hardware names are not being proeprly shown on small node details window | Not Started |
-| Low | Hardware names are not being properly shown on large node details window in overview and details tabs | Not Started |
+| Low | Hardware names are not being proeprly shown on small node details window | Fixed |
+| Low | Hardware names are not being properly shown on large node details window in overview and details tabs | Fixed |
 | Low | In Node detail window on the Lora Config tab, There is a blue box at the bottom that is off the window | Not Started |
 | Medium | Cluster count icons are not working correctly when you click on them or zoom in on the map | Not Started |
 

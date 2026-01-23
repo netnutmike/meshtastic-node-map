@@ -1,7 +1,7 @@
 # Meshtastic Node Mapper Application Configuration
 app:
   name: "Meshtastic Node Mapper"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Web-based visualization for Meshtastic mesh networks"
   logo: "/assets/logo.png"
   favicon: "/assets/favicon.ico"
