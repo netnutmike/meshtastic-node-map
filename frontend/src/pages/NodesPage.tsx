@@ -49,7 +49,6 @@ const columns: Column[] = [
   { id: 'shortName', label: 'Short Name', minWidth: 100 },
   { id: 'longName', label: 'Long Name', minWidth: 150 },
   { id: 'hardwareModel', label: 'Hardware', minWidth: 120 },
-  { id: 'firmwareVersion', label: 'Firmware', minWidth: 100 },
   { id: 'role', label: 'Role', minWidth: 100 },
   { id: 'altitude', label: 'Altitude (m)', minWidth: 100, align: 'right', format: (value) => value?.toFixed(0) || '' },
   { id: 'latitude', label: 'Latitude', minWidth: 100, align: 'right', format: (value) => value?.toFixed(6) || '' },

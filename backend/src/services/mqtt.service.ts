@@ -55,6 +55,11 @@ export interface ParsedMeshtasticData {
   position?: CreatePositionInput;
   telemetry?: CreateTelemetryInput;
   message?: CreateMessageInput;
+  neighbors?: Array<{
+    neighborId: string;
+    snr?: number;
+    lastHeard: Date;
+  }>;
   nodeId: string;
 }
 
@@ -595,15 +600,22 @@ export class MQTTService extends EventEmitter {
     let data: any;
 
     // Determine telemetry type based on payload content
-    if (payload.batteryLevel !== undefined || payload.voltage !== undefined || 
-        payload.channelUtilization !== undefined || payload.airUtilTx !== undefined) {
+    // Handle both camelCase and snake_case field names from JSON messages
+    const batteryLevel = payload.batteryLevel ?? payload.battery_level;
+    const voltage = payload.voltage;
+    const channelUtilization = payload.channelUtilization ?? payload.channel_utilization;
+    const airUtilTx = payload.airUtilTx ?? payload.air_util_tx;
+    const uptimeSeconds = payload.uptimeSeconds ?? payload.uptime_seconds;
+    
+    if (batteryLevel !== undefined || voltage !== undefined || 
+        channelUtilization !== undefined || airUtilTx !== undefined) {
       type = TelemetryType.DEVICE_METRICS;
       data = {
-        batteryLevel: payload.batteryLevel,
-        voltage: payload.voltage,
-        channelUtilization: payload.channelUtilization,
-        airUtilTx: payload.airUtilTx,
-        uptimeSeconds: payload.uptimeSeconds
+        batteryLevel,
+        voltage,
+        channelUtilization,
+        airUtilTx,
+        uptimeSeconds
       };
     } else if (payload.temperature !== undefined || payload.humidity !== undefined || 
                payload.pressure !== undefined) {
@@ -612,18 +624,18 @@ export class MQTTService extends EventEmitter {
         temperature: payload.temperature,
         humidity: payload.humidity,
         pressure: payload.pressure,
-        gasResistance: payload.gasResistance,
+        gasResistance: payload.gasResistance ?? payload.gas_resistance,
         iaq: payload.iaq
       };
     } else {
       type = TelemetryType.POWER_METRICS;
       data = {
-        ch1Voltage: payload.ch1Voltage,
-        ch1Current: payload.ch1Current,
-        ch2Voltage: payload.ch2Voltage,
-        ch2Current: payload.ch2Current,
-        ch3Voltage: payload.ch3Voltage,
-        ch3Current: payload.ch3Current
+        ch1Voltage: payload.ch1Voltage ?? payload.ch1_voltage,
+        ch1Current: payload.ch1Current ?? payload.ch1_current,
+        ch2Voltage: payload.ch2Voltage ?? payload.ch2_voltage,
+        ch2Current: payload.ch2Current ?? payload.ch2_current,
+        ch3Voltage: payload.ch3Voltage ?? payload.ch3_voltage,
+        ch3Current: payload.ch3Current ?? payload.ch3_current
       };
     }
 

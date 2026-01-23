@@ -11,6 +11,8 @@
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .node-details-panel {
@@ -23,6 +25,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto;
+  position: relative;
+  touch-action: auto;
 }
 
 .panel-header {
@@ -96,6 +101,11 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  padding-bottom: 40px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
 }
 
 .tab-content {
@@ -362,6 +372,8 @@
   padding: 16px;
   border-radius: 8px;
   border-left: 4px solid #2196f3;
+  margin-top: 16px;
+  margin-bottom: 0;
 }
 
 .lora-note p {

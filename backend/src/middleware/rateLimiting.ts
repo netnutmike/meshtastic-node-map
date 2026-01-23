@@ -122,21 +122,21 @@ export const rateLimiters = {
   // Read operations - more lenient
   read: createApiKeyAwareRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: process.env.NODE_ENV === 'development' ? 10000 : 5000, // Higher limit in dev
+    max: process.env.NODE_ENV === 'development' ? 50000 : 5000, // Much higher limit in dev
     message: 'Too many read requests. Please try again later.'
   }),
 
   // Write operations - more restrictive
   write: createApiKeyAwareRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 500,
+    max: process.env.NODE_ENV === 'development' ? 5000 : 500, // Higher limit in dev
     message: 'Too many write requests. Please try again later.'
   }),
 
   // Real-time data endpoints - very lenient for legitimate use
   realtime: createApiKeyAwareRateLimiter({
     windowMs: 60 * 1000, // 1 minute
-    max: process.env.NODE_ENV === 'development' ? 500 : 200, // Higher limit in dev
+    max: process.env.NODE_ENV === 'development' ? 5000 : 200, // Much higher limit in dev
     message: 'Too many real-time requests. Please slow down.'
   }),
 

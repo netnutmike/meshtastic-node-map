@@ -156,14 +156,14 @@ const NodeClusters: React.FC<NodeClustersProps> = ({ nodes, onClusterClick }) =>
     <>
       {clusters.map((cluster, index) => {
         // Determine cluster size and styling
-        let radius = 15;
+        let radius = 18;
         let className = 'cluster-marker-small';
 
         if (cluster.count >= 100) {
-          radius = 25;
+          radius = 30;
           className = 'cluster-marker-large';
         } else if (cluster.count >= 10) {
-          radius = 20;
+          radius = 24;
           className = 'cluster-marker-medium';
         }
 

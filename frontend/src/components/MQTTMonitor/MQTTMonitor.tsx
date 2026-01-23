@@ -321,6 +321,7 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                   <option value="POSITION">Position</option>
                   <option value="TELEMETRY">Telemetry</option>
                   <option value="NODEINFO">Node Info</option>
+                  <option value="NEIGHBOR_INFO_APP">Neighbor Info</option>
                   <option value="ROUTING">Routing</option>
                 </select>
                 

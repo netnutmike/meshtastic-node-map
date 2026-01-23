@@ -8,6 +8,7 @@ interface MapState {
   showNeighbors: boolean;
   showLegend: boolean;
   showPositionHistory: boolean;
+  showNodeLabels: boolean;
   nodeDisplayMode: 'all' | 'routers' | 'clustered' | 'none';
   viewMode: 'nodes' | 'nodeTypes' | 'bandwidthUtilization';
   clusteringEnabled: boolean;
@@ -23,6 +24,7 @@ const defaultMapState: MapState = {
   showNeighbors: false,
   showLegend: true,
   showPositionHistory: false,
+  showNodeLabels: false,
   nodeDisplayMode: 'all',
   viewMode: 'nodes',
   clusteringEnabled: true,
@@ -118,6 +120,10 @@ const mapSlice = createSlice({
       state.showPositionHistory = !state.showPositionHistory;
       saveMapPreferencesToStorage(state);
     },
+    toggleNodeLabels: (state) => {
+      state.showNodeLabels = !state.showNodeLabels;
+      saveMapPreferencesToStorage(state);
+    },
     setNodeDisplayMode: (state, action: PayloadAction<'all' | 'routers' | 'clustered' | 'none'>) => {
       state.nodeDisplayMode = action.payload;
       saveMapPreferencesToStorage(state);
@@ -165,6 +171,7 @@ export const {
   toggleNeighbors,
   toggleLegend,
   togglePositionHistory,
+  toggleNodeLabels,
   setNodeDisplayMode,
   setViewMode,
   toggleClustering,

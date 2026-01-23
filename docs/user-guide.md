@@ -8,12 +8,14 @@ Welcome to the Meshtastic Node Mapper user guide. This comprehensive guide will 
 2. [Map View](#map-view)
 3. [Node Management](#node-management)
 4. [Network Insights](#network-insights)
-5. [Multi-Network Support](#multi-network-support)
-6. [Coverage Analysis](#coverage-analysis)
-7. [Message History](#message-history)
-8. [Data Export](#data-export)
-9. [Mobile Features](#mobile-features)
-10. [Settings & Configuration](#settings--configuration)
+5. [MQTT Monitor](#mqtt-monitor)
+6. [Multi-Network Support](#multi-network-support)
+7. [Coverage Analysis](#coverage-analysis)
+8. [Message History](#message-history)
+9. [Telemetry & Monitoring](#telemetry--monitoring)
+10. [Data Export](#data-export)
+11. [Mobile Features](#mobile-features)
+12. [Settings & Configuration](#settings--configuration)
 
 ## Getting Started
 
@@ -50,10 +52,46 @@ The map is the heart of the application, showing all your mesh network nodes in 
 
 Nodes are displayed as colored markers on the map:
 
-- **🟢 Green**: Node is online and active (seen in last 5 minutes)
-- **🟡 Yellow**: Node is recently active (seen in last hour)
-- **🔴 Red**: Node is offline (not seen in over an hour)
-- **⚫ Gray**: Node has never been seen or is very old
+- **🟢 Green**: Node is online and active (seen recently)
+- **🔵 Blue**: Node is disconnected from MQTT but recently seen
+- **🔴 Red**: Node is offline (not seen in configured time threshold)
+
+**Node Marker Features:**
+- **Size**: 24x24 pixels for easy visibility
+- **Animations**: Recently updated nodes pulse to show activity
+- **Age Indicators**: Older nodes gradually fade and show age indicators
+- **Labels**: Optional node name labels (toggle in Map Options)
+
+### Map Options Panel
+
+Click the **Map Options** button (⚙️) to access display settings:
+
+**Map Sources:**
+- OpenStreetMap (default)
+- OpenTopoMap (topographic)
+- Esri Satellite
+- Google Satellite
+- Google Hybrid
+- Carto Light
+- Carto Dark
+
+**Node Display:**
+- **Display Mode**: All nodes, routers only, clustered, or none
+- **View Mode**: 
+  - Nodes (standard view)
+  - Node Types (color by role)
+  - Bandwidth Utilization (color by channel usage)
+
+**Overlays:**
+- **Legend**: Show/hide map legend
+- **Neighbors**: Display neighbor connections with arrows
+- **Position History**: Show node movement trails
+- **Node Labels**: Display node names next to markers (NEW!)
+
+**Clustering:**
+- Automatically groups nearby nodes at lower zoom levels
+- Cluster sizes: Small (18px), Medium (24px), Large (30px)
+- Click clusters to zoom in and see individual nodes
 
 ### Interacting with the Map
 
@@ -78,12 +116,22 @@ Nodes are displayed as colored markers on the map:
 When you click a node, the popup shows:
 
 - **Node Name**: Short name and long name
-- **Status**: Online/offline indicator
-- **Hardware**: Device model (T-Beam, Heltec, RAK, etc.)
-- **Battery**: Current battery level and voltage
-- **Signal**: RSSI and SNR values
-- **Last Seen**: When the node was last heard from
+- **Status**: Online/offline/disconnected indicator with color coding
+- **Hardware**: Device model with friendly names (e.g., "RAK WisBlock 4631" instead of "HW_33")
+- **Hex ID**: Node's hexadecimal identifier
+- **Role**: Device role (Client, Router, Repeater, Tracker, etc.)
+- **Battery**: Current battery level percentage (if available)
+- **Voltage**: Current voltage reading (if available)
+- **Channel Utilization**: Current channel usage percentage (if available)
+- **Air Utilization**: Transmission air time percentage (if available)
+- **Altitude**: GPS altitude in meters (if available)
+- **GPS Precision**: Position accuracy in meters (if available)
+- **Last Seen**: Timestamp of last activity
 - **Quick Actions**: View details, center map, show neighbors
+
+**Live Indicators:**
+- **LIVE** badge: Node updated in last 5 minutes
+- **OLD** badge: Node hasn't been seen in a while (75% of max age threshold)
 
 ## Node Management
 
@@ -92,45 +140,214 @@ When you click a node, the popup shows:
 Access the Nodes page from the navigation bar to see a detailed list of all nodes.
 
 **Features:**
-- **Search**: Find nodes by name, ID, or hardware model
-- **Filter**: Show only online nodes, specific hardware, or roles
-- **Sort**: Order by name, last seen, battery level, or signal strength
-- **Pagination**: Navigate through large node lists
-- **Bulk Actions**: Export or manage multiple nodes at once
+- **Search**: Find nodes by name, ID, hex ID, or hardware model
+- **Filter**: 
+  - Show active only (toggle)
+  - Show unknown nodes (toggle)
+  - Filter by hardware, role, or status
+- **Sort**: Click column headers to sort by:
+  - ID, Short Name, Long Name
+  - Hardware Model, Role
+  - Altitude, Latitude, Longitude
+  - Neighbor Count
+  - Battery %, Voltage, Channel Utilization
+  - Last Seen, Owner
+- **Pagination**: Navigate through large node lists (50 nodes per page)
+- **Real-time Updates**: Node list updates automatically as data arrives
+- **Telemetry Display**: Battery level, voltage, and channel utilization shown inline (NEW!)
+
+**Column Information:**
+- **ID**: Hexadecimal node identifier
+- **Short Name**: 4-character node name
+- **Long Name**: Full node name
+- **Hardware**: Friendly hardware model name (e.g., "Heltec V3" instead of "HW_10")
+- **Role**: CLIENT, ROUTER, REPEATER, TRACKER, etc.
+- **Altitude**: GPS altitude in meters
+- **Latitude/Longitude**: GPS coordinates
+- **Neighbors**: Count of directly connected nodes
+- **Battery %**: Current battery level (if available)
+- **Voltage**: Current voltage reading (if available)
+- **Ch. Util. %**: Channel utilization percentage (if available)
+- **Last Seen**: Time since last activity (e.g., "5m ago", "2h ago")
+- **Owner**: Node owner name (if available)
+- **Actions**: View details, center map buttons
 
 ### Node Details Panel
 
-Click any node to open the detailed information panel:
+Click any node to open the detailed information panel with multiple tabs:
 
 **Overview Tab:**
-- Node identification (ID, hex ID, names)
-- Hardware information (model, firmware version)
-- Role (Client, Router, Repeater, Tracker)
-- Current status and connection info
-
-**Position Tab:**
-- Current GPS coordinates
-- Altitude and precision
-- Position history with timeline
-- Map showing position changes over time
-
-**Telemetry Tab:**
-- **Device Metrics**: Battery, voltage, channel utilization, air time
-- **Environment Metrics**: Temperature, humidity, barometric pressure
-- **Power Metrics**: Solar panel voltage and current
-- **Charts**: Historical data visualization
+- Node identification (Node ID, Hex ID)
+- Names (Short Name, Long Name if available)
+- Hardware model with friendly name
+- Device role
+- MQTT connection status
+- Battery level with color coding (green >50%, orange >20%, red ≤20%)
+- Voltage reading
+- Channel utilization percentage
+- Air utilization TX percentage
+- Altitude and GPS precision
+- Last seen and last heard timestamps
 
 **Messages Tab:**
-- All messages sent from or to this node
-- Message types (text, position, telemetry, etc.)
-- Routing information and hop count
-- Signal quality (RSSI/SNR) for each message
+- Filter messages by direction:
+  - **Sent Messages**: Messages from this node
+  - **Received Messages**: Messages to this node
+  - **Gated Messages**: Messages routed through this node
+- Message history with timestamps
+- Message types and content
+- Routing information
 
-**Neighbors Tab:**
-- List of directly connected nodes
-- Signal strength to each neighbor
-- Last heard time
-- Visualize neighbor connections on map
+**Details Tab:**
+- **Identification Section**:
+  - Node ID (database ID)
+  - Hex ID (Meshtastic identifier)
+- **Hardware Information**:
+  - Hardware model with friendly name
+  - Device role
+
+**LoRa Config Tab:**
+- Region settings (US915, EU_868, etc.)
+- Frequency band information
+- Modem configuration (bandwidth, spreading factor, coding rate)
+- Channel status and information
+- Note: Configuration data is placeholder (not transmitted via MQTT)
+
+**Position Tab:**
+- Current GPS coordinates (latitude, longitude)
+- Altitude in meters
+- GPS precision (accuracy) in meters
+- Position quality indicator (excellent, good, fair, poor)
+- Position source (GPS)
+- Formatted coordinates in multiple formats:
+  - Decimal Degrees
+  - Degrees, Minutes, Seconds (DMS)
+
+**Telemetry Tab:**
+- Interactive charts showing historical data
+- Device metrics over time
+- Environmental data (if available)
+- Configurable time ranges
+
+## MQTT Monitor
+
+The MQTT Monitor provides real-time visibility into all MQTT messages flowing through your network.
+
+### Accessing MQTT Monitor
+
+Click the **MQTT Monitor** button in the navigation bar to open the monitor interface.
+
+### Real-Time Message Stream
+
+**Message Display:**
+- Live stream of incoming MQTT messages
+- Color-coded by message type
+- Automatic scrolling (can be paused)
+- Timestamp for each message
+- Message details in expandable format
+
+**Message Information:**
+- **From**: Source node (short name and hex ID)
+- **To**: Destination node or broadcast
+- **Type**: Message type (POSITION, TELEMETRY, NODEINFO, TEXT, etc.)
+- **Channel**: LoRa channel number
+- **Hop Start**: Maximum hops allowed
+- **Hops Away**: Current hop count
+- **RSSI**: Received Signal Strength Indicator
+- **SNR**: Signal-to-Noise Ratio
+- **Payload**: Message content (expandable JSON)
+
+### Message Filtering
+
+**Filter by Message Type:**
+- All Messages
+- Position Updates
+- Telemetry (Device Metrics)
+- Node Info
+- Text Messages
+- Neighbor Info (NEW!)
+- Other message types
+
+**Filter by Node:**
+- Show all nodes
+- Filter by specific sender
+- Filter by specific receiver
+
+**Search:**
+- Search message content
+- Search by node name or ID
+- Search by topic
+
+### Statistics Panel
+
+Real-time statistics updated every second:
+
+**Message Counts:**
+- **Total Messages**: All messages received
+- **Messages/Minute**: Current message rate
+- **Encrypted**: Count of encrypted messages
+- **Decrypted**: Successfully decrypted messages
+- **Decryption Failures**: Failed decryption attempts
+
+**Message Types Breakdown:**
+- Count by message type
+- Percentage distribution
+- Visual indicators
+
+**Performance Metrics:**
+- Average RSSI
+- Average SNR
+- Message success rate
+- Decryption success rate
+
+### Message Details
+
+Click any message to expand and see:
+
+**Full Payload:**
+- Complete JSON structure
+- Nested data (position, telemetry, etc.)
+- Formatted for readability
+
+**Telemetry Data (when applicable):**
+- Battery level percentage
+- Voltage reading
+- Channel utilization
+- Air utilization TX
+- Uptime in seconds
+
+**Position Data (when applicable):**
+- Latitude and longitude
+- Altitude
+- GPS precision
+- Timestamp
+
+**Encryption Information:**
+- Encryption status
+- Channel used
+- Decryption success/failure
+
+### Using MQTT Monitor for Debugging
+
+**Verify Data Flow:**
+- Confirm messages are being received
+- Check message rates
+- Identify missing nodes
+
+**Test Encryption:**
+- Verify encryption keys are correct
+- Check decryption success rate
+- Identify encryption issues
+
+**Monitor Network Health:**
+- Watch for message patterns
+- Identify chatty nodes
+- Detect network issues
+
+**Troubleshoot Nodes:**
+- See if specific nodes are transmitting
+- Check message types from nodes
+- Verify telemetry data
 
 ## Network Insights
 
@@ -350,6 +567,108 @@ See how messages travel through your network:
    - Destination node (red)
    - Lines showing the path
    - Signal strength at each hop
+
+## Telemetry & Monitoring
+
+The application automatically collects and displays telemetry data from your mesh network nodes.
+
+### Device Telemetry
+
+**Automatically Collected Metrics:**
+- **Battery Level**: Percentage remaining (0-100%)
+- **Voltage**: Current battery voltage
+- **Channel Utilization**: LoRa channel usage percentage
+- **Air Utilization TX**: Transmission air time percentage
+- **Uptime**: Device uptime in seconds
+
+**Data Sources:**
+- MQTT DEVICE_METRICS messages
+- Automatic parsing of both JSON and protobuf formats
+- Real-time updates as messages arrive
+
+**Display Locations:**
+- Nodes list table (inline display)
+- Node details panel (Overview tab)
+- Map popup (when clicking nodes)
+- Telemetry charts (historical data)
+
+### Telemetry Data Storage
+
+**Database Storage:**
+- All telemetry readings stored in `telemetry_readings` table
+- Node table columns updated with latest values for quick access
+- Historical data retained based on retention settings
+
+**Update Frequency:**
+- Updates as MQTT messages arrive
+- Typically every few minutes per node
+- Depends on node configuration
+
+### Viewing Telemetry History
+
+**Telemetry Charts:**
+1. Open Node Details Panel
+2. Navigate to **Telemetry** tab
+3. View interactive charts showing:
+   - Battery level over time
+   - Voltage trends
+   - Channel utilization patterns
+   - Air time usage
+
+**Time Range Selection:**
+- Last 24 hours
+- Last 7 days
+- Last 30 days
+- Custom date range
+
+### Neighbor Information
+
+**Neighbor Data Collection:**
+- Automatically parsed from NEIGHBORINFO messages
+- Stores neighbor relationships in database
+- Tracks SNR (signal quality) to neighbors
+- Records last heard time
+
+**Viewing Neighbors:**
+- Node details panel shows neighbor count
+- Neighbor visualization on map (when enabled)
+- Neighbor list with signal strength
+
+**Note:** Neighbor info broadcasts must be enabled on Meshtastic devices. This feature is not enabled by default and requires device configuration.
+
+### Environmental Telemetry
+
+If your nodes have environmental sensors:
+
+**Supported Metrics:**
+- Temperature
+- Humidity
+- Barometric pressure
+- Gas resistance
+- Air quality index (IAQ)
+
+**Display:**
+- Telemetry tab in node details
+- Historical charts
+- Environmental data export
+
+### Telemetry Alerts
+
+Set up alerts for telemetry thresholds:
+
+**Battery Alerts:**
+- Low battery warnings (< 20%)
+- Critical battery alerts (< 10%)
+- Voltage drop notifications
+
+**Channel Utilization Alerts:**
+- High utilization warnings (> 75%)
+- Channel saturation alerts (> 90%)
+
+**Configuration:**
+- Go to Settings → Notifications
+- Configure thresholds
+- Choose notification methods
 
 ## Data Export
 
@@ -593,12 +912,20 @@ If authentication is enabled:
 - Increase update intervals
 - Limit historical data retention
 - Use filters to show relevant nodes only
+- Disable node labels on map (use popup instead)
+- Consider using "Routers Only" display mode
 
 **For Slow Connections:**
 - Enable offline mode
 - Reduce map tile quality
 - Disable real-time animations
 - Limit telemetry history
+- Use lighter map styles (Carto Light)
+
+**Development Environment:**
+- Rate limits are higher in development mode
+- Use `NODE_ENV=development` for testing
+- Monitor resource usage with `monitor-health.sh` script
 
 ### Network Monitoring
 
@@ -607,38 +934,147 @@ If authentication is enabled:
 - Check for offline nodes
 - Monitor channel utilization
 - Review message success rates
+- Check MQTT Monitor for unusual patterns
+- Verify telemetry data is being received
 
 **Weekly Tasks:**
 - Analyze coverage gaps
 - Review top talkers
-- Check battery levels
-- Update firmware if needed
+- Check battery levels across network
+- Review neighbor relationships
+- Export data for backup
+- Check for nodes needing attention
 
 **Monthly Maintenance:**
 - Generate coverage reports
-- Export data for backup
+- Export data for long-term backup
 - Review and optimize settings
 - Plan network expansions
+- Analyze utilization trends
+- Update documentation
+
+### Understanding Telemetry
+
+**Battery Monitoring:**
+- Green (>50%): Healthy
+- Orange (20-50%): Monitor
+- Red (<20%): Needs attention
+- Voltage readings help identify battery health
+
+**Channel Utilization:**
+- <25%: Excellent
+- 25-50%: Good
+- 50-75%: Moderate (monitor)
+- >75%: High (consider optimization)
+
+**Air Utilization:**
+- Meshtastic has fair use limits
+- Monitor nodes with high air time
+- Optimize message frequency if needed
+
+### Encryption & Security
+
+**Encryption Keys:**
+- Default channel key: `AQ==` (1-byte PSK)
+- Configure custom keys in `config/app.yml`
+- Keys must match Meshtastic device configuration
+- Test encryption with `test-encryption-key.sh` script
+
+**Decryption:**
+- Application automatically decrypts messages
+- Decryption statistics shown in MQTT Monitor
+- Failed decryptions indicate key mismatch
+
+### Data Management
+
+**Database Maintenance:**
+- Regular backups recommended
+- Use `clear-nodes.sh` to reset data (with caution)
+- Monitor disk space with `check-disk-space.sh`
+- Clean up old data with retention policies
+
+**Performance Tuning:**
+- Adjust retention periods based on needs
+- Export and archive old data
+- Monitor database size
+- Use indexes for better query performance
 
 ### Troubleshooting
 
 **No Nodes Appearing:**
-1. Check MQTT connection status
+1. Check MQTT connection status (green indicator)
 2. Verify topic pattern is correct
-3. Ensure nodes are transmitting
-4. Check firewall settings
+3. Open MQTT Monitor to see if messages are arriving
+4. Ensure nodes are transmitting
+5. Check firewall settings
+6. Verify encryption keys match
+
+**No Telemetry Data:**
+1. Check if DEVICE_METRICS messages are in MQTT Monitor
+2. Verify nodes are sending telemetry
+3. Check encryption/decryption success rate
+4. Confirm telemetry is enabled on devices
+5. Wait a few minutes for data to arrive
 
 **Slow Performance:**
 1. Clear browser cache
 2. Reduce number of displayed nodes
-3. Disable unnecessary features
+3. Disable unnecessary features (animations, labels)
 4. Check system resources
+5. Review rate limiting (429 errors)
+6. Use `debug-lockup.sh` if services freeze
 
 **Data Not Updating:**
-1. Check MQTT connection
+1. Check MQTT connection indicator
 2. Verify network connectivity
-3. Review error logs
-4. Restart the application
+3. Review error logs in browser console
+4. Check backend logs: `docker-compose logs backend`
+5. Restart services if needed
+6. Use `quick-diagnostic.sh` for health check
+
+**Rate Limiting (429 Errors):**
+1. Development mode has higher limits
+2. Check if frontend is polling too frequently
+3. Review browser console for excessive requests
+4. Restart backend to reset rate limits
+5. Adjust rate limits in `backend/src/middleware/rateLimiting.ts`
+
+**Service Lockups:**
+1. Run `debug-lockup.sh` to capture diagnostics
+2. Check resource usage (CPU, memory, disk)
+3. Review database connection pool
+4. Check for long-running queries
+5. Monitor with `monitor-health.sh`
+6. Review logs in generated debug file
+
+### Hardware Model Names
+
+The application displays friendly hardware names instead of codes:
+
+- HW_10 → "Heltec V3"
+- HW_33 → "RAK WisBlock 4631"
+- HW_99 → "Seeed Studio Wio Tracker L1"
+- And many more...
+
+Full list available in `frontend/src/utils/hardwareModels.ts`
+
+### Firmware Versions
+
+**Note:** Firmware versions are NOT available via public MQTT. This is a Meshtastic protocol limitation for privacy/security. Firmware version information is only available when directly connected to devices via serial/Bluetooth.
+
+### Neighbor Information
+
+**Enabling Neighbor Broadcasts:**
+- Must be enabled on Meshtastic devices
+- Not enabled by default
+- Requires device configuration
+- Broadcasts NEIGHBORINFO messages periodically
+
+**When Enabled:**
+- Neighbor counts appear in nodes list
+- Neighbor relationships stored in database
+- Signal strength (SNR) tracked
+- Visualize connections on map
 
 ## Keyboard Shortcuts
 
@@ -649,6 +1085,7 @@ Speed up your workflow with keyboard shortcuts:
 - `N`: Go to Nodes page
 - `I`: Go to Network Insights
 - `S`: Open Settings
+- `Q`: Open MQTT Monitor (NEW!)
 - `?`: Show keyboard shortcuts help
 
 **Map Controls:**
@@ -656,13 +1093,93 @@ Speed up your workflow with keyboard shortcuts:
 - `-`: Zoom out
 - `H`: Reset to home view
 - `F`: Toggle fullscreen
-- `L`: Toggle layers menu
+- `L`: Toggle node labels (NEW!)
+- `O`: Open map options panel
 
 **General:**
 - `/`: Focus search box
 - `Esc`: Close dialogs/panels
 - `Ctrl+E`: Export current view
 - `Ctrl+R`: Refresh data
+
+## Recent Updates & New Features
+
+### Version 1.0.2 (January 2026)
+
+**Telemetry Improvements:**
+- ✅ Fixed telemetry data parsing for all fields (battery, voltage, channel utilization, air util TX)
+- ✅ Support for both snake_case (JSON) and camelCase (protobuf) field names
+- ✅ Fixed falsy value handling (0 values no longer converted to undefined)
+- ✅ Real-time telemetry display in nodes list
+- ✅ Node table columns automatically updated with latest telemetry
+
+**Map Enhancements:**
+- ✅ Node labels feature - show node names on map
+- ✅ Larger node icons (24x24px) and cluster icons for better visibility
+- ✅ Improved hardware model display with friendly names
+- ✅ Enhanced node popup with all telemetry data
+- ✅ Better status indicators (online/disconnected/offline)
+
+**MQTT Monitor:**
+- ✅ Real-time message stream with filtering
+- ✅ Statistics panel with message counts and rates
+- ✅ Decryption success tracking
+- ✅ Neighbor Info message type filter
+- ✅ Expandable message details
+
+**Performance & Stability:**
+- ✅ Increased rate limits for development (50,000 req/hour)
+- ✅ Service lockup debugging tools (`debug-lockup.sh`, `monitor-health.sh`)
+- ✅ Resource limits in docker-compose for stability
+- ✅ Comprehensive diagnostic scripts
+
+**UI/UX Improvements:**
+- ✅ Removed firmware version field (not available via MQTT)
+- ✅ Better hardware model names throughout UI
+- ✅ Improved node details panel layout
+- ✅ Enhanced telemetry display
+- ✅ Better error handling and user feedback
+
+**Documentation:**
+- ✅ Comprehensive scripts README with all 43 scripts documented
+- ✅ Updated user guide with latest features
+- ✅ Service lockup debugging guide
+- ✅ Telemetry display fix documentation
+
+### Known Limitations
+
+**Firmware Versions:**
+- Not transmitted via public MQTT (Meshtastic protocol limitation)
+- Only available when directly connected to devices
+- Firmware version fields removed from UI
+
+**Neighbor Information:**
+- Requires neighbor broadcasts to be enabled on devices
+- Not enabled by default on Meshtastic devices
+- Must be configured per device
+
+**Node Details Panel Scrolling:**
+- Scrolling in panel may affect map zoom on some browsers
+- Workaround: Use arrow keys or scrollbar to scroll panel
+- Fix in progress
+
+### Encryption Support
+
+**Supported Encryption:**
+- AES-128 (16-byte keys)
+- AES-256 (32-byte keys)
+- Automatic nonce construction from packet metadata
+- Default channel key support
+
+**Configuration:**
+- Keys configured in `config/app.yml`
+- Must match Meshtastic device configuration
+- Test with `test-encryption-key.sh` script
+
+**Decryption Monitoring:**
+- MQTT Monitor shows decryption statistics
+- Success/failure counts
+- Encrypted vs decrypted message counts
 
 ## Getting Help
 

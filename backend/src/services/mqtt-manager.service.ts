@@ -254,14 +254,45 @@ export class MQTTManagerService extends EventEmitter {
 
         // Store telemetry data
         if (data.telemetry) {
-          await tx.telemetryReading.create({
-            data: {
-              ...data.telemetry,
-              nodeId: node.id,
-              data: data.telemetry.data as any // Cast to satisfy Prisma JSON type
+          try {
+            await tx.telemetryReading.create({
+              data: {
+                ...data.telemetry,
+                nodeId: node.id,
+                data: data.telemetry.data as any // Cast to satisfy Prisma JSON type
+              }
+            });
+            logger.info(`Stored ${data.telemetry.type} telemetry for node: ${data.nodeId}`);
+            
+            // Also update the node's telemetry fields for quick access
+            if (data.telemetry.type === 'DEVICE_METRICS' && data.telemetry.data) {
+              const metrics = data.telemetry.data as any;
+              const updateData: any = {};
+              
+              if (metrics.batteryLevel !== undefined) {
+                updateData.batteryLevel = metrics.batteryLevel;
+              }
+              if (metrics.voltage !== undefined) {
+                updateData.voltage = metrics.voltage;
+              }
+              if (metrics.channelUtilization !== undefined) {
+                updateData.channelUtilization = metrics.channelUtilization;
+              }
+              if (metrics.airUtilTx !== undefined) {
+                updateData.airUtilTx = metrics.airUtilTx;
+              }
+              
+              if (Object.keys(updateData).length > 0) {
+                await tx.node.update({
+                  where: { id: node.id },
+                  data: updateData
+                });
+                logger.debug(`Updated node ${data.nodeId} with latest device metrics`);
+              }
             }
-          });
-          logger.debug(`Stored telemetry for node: ${data.nodeId}`);
+          } catch (error) {
+            logger.error(`Failed to store telemetry for node ${data.nodeId}:`, error);
+          }
         }
 
         // Store message data
@@ -300,6 +331,75 @@ export class MQTTManagerService extends EventEmitter {
             }
           });
           logger.debug(`Stored message from node: ${data.nodeId}`);
+        }
+
+        // Store neighbor data
+        if (data.neighbors && data.neighbors.length > 0) {
+          logger.debug(`Processing ${data.neighbors.length} neighbors for node: ${data.nodeId}`);
+          
+          for (const neighborData of data.neighbors) {
+            // Find or create the neighbor node
+            let neighborNode = await tx.node.findUnique({
+              where: { nodeId: neighborData.neighborId }
+            });
+            
+            // If neighbor node doesn't exist, create a minimal entry
+            if (!neighborNode) {
+              try {
+                neighborNode = await tx.node.create({
+                  data: {
+                    nodeId: neighborData.neighborId,
+                    hexId: neighborData.neighborId.replace('!', ''),
+                    networkId,
+                    isOnline: true,
+                    mqttConnected: false
+                  }
+                });
+                logger.debug(`Created neighbor node: ${neighborData.neighborId}`);
+              } catch (error: any) {
+                // Handle race condition
+                if (error.code === 'P2002') {
+                  neighborNode = await tx.node.findUnique({
+                    where: { nodeId: neighborData.neighborId }
+                  });
+                } else {
+                  logger.error(`Failed to create neighbor node ${neighborData.neighborId}:`, error);
+                  continue;
+                }
+              }
+            }
+            
+            if (!neighborNode) {
+              logger.warn(`Could not create or find neighbor node: ${neighborData.neighborId}`);
+              continue;
+            }
+            
+            // Upsert the neighbor relationship
+            try {
+              await tx.nodeNeighbor.upsert({
+                where: {
+                  nodeId_neighborId: {
+                    nodeId: node.id,
+                    neighborId: neighborNode.id
+                  }
+                },
+                update: {
+                  snr: neighborData.snr,
+                  lastHeard: neighborData.lastHeard,
+                  updatedAt: new Date()
+                },
+                create: {
+                  nodeId: node.id,
+                  neighborId: neighborNode.id,
+                  snr: neighborData.snr,
+                  lastHeard: neighborData.lastHeard
+                }
+              });
+              logger.debug(`Stored neighbor relationship: ${data.nodeId} -> ${neighborData.neighborId}`);
+            } catch (error) {
+              logger.error(`Failed to store neighbor relationship for ${data.nodeId} -> ${neighborData.neighborId}:`, error);
+            }
+          }
         }
       }, {
         maxWait: 5000, // Maximum time to wait for a transaction slot
