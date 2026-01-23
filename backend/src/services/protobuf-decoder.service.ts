@@ -141,6 +141,18 @@ export class ProtobufDecoderService {
         .add(new protobuf.Field('ch3Voltage', 5, 'float'))
         .add(new protobuf.Field('ch3Current', 6, 'float'));
       
+      // Define NeighborInfo message for NEIGHBORINFO_APP
+      const NeighborInfo = new protobuf.Type('NeighborInfo')
+        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
+        .add(new protobuf.Field('nodeBroadcastIntervalSecs', 2, 'uint32'))
+        .add(new protobuf.Field('neighbors', 3, 'Neighbor', 'repeated'));
+      
+      const Neighbor = new protobuf.Type('Neighbor')
+        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
+        .add(new protobuf.Field('snr', 2, 'float'))
+        .add(new protobuf.Field('lastRxTime', 3, 'fixed32'))
+        .add(new protobuf.Field('nodeIdStr', 4, 'string'));
+      
       // Add all types to root
       this.root.add(ServiceEnvelope);
       this.root.add(MeshPacket);
@@ -152,6 +164,8 @@ export class ProtobufDecoderService {
       this.root.add(EnvironmentMetrics);
       this.root.add(AirQualityMetrics);
       this.root.add(PowerMetrics);
+      this.root.add(NeighborInfo);
+      this.root.add(Neighbor);
       
       this.initialized = true;
       logger.info('Protobuf decoder initialized successfully');
@@ -354,6 +368,11 @@ export class ProtobufDecoderService {
 
           case PortNum.TELEMETRY_APP:
             result.telemetry = this.parseTelemetry(fromNodeId, decoded.payload);
+            if (result.telemetry) {
+              logger.info(`Parsed ${result.telemetry.type} telemetry for node ${fromNodeId}`);
+            } else {
+              logger.warn(`Failed to parse telemetry for node ${fromNodeId}`);
+            }
             // Also create a message record for TELEMETRY
             result.message = this.parseGenericMessage(packet, decoded, MessageType.TELEMETRY, wasEncrypted);
             break;
@@ -364,7 +383,8 @@ export class ProtobufDecoderService {
 
           case PortNum.NEIGHBORINFO_APP:
             logger.debug('Received NEIGHBORINFO_APP message');
-            // Create a message record for NEIGHBORINFO
+            result.neighbors = this.parseNeighborInfo(fromNodeId, decoded.payload);
+            // Also create a message record for NEIGHBORINFO
             result.message = this.parseGenericMessage(packet, decoded, MessageType.NEIGHBOR_INFO_APP, wasEncrypted);
             break;
 
@@ -499,11 +519,11 @@ export class ProtobufDecoderService {
           type: TelemetryType.DEVICE_METRICS,
           timestamp: new Date(timestamp * 1000),
           data: {
-            batteryLevel: metrics.batteryLevel || undefined,
-            voltage: metrics.voltage || undefined,
-            channelUtilization: metrics.channelUtilization || undefined,
-            airUtilTx: metrics.airUtilTx || undefined,
-            uptimeSeconds: metrics.uptimeSeconds || undefined
+            batteryLevel: metrics.batteryLevel !== undefined && metrics.batteryLevel !== null ? metrics.batteryLevel : undefined,
+            voltage: metrics.voltage !== undefined && metrics.voltage !== null ? metrics.voltage : undefined,
+            channelUtilization: metrics.channelUtilization !== undefined && metrics.channelUtilization !== null ? metrics.channelUtilization : undefined,
+            airUtilTx: metrics.airUtilTx !== undefined && metrics.airUtilTx !== null ? metrics.airUtilTx : undefined,
+            uptimeSeconds: metrics.uptimeSeconds !== undefined && metrics.uptimeSeconds !== null ? metrics.uptimeSeconds : undefined
           }
         };
       }
@@ -515,11 +535,11 @@ export class ProtobufDecoderService {
           type: TelemetryType.ENVIRONMENT_METRICS,
           timestamp: new Date(timestamp * 1000),
           data: {
-            temperature: metrics.temperature || undefined,
-            humidity: metrics.relativeHumidity || undefined,
-            pressure: metrics.barometricPressure || undefined,
-            gasResistance: metrics.gasResistance || undefined,
-            iaq: metrics.iaq || undefined
+            temperature: metrics.temperature !== undefined && metrics.temperature !== null ? metrics.temperature : undefined,
+            humidity: metrics.relativeHumidity !== undefined && metrics.relativeHumidity !== null ? metrics.relativeHumidity : undefined,
+            pressure: metrics.barometricPressure !== undefined && metrics.barometricPressure !== null ? metrics.barometricPressure : undefined,
+            gasResistance: metrics.gasResistance !== undefined && metrics.gasResistance !== null ? metrics.gasResistance : undefined,
+            iaq: metrics.iaq !== undefined && metrics.iaq !== null ? metrics.iaq : undefined
           }
         };
       }
@@ -544,6 +564,53 @@ export class ProtobufDecoderService {
       return undefined;
     } catch (error) {
       logger.error('Error parsing Telemetry:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Parse NeighborInfo from decoded data
+   */
+  private parseNeighborInfo(nodeId: string, payload: Buffer): Array<{ neighborId: string; snr?: number; lastHeard: Date }> | undefined {
+    try {
+      if (!this.root) {
+        throw new Error('Protobuf root not initialized');
+      }
+      
+      const NeighborInfo = this.root.lookupType('NeighborInfo');
+      const message = NeighborInfo.decode(payload);
+      const neighborInfo = NeighborInfo.toObject(message, {
+        longs: Number,
+        enums: Number,
+        bytes: Buffer,
+        defaults: true
+      });
+      
+      logger.debug(`Parsing neighbor info for node ${nodeId}, found ${neighborInfo.neighbors?.length || 0} neighbors`);
+
+      if (!neighborInfo.neighbors || neighborInfo.neighbors.length === 0) {
+        return undefined;
+      }
+
+      const neighbors = neighborInfo.neighbors.map((neighbor: any) => {
+        // Use nodeIdStr if available, otherwise format the numeric nodeId
+        const neighborId = neighbor.nodeIdStr || this.formatNodeId(neighbor.nodeId);
+        const lastHeard = neighbor.lastRxTime 
+          ? new Date(neighbor.lastRxTime * 1000) 
+          : new Date();
+        
+        logger.debug(`  Neighbor: ${neighborId}, SNR: ${neighbor.snr}, Last heard: ${lastHeard.toISOString()}`);
+        
+        return {
+          neighborId,
+          snr: neighbor.snr || undefined,
+          lastHeard
+        };
+      });
+
+      return neighbors;
+    } catch (error) {
+      logger.error('Error parsing NeighborInfo:', error);
       return undefined;
     }
   }

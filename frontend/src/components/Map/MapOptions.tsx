@@ -28,6 +28,7 @@ import {
   toggleLegend,
   toggleNeighbors,
   togglePositionHistory,
+  toggleNodeLabels,
   setViewMode,
 } from '../../store/slices/mapSlice';
 
@@ -68,6 +69,7 @@ const MapOptions: React.FC<MapOptionsProps> = ({ isOpen, onClose }) => {
     showLegend,
     showNeighbors,
     showPositionHistory,
+    showNodeLabels,
     viewMode,
   } = useSelector((state: RootState) => state.map);
 
@@ -201,6 +203,18 @@ const MapOptions: React.FC<MapOptionsProps> = ({ isOpen, onClose }) => {
                 />
               }
               label="Position History"
+            />
+          </Tooltip>
+          <Tooltip title="Show/hide node names on map" placement="left">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showNodeLabels}
+                  onChange={() => dispatch(toggleNodeLabels())}
+                  size="small"
+                />
+              }
+              label="Node Labels"
             />
           </Tooltip>
         </FormGroup>

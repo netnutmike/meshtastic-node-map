@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { Marker, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
@@ -8,6 +8,7 @@ import { Node, openDetailsPanel, closeDetailsPanel, activateNeighborVisualizatio
 import NodeDetailsPanel from '../NodeDetailsPanel';
 import NeighborArrows from './NeighborArrows';
 import NodeClusters, { useNodeClusters } from './NodeClusters';
+import { getHardwareName } from '../../utils/hardwareModels';
 
 // Create custom icons for different node states with enhanced styling and age-based effects
 const createNodeIcon = (
@@ -63,8 +64,8 @@ const createNodeIcon = (
     className: `custom-node-marker ${animationClass} ${ageClass}`,
     html: `<div class="node-marker-container">
       <div class="node-marker-dot" style="
-        width: 12px;
-        height: 12px;
+        width: 16px;
+        height: 16px;
         border-radius: 50%;
         background-color: ${colors[status]};
         border: 2px solid white;
@@ -76,8 +77,8 @@ const createNodeIcon = (
       ${isAnimated ? '<div class="node-marker-pulse-ring"></div>' : ''}
       ${isOld ? '<div class="node-marker-age-indicator"></div>' : ''}
     </div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -163,6 +164,22 @@ const addNodeMarkerStyles = () => {
       background: transparent !important;
       border: none !important;
     }
+    
+    .node-label-tooltip {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid #ccc !important;
+      border-radius: 4px !important;
+      padding: 2px 6px !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #333 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+      white-space: nowrap !important;
+    }
+    
+    .node-label-tooltip::before {
+      border-right-color: #ccc !important;
+    }
   `;
   document.head.appendChild(style);
 };
@@ -205,7 +222,7 @@ const NodeMarkers: React.FC = () => {
     neighborVisualizationActive,
     neighborVisualizationNodeId 
   } = useSelector((state: RootState) => state.nodes);
-  const { showNodes, animationsEnabled, nodeDisplayMode, viewMode } = useSelector((state: RootState) => state.map);
+  const { showNodes, showNodeLabels, animationsEnabled, nodeDisplayMode, viewMode } = useSelector((state: RootState) => state.map);
   const { showAll, nodesMaxAge, nodesOfflineAge, nodesDisconnectedAge } = useSelector((state: RootState) => state.settings);
   const map = useMap();
   const prevNodesRef = useRef<Node[]>([]);
@@ -388,6 +405,16 @@ const NodeMarkers: React.FC = () => {
           position={[node.position!.latitude, node.position!.longitude]}
           icon={node.icon}
         >
+          {showNodeLabels && (
+            <Tooltip 
+              permanent 
+              direction="right" 
+              offset={[12, 0]}
+              className="node-label-tooltip"
+            >
+              {node.shortName || node.longName}
+            </Tooltip>
+          )}
           <Popup maxWidth={300} minWidth={250}>
             <div style={{ minWidth: '200px' }}>
               <div style={{ 
@@ -436,9 +463,11 @@ const NodeMarkers: React.FC = () => {
               
               <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
                 <p style={{ margin: '4px 0' }}><strong>Short Name:</strong> {node.shortName}</p>
-                <p style={{ margin: '4px 0' }}><strong>ID:</strong> {node.id}</p>
+                {node.longName && (
+                  <p style={{ margin: '4px 0' }}><strong>Long Name:</strong> {node.longName}</p>
+                )}
                 <p style={{ margin: '4px 0' }}><strong>Hex ID:</strong> {node.hexId}</p>
-                <p style={{ margin: '4px 0' }}><strong>Hardware:</strong> {node.hardwareModel}</p>
+                <p style={{ margin: '4px 0' }}><strong>Hardware:</strong> {getHardwareName(node.hardwareModel)}</p>
                 <p style={{ margin: '4px 0' }}><strong>Role:</strong> {node.role}</p>
                 <p style={{ margin: '4px 0' }}>
                   <strong>Status:</strong> 

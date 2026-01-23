@@ -3,7 +3,7 @@
  * Provides basic caching for the Meshtastic Node Mapper application
  */
 
-const CACHE_NAME = 'meshtastic-node-mapper-v3';
+const CACHE_NAME = 'meshtastic-node-mapper-v4';
 const STATIC_CACHE_URLS = [
   '/',
   '/static/js/bundle.js',

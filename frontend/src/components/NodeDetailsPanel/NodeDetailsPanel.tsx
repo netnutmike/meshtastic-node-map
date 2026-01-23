@@ -3,6 +3,7 @@ import { Node } from '../../store/slices/nodeSlice';
 import TelemetryChart from '../TelemetryChart';
 import MessageHistory from '../MessageHistory';
 import { apiService } from '../../services/api';
+import { getHardwareName } from '../../utils/hardwareModels';
 import './NodeDetailsPanel.css';
 
 interface NodeDetailsPanelProps {
@@ -71,17 +72,19 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
           <label>Short Name:</label>
           <span>{node.shortName}</span>
         </div>
-        <div className="info-item">
-          <label>ID:</label>
-          <span>{node.id}</span>
-        </div>
+        {node.longName && (
+          <div className="info-item">
+            <label>Long Name:</label>
+            <span>{node.longName}</span>
+          </div>
+        )}
         <div className="info-item">
           <label>Hex ID:</label>
           <span>{node.hexId}</span>
         </div>
         <div className="info-item">
           <label>Hardware:</label>
-          <span>{node.hardwareModel}</span>
+          <span>{getHardwareName(node.hardwareModel)}</span>
         </div>
         <div className="info-item">
           <label>Role:</label>
@@ -214,19 +217,11 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
           <h4>Hardware Information</h4>
           <div className="info-item">
             <label>Hardware Model:</label>
-            <span>{node.hardwareModel}</span>
+            <span>{getHardwareName(node.hardwareModel)}</span>
           </div>
           <div className="info-item">
             <label>Role:</label>
             <span>{node.role}</span>
-          </div>
-        </div>
-
-        <div className="detail-section">
-          <h4>Firmware Information</h4>
-          <div className="info-item">
-            <label>Firmware Version:</label>
-            <span>{node.firmwareVersion}</span>
           </div>
         </div>
       </div>
@@ -404,11 +399,31 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
   };
 
   return (
-    <div className="node-details-overlay">
+    <div 
+      className="node-details-overlay"
+      onClick={(e) => {
+        // Close if clicking on overlay background
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      onWheel={(e) => {
+        // Prevent wheel events from reaching the map
+        e.stopPropagation();
+      }}
+    >
       <div 
         className="node-details-panel"
         onWheel={(e) => {
-          // Prevent wheel events from bubbling to the map
+          // Prevent wheel events from bubbling to overlay and map
+          e.stopPropagation();
+        }}
+        onTouchMove={(e) => {
+          // Prevent touch scroll events from bubbling to the map
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          // Prevent clicks from bubbling to the map
           e.stopPropagation();
         }}
       >
@@ -458,7 +473,21 @@ const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, isOpen, onClo
           </button>
         </div>
 
-        <div className="panel-content">
+        <div 
+          className="panel-content"
+          onWheel={(e) => {
+            // Stop wheel events from propagating to the map
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            // Stop touch scroll events from propagating to the map
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            // Stop mouse down events from propagating to the map
+            e.stopPropagation();
+          }}
+        >
           {renderTabContent()}
         </div>
       </div>

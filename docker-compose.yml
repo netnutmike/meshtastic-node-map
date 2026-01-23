@@ -21,6 +21,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   # Redis for caching and session storage
   redis:
@@ -40,6 +48,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   # Mosquitto MQTT Broker
   mosquitto:
@@ -62,6 +78,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   # Backend API Service
   backend:
@@ -94,6 +118,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
     command: npm run dev
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   # Frontend Web Application
   frontend:
@@ -117,6 +149,14 @@ services:
       - backend
     restart: unless-stopped
     command: npm start
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   # Nginx Reverse Proxy (for production)
   nginx:
