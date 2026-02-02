@@ -14,6 +14,12 @@ interface MapState {
   clusteringEnabled: boolean;
   animationsEnabled: boolean;
   topologyGraphOpen: boolean;
+  showRFLinks: boolean;
+  showTracerouteLinks: boolean;
+  showPacketLinks: boolean;
+  showDistanceLabels: boolean; // New: toggle for distance labels on RF links
+  hopDepthFilter: number | null; // null = all hops, 1/2/3 = specific hop depth
+  selectedNodeForHopFilter: string | null; // Node ID to calculate hops from
 }
 
 const defaultMapState: MapState = {
@@ -30,6 +36,12 @@ const defaultMapState: MapState = {
   clusteringEnabled: true,
   animationsEnabled: true,
   topologyGraphOpen: false,
+  showRFLinks: false,
+  showTracerouteLinks: true,
+  showPacketLinks: true,
+  showDistanceLabels: false,
+  hopDepthFilter: null,
+  selectedNodeForHopFilter: null,
 };
 
 // Request user's geolocation
@@ -160,6 +172,35 @@ const mapSlice = createSlice({
         saveMapPreferencesToStorage(state);
       }
     },
+    toggleRFLinks: (state) => {
+      state.showRFLinks = !state.showRFLinks;
+      saveMapPreferencesToStorage(state);
+    },
+    toggleTracerouteLinks: (state) => {
+      state.showTracerouteLinks = !state.showTracerouteLinks;
+      saveMapPreferencesToStorage(state);
+    },
+    togglePacketLinks: (state) => {
+      state.showPacketLinks = !state.showPacketLinks;
+      saveMapPreferencesToStorage(state);
+    },
+    setHopDepthFilter: (state, action: PayloadAction<number | null>) => {
+      state.hopDepthFilter = action.payload;
+      saveMapPreferencesToStorage(state);
+    },
+    setSelectedNodeForHopFilter: (state, action: PayloadAction<string | null>) => {
+      state.selectedNodeForHopFilter = action.payload;
+      // Don't save selected node to storage (should reset on page load)
+    },
+    clearHopDepthFilter: (state) => {
+      state.hopDepthFilter = null;
+      state.selectedNodeForHopFilter = null;
+      saveMapPreferencesToStorage(state);
+    },
+    toggleDistanceLabels: (state) => {
+      state.showDistanceLabels = !state.showDistanceLabels;
+      saveMapPreferencesToStorage(state);
+    },
   },
 });
 
@@ -179,6 +220,13 @@ export const {
   openTopologyGraph,
   closeTopologyGraph,
   setUserLocation,
+  toggleRFLinks,
+  toggleTracerouteLinks,
+  togglePacketLinks,
+  setHopDepthFilter,
+  setSelectedNodeForHopFilter,
+  clearHopDepthFilter,
+  toggleDistanceLabels,
 } = mapSlice.actions;
 
 export { getUserLocation };

@@ -1,0 +1,628 @@
+/* Responsive Layout System - Task 40 Implementation */
+/* Requirements: 36.1, 36.4, 36.5, 36.6, 36.7, 36.13 */
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS (Requirement 36.1)
+   ============================================ */
+:root {
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1400px;
+  
+  /* Touch target sizes (Requirement 36.6) */
+  --touch-target-min: 44px;
+  
+  /* Sidebar dimensions */
+  --sidebar-width-desktop: 320px;
+  --sidebar-max-height-mobile: 60vh;
+}
+
+/* ============================================
+   MOBILE-FIRST BASE STYLES (Requirement 36.4)
+   ============================================ */
+
+/* Base font scaling - mobile first */
+html {
+  font-size: 0.9rem; /* Mobile base (Requirement 36.13) */
+}
+
+/* Tablet scaling */
+@media (min-width: 768px) {
+  html {
+    font-size: 1rem;
+  }
+}
+
+/* Desktop scaling */
+@media (min-width: 1200px) {
+  html {
+    font-size: 1.05rem;
+  }
+}
+
+/* ============================================
+   TOUCH-FRIENDLY CONTROLS (Requirement 36.6)
+   ============================================ */
+
+/* Minimum 44x44px touch targets */
+.btn,
+.btn-sm,
+button,
+.icon-button,
+.touch-target {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
+
+/* Icon-only buttons */
+.btn-icon {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-icon:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode icon button hover */
+[data-bs-theme="dark"] .btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .btn-icon:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Button groups for actions */
+.btn-group-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.btn-group-actions .btn-icon {
+  margin: 0;
+}
+
+/* ============================================
+   RESPONSIVE SIDEBAR (Requirements 36.5, 36.7)
+   ============================================ */
+
+/* Desktop sidebar - fixed on right side */
+@media (min-width: 769px) {
+  .responsive-sidebar {
+    position: fixed;
+    right: 0;
+    top: 56px; /* Below header */
+    width: var(--sidebar-width-desktop);
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    background: var(--bs-body-bg, #fff);
+    border-left: 1px solid var(--bs-border-color, #dee2e6);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    z-index: 1040;
+  }
+  
+  .responsive-sidebar.collapsed {
+    transform: translateX(100%); /* Slide out horizontally */
+  }
+  
+  .responsive-sidebar-toggle {
+    position: fixed;
+    right: var(--sidebar-width-desktop);
+    top: 70px;
+    z-index: 1041;
+    transition: right 0.3s ease;
+  }
+  
+  .responsive-sidebar.collapsed + .responsive-sidebar-toggle {
+    right: 0;
+  }
+}
+
+/* Mobile sidebar - bottom sheet */
+@media (max-width: 768px) {
+  .responsive-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: var(--sidebar-max-height-mobile);
+    background: var(--bs-body-bg, #fff);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+  
+  .responsive-sidebar.collapsed {
+    transform: translateY(100%); /* Slide down vertically */
+  }
+  
+  .responsive-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--bs-border-color, #e0e0e0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bs-secondary-bg, #f5f5f5);
+    cursor: grab;
+  }
+  
+  .responsive-sidebar-header:active {
+    cursor: grabbing;
+  }
+  
+  /* Swipe indicator */
+  .responsive-sidebar-header::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: var(--bs-secondary, #ccc);
+    border-radius: 2px;
+  }
+  
+  .responsive-sidebar-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(var(--sidebar-max-height-mobile) - 60px);
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .responsive-sidebar-toggle {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1049;
+  }
+}
+
+/* ============================================
+   RESPONSIVE TABLES (Requirement 36.7)
+   ============================================ */
+
+/* Mobile table optimizations */
+@media (max-width: 768px) {
+  .responsive-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .responsive-table table {
+    font-size: 0.8rem;
+    min-width: 100%;
+  }
+  
+  .responsive-table thead th,
+  .responsive-table tbody td {
+    padding: 0.4rem 0.3rem;
+    white-space: nowrap;
+  }
+  
+  /* Hide less important columns on mobile */
+  .responsive-table .hide-mobile {
+    display: none !important;
+  }
+  
+  /* Sticky actions column */
+  .responsive-table .actions-column {
+    position: sticky;
+    right: 0;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Prevent iOS zoom on input focus */
+  .responsive-table input,
+  .responsive-table select,
+  .responsive-table textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Desktop table styles */
+@media (min-width: 769px) {
+  .responsive-table table {
+    font-size: 0.95rem;
+  }
+  
+  .responsive-table thead th,
+  .responsive-table tbody td {
+    padding: 0.75rem 1rem;
+  }
+  
+  .responsive-table .hide-mobile {
+    display: table-cell !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE FORMS
+   ============================================ */
+
+/* Mobile form optimizations */
+@media (max-width: 768px) {
+  .responsive-form .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .responsive-form .form-control,
+  .responsive-form .form-select {
+    font-size: 16px; /* Prevent iOS zoom */
+    min-height: var(--touch-target-min);
+  }
+  
+  .responsive-form .btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .responsive-form label {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE NAVIGATION
+   ============================================ */
+
+/* Mobile navigation */
+@media (max-width: 768px) {
+  .responsive-nav {
+    padding: 8px 16px;
+    min-height: 56px;
+  }
+  
+  .responsive-nav .logo {
+    height: 32px;
+  }
+  
+  .responsive-nav .site-name {
+    font-size: 1.1rem;
+  }
+  
+  .responsive-nav .nav-icons {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .responsive-nav .nav-icon {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+}
+
+/* Desktop navigation */
+@media (min-width: 769px) {
+  .responsive-nav {
+    padding: 12px 24px;
+    min-height: 64px;
+  }
+  
+  .responsive-nav .logo {
+    height: 40px;
+  }
+  
+  .responsive-nav .site-name {
+    font-size: 1.5rem;
+  }
+  
+  .responsive-nav .nav-icons {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE CARDS AND PANELS
+   ============================================ */
+
+/* Mobile cards */
+@media (max-width: 768px) {
+  .responsive-card {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+  
+  .responsive-card .card-body {
+    padding: 1rem;
+  }
+  
+  .responsive-card .card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Desktop cards */
+@media (min-width: 769px) {
+  .responsive-card {
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
+  }
+  
+  .responsive-card .card-body {
+    padding: 1.5rem;
+  }
+  
+  .responsive-card .card-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE MODALS
+   ============================================ */
+
+/* Mobile modals - full screen */
+@media (max-width: 768px) {
+  .responsive-modal .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+    height: 100vh;
+  }
+  
+  .responsive-modal .modal-content {
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+  
+  .responsive-modal .modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  
+  .responsive-modal .modal-body {
+    padding: 1rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .responsive-modal .modal-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+/* Desktop modals */
+@media (min-width: 769px) {
+  .responsive-modal .modal-dialog {
+    max-width: 600px;
+    margin: 1.75rem auto;
+  }
+  
+  .responsive-modal .modal-content {
+    border-radius: 8px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE CHARTS
+   ============================================ */
+
+/* Mobile charts */
+@media (max-width: 768px) {
+  .responsive-chart {
+    height: 200px;
+    margin: 1rem 0;
+  }
+  
+  .responsive-chart canvas {
+    max-height: 200px !important;
+  }
+}
+
+/* Tablet charts */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .responsive-chart {
+    height: 250px;
+    margin: 1.5rem 0;
+  }
+}
+
+/* Desktop charts */
+@media (min-width: 1025px) {
+  .responsive-chart {
+    height: 300px;
+    margin: 2rem 0;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Responsive visibility */
+.mobile-only {
+  display: block !important;
+}
+
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+  
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+/* Responsive spacing */
+.responsive-spacing {
+  padding: 1rem;
+}
+
+@media (min-width: 769px) {
+  .responsive-spacing {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .responsive-spacing {
+    padding: 2rem;
+  }
+}
+
+/* Responsive text alignment */
+@media (max-width: 768px) {
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-text-left {
+    text-align: left !important;
+  }
+}
+
+/* Responsive flex direction */
+@media (max-width: 768px) {
+  .mobile-flex-column {
+    flex-direction: column !important;
+  }
+  
+  .mobile-flex-row {
+    flex-direction: row !important;
+  }
+}
+
+/* Responsive widths */
+@media (max-width: 768px) {
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION
+   ============================================ */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .responsive-sidebar {
+    max-height: 50vh;
+  }
+  
+  .responsive-sidebar-content {
+    max-height: calc(50vh - 60px);
+  }
+  
+  .responsive-chart {
+    height: 150px;
+  }
+}
+
+/* ============================================
+   SAFE AREA SUPPORT (Notches)
+   ============================================ */
+
+@supports (padding: max(0px)) {
+  .responsive-nav {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  
+  .responsive-sidebar {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+  
+  @media (max-width: 768px) {
+    .responsive-sidebar-toggle {
+      bottom: max(16px, env(safe-area-inset-bottom));
+      right: max(16px, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-bs-theme="dark"] .responsive-sidebar {
+  background: var(--bs-dark, #212529);
+  border-color: var(--bs-border-color, #404040);
+}
+
+[data-bs-theme="dark"] .responsive-sidebar-header {
+  background: var(--bs-secondary-bg, #2d2d2d);
+  border-bottom-color: var(--bs-border-color, #404040);
+}
+
+[data-bs-theme="dark"] .responsive-table .actions-column {
+  background: var(--bs-dark, #212529);
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Focus styles for keyboard navigation */
+.btn-icon:focus-visible,
+.responsive-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .responsive-sidebar,
+  .responsive-sidebar-toggle,
+  .btn-icon {
+    transition: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-icon {
+    border: 1px solid currentColor;
+  }
+  
+  .responsive-sidebar {
+    border-width: 2px;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+.responsive-sidebar,
+.responsive-modal .modal-content {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.responsive-sidebar-content,
+.responsive-table {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}

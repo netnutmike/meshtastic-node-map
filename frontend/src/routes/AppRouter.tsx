@@ -4,6 +4,9 @@ import MapPage from '../pages/MapPage';
 import AboutPage from '../pages/AboutPage';
 import NodesPage from '../pages/NodesPage';
 import NetworkInsightsPage from '../pages/NetworkInsightsPage';
+import PacketsPage from '../pages/PacketsPage';
+import LineOfSightPage from '../pages/LineOfSightPage';
+import GatewayComparisonPage from '../pages/GatewayComparisonPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -15,6 +18,9 @@ const AppRouter: React.FC = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/nodes" element={<NodesPage />} />
         <Route path="/insights" element={<NetworkInsightsPage />} />
+        <Route path="/packets" element={<PacketsPage />} />
+        <Route path="/line-of-sight" element={<LineOfSightPage />} />
+        <Route path="/gateway-comparison" element={<GatewayComparisonPage />} />
         <Route path="/settings" element={<div>Settings Page - Coming Soon</div>} />
         <Route path="/tools" element={<div>Tools Page - Coming Soon</div>} />
       </Routes>

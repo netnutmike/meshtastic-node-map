@@ -392,6 +392,337 @@ Retrieve network statistics and analytics.
 }
 ```
 
+### RF Links (NEW)
+
+#### GET /map/links
+Retrieve RF link data for network visualization.
+
+**Query Parameters:**
+- `hours` (number): Time range in hours (default: 24, max: 336)
+- `nodeId` (string): Filter links for specific node
+- `minSuccessRate` (number): Minimum success rate (0-100)
+
+**Example Request:**
+```http
+GET /api/v1/map/links?hours=24
+```
+
+**Response:**
+```json
+{
+  "traceroute_links": [
+    {
+      "from_node_id": "123456789",
+      "to_node_id": "987654321",
+      "packet_count": 15,
+      "avg_rssi": -65.5,
+      "avg_snr": 8.2,
+      "last_seen": "2024-12-13T10:30:00Z",
+      "success_rate": 100,
+      "is_bidirectional": true
+    }
+  ],
+  "packet_links": [
+    {
+      "from_node_id": "123456789",
+      "to_node_id": "555666777",
+      "packet_count": 8,
+      "avg_rssi": -72.0,
+      "avg_snr": 6.5,
+      "last_seen": "2024-12-13T10:25:00Z",
+      "success_rate": 80,
+      "is_bidirectional": false
+    }
+  ],
+  "cached": true,
+  "cache_expires_at": "2024-12-13T10:35:00Z"
+}
+```
+
+### Dashboard Analytics (NEW)
+
+#### GET /analytics/dashboard
+Retrieve comprehensive dashboard statistics and metrics.
+
+**Query Parameters:**
+- `networkId` (string): Filter by network ID (optional)
+
+**Example Request:**
+```http
+GET /api/v1/analytics/dashboard
+```
+
+**Response:**
+```json
+{
+  "metrics": {
+    "total_nodes": 150,
+    "active_nodes": 120,
+    "active_percentage": 80,
+    "gateway_diversity": 5,
+    "protocol_diversity": 12,
+    "total_messages_24h": 3420,
+    "success_rate": 92.5
+  },
+  "charts": {
+    "network_activity_7d": [
+      { "date": "2024-12-07", "messages": 3200, "active_nodes": 115 },
+      { "date": "2024-12-08", "messages": 3350, "active_nodes": 118 }
+    ],
+    "node_activity_distribution": {
+      "very_active": 25,
+      "active": 70,
+      "moderate": 20,
+      "inactive": 35
+    },
+    "gateway_activity": [
+      { "gateway_id": "555666777", "name": "Gateway01", "message_count": 1250 },
+      { "gateway_id": "888999000", "name": "Gateway02", "message_count": 980 }
+    ],
+    "signal_quality_distribution": {
+      "excellent": 45,
+      "good": 78,
+      "fair": 32,
+      "poor": 15
+    },
+    "routing_patterns": {
+      "direct": 1850,
+      "one_hop": 980,
+      "two_hop": 420,
+      "three_plus_hop": 170
+    },
+    "protocol_usage_24h": {
+      "POSITION_APP": 1200,
+      "TELEMETRY_APP": 850,
+      "NODEINFO_APP": 320,
+      "TEXT_MESSAGE_APP": 450,
+      "TRACEROUTE_APP": 280,
+      "NEIGHBORINFO_APP": 180,
+      "OTHER": 140
+    },
+    "most_active_nodes": [
+      {
+        "node_id": "123456789",
+        "short_name": "NODE01",
+        "message_count": 245,
+        "messages_per_hour": 10.2,
+        "last_seen": "2024-12-13T10:30:00Z"
+      }
+    ]
+  },
+  "cached": true,
+  "cache_expires_at": "2024-12-13T10:31:00Z"
+}
+```
+
+### Distance Calculation (NEW)
+
+#### GET /links/longest
+Retrieve longest RF links with distance calculations.
+
+**Query Parameters:**
+- `minDistance` (number): Minimum distance in km (default: 1)
+- `minSnr` (number): Minimum SNR in dB (default: -20)
+- `limit` (number): Maximum results (default: 50)
+
+**Example Request:**
+```http
+GET /api/v1/links/longest?minDistance=5&minSnr=-15
+```
+
+**Response:**
+```json
+{
+  "links": [
+    {
+      "from_node_id": "123456789",
+      "from_node_name": "NODE01",
+      "to_node_id": "987654321",
+      "to_node_name": "NODE02",
+      "distance_km": 12.5,
+      "distance_mi": 7.8,
+      "avg_rssi": -78.5,
+      "avg_snr": -12.3,
+      "packet_count": 45,
+      "success_rate": 85,
+      "last_seen": "2024-12-13T10:25:00Z",
+      "location_age_warning": false
+    }
+  ]
+}
+```
+
+### Line of Sight Analysis (NEW)
+
+#### GET /analysis/line-of-sight
+Analyze line of sight between two nodes.
+
+**Query Parameters:**
+- `fromNodeId` (string): Source node ID (required)
+- `toNodeId` (string): Destination node ID (required)
+- `includeElevation` (boolean): Include elevation profile (default: false)
+
+**Example Request:**
+```http
+GET /api/v1/analysis/line-of-sight?fromNodeId=123456789&toNodeId=987654321&includeElevation=true
+```
+
+**Response:**
+```json
+{
+  "from_node": {
+    "id": "123456789",
+    "name": "NODE01",
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "altitude": 10
+  },
+  "to_node": {
+    "id": "987654321",
+    "name": "NODE02",
+    "latitude": 40.7589,
+    "longitude": -73.9851,
+    "altitude": 25
+  },
+  "distance_km": 5.2,
+  "distance_mi": 3.2,
+  "bearing": 45.5,
+  "has_connectivity": true,
+  "signal_quality": {
+    "avg_rssi": -68.5,
+    "avg_snr": 7.2,
+    "packet_count": 125,
+    "success_rate": 95
+  },
+  "elevation_profile": {
+    "points": [
+      { "distance": 0, "elevation": 10 },
+      { "distance": 1.3, "elevation": 45 },
+      { "distance": 2.6, "elevation": 38 },
+      { "distance": 3.9, "elevation": 22 },
+      { "distance": 5.2, "elevation": 25 }
+    ],
+    "max_elevation": 45,
+    "min_elevation": 10,
+    "fresnel_zone_clearance": true,
+    "obstructions": []
+  }
+}
+```
+
+### Gateway Comparison (NEW)
+
+#### GET /gateways/compare
+Compare signal quality between two gateways.
+
+**Query Parameters:**
+- `gateway1` (string): First gateway ID (required)
+- `gateway2` (string): Second gateway ID (required)
+- `hours` (number): Time range in hours (default: 24)
+- `sourceNode` (string): Filter by source node (optional)
+
+**Example Request:**
+```http
+GET /api/v1/gateways/compare?gateway1=555666777&gateway2=888999000&hours=24
+```
+
+**Response:**
+```json
+{
+  "gateway1": {
+    "id": "555666777",
+    "name": "Gateway01",
+    "packet_count": 1250,
+    "avg_rssi": -72.5,
+    "avg_snr": 6.8,
+    "unique_sources": 85
+  },
+  "gateway2": {
+    "id": "888999000",
+    "name": "Gateway02",
+    "packet_count": 980,
+    "avg_rssi": -75.2,
+    "avg_snr": 5.5,
+    "unique_sources": 72
+  },
+  "common_packets": [
+    {
+      "mesh_packet_id": "pkt123",
+      "from_node_id": "123456789",
+      "timestamp": "2024-12-13T10:20:00Z",
+      "gateway1_rssi": -68,
+      "gateway1_snr": 8.5,
+      "gateway2_rssi": -72,
+      "gateway2_snr": 6.2,
+      "rssi_difference": 4,
+      "snr_difference": 2.3
+    }
+  ],
+  "statistics": {
+    "common_packet_count": 450,
+    "avg_rssi_difference": 3.2,
+    "avg_snr_difference": 1.8,
+    "gateway1_better_count": 280,
+    "gateway2_better_count": 170
+  }
+}
+```
+
+### Packet Grouping (NEW)
+
+#### GET /packets/grouped
+Retrieve packets with grouping by packet ID.
+
+**Query Parameters:**
+- `groupBy` (boolean): Enable grouping (default: false)
+- `startTime` (string): Start time (ISO 8601)
+- `endTime` (string): End time (ISO 8601)
+- `fromNode` (string): Filter by sender
+- `toNode` (string): Filter by receiver
+- `gateway` (string): Filter by gateway
+- `portnum` (number): Filter by port number
+- `hopCount` (string): Filter by hop count (any, direct, 1, 2, 3, 4+)
+- `minRssi` (number): Minimum RSSI
+- `maxRssi` (number): Maximum RSSI
+- `minSnr` (number): Minimum SNR
+- `maxSnr` (number): Maximum SNR
+
+**Example Request:**
+```http
+GET /api/v1/packets/grouped?groupBy=true&startTime=2024-12-13T00:00:00Z&endTime=2024-12-13T23:59:59Z
+```
+
+**Response:**
+```json
+{
+  "groups": [
+    {
+      "mesh_packet_id": "pkt123",
+      "from_node_id": "123456789",
+      "to_node_id": "987654321",
+      "portnum": 3,
+      "portnum_name": "POSITION_APP",
+      "gateway_count": 3,
+      "reception_count": 5,
+      "rssi_min": -78,
+      "rssi_max": -65,
+      "rssi_avg": -71.5,
+      "snr_min": 5.2,
+      "snr_max": 8.5,
+      "snr_avg": 6.8,
+      "hop_min": 0,
+      "hop_max": 2,
+      "relay_nodes": "0x555666, 0x777888*2",
+      "first_seen": "2024-12-13T10:20:00Z",
+      "last_seen": "2024-12-13T10:20:05Z"
+    }
+  ],
+  "total": 1250,
+  "page": 1,
+  "limit": 50
+}
+```
+
 ### Data Export
 
 #### GET /export/nodes

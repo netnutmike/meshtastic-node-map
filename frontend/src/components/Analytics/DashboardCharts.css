@@ -1,0 +1,48 @@
+.dashboard-charts {
+  width: 100%;
+}
+
+.dashboard-charts .MuiCard-root {
+  height: 100%;
+}
+
+.dashboard-charts .MuiCardContent-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure charts are responsive */
+.dashboard-charts canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* Table styling */
+.dashboard-charts .MuiTableContainer-root {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dashboard-charts .MuiTableHead-root {
+  position: sticky;
+  top: 0;
+  background-color: var(--bs-body-bg, #fff);
+  z-index: 1;
+}
+
+/* Dark theme support */
+[data-bs-theme="dark"] .dashboard-charts .MuiTableHead-root {
+  background-color: var(--bs-dark, #212529);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .dashboard-charts .MuiTable-root {
+    font-size: 0.875rem;
+  }
+  
+  .dashboard-charts .MuiTableCell-root {
+    padding: 8px 4px;
+  }
+}

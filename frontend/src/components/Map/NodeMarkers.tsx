@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Marker, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ import NodeDetailsPanel from '../NodeDetailsPanel';
 import NeighborArrows from './NeighborArrows';
 import NodeClusters, { useNodeClusters } from './NodeClusters';
 import { getHardwareName } from '../../utils/hardwareModels';
+import { computeNodesWithinHops, RFLink } from '../../utils/hopDepthCalculation';
+import { apiService } from '../../services/api';
 
 // Create custom icons for different node states with enhanced styling and age-based effects
 const createNodeIcon = (
@@ -222,17 +224,56 @@ const NodeMarkers: React.FC = () => {
     neighborVisualizationActive,
     neighborVisualizationNodeId 
   } = useSelector((state: RootState) => state.nodes);
-  const { showNodes, showNodeLabels, animationsEnabled, nodeDisplayMode, viewMode } = useSelector((state: RootState) => state.map);
+  const {
+    showNodes,
+    showNodeLabels,
+    animationsEnabled,
+    nodeDisplayMode,
+    viewMode,
+    showRFLinks,
+    hopDepthFilter,
+    selectedNodeForHopFilter,
+  } = useSelector((state: RootState) => state.map);
   const { showAll, nodesMaxAge, nodesOfflineAge, nodesDisconnectedAge } = useSelector((state: RootState) => state.settings);
   const map = useMap();
   const prevNodesRef = useRef<Node[]>([]);
   const [zoom, setZoom] = React.useState(map.getZoom());
   const [mapBounds, setMapBounds] = React.useState(map.getBounds());
+  const [rfLinks, setRfLinks] = useState<RFLink[]>([]);
 
   // Add styles on component mount
   useEffect(() => {
     addNodeMarkerStyles();
   }, []);
+
+  // Fetch RF links for hop depth filtering
+  useEffect(() => {
+    const fetchLinks = async () => {
+      if (!showRFLinks || !selectedNodeForHopFilter || hopDepthFilter === null) {
+        return;
+      }
+
+      try {
+        const response = await apiService.getRFLinks({ hours: 24 });
+        if (response.data) {
+          setRfLinks(response.data.all_links);
+        }
+      } catch (error) {
+        console.error('Failed to fetch RF links for hop depth filtering:', error);
+      }
+    };
+
+    fetchLinks();
+  }, [showRFLinks, selectedNodeForHopFilter, hopDepthFilter]);
+
+  // Compute visible nodes based on hop depth filter
+  const visibleNodeIdsFromHopFilter = useMemo(() => {
+    if (!showRFLinks || !selectedNodeForHopFilter || hopDepthFilter === null || rfLinks.length === 0) {
+      return null; // No filter active
+    }
+
+    return computeNodesWithinHops(selectedNodeForHopFilter, hopDepthFilter, rfLinks);
+  }, [showRFLinks, selectedNodeForHopFilter, hopDepthFilter, rfLinks]);
 
   // Track zoom and bounds changes
   useMapEvents({
@@ -273,6 +314,13 @@ const NodeMarkers: React.FC = () => {
   const processedNodes = useMemo(() => {
     const filtered = nodes
       .filter(node => node.position) // Only show nodes with valid position data
+      .filter(node => {
+        // Hop depth filtering (Requirements 34.8, 34.9)
+        if (visibleNodeIdsFromHopFilter) {
+          return visibleNodeIdsFromHopFilter.has(node.id);
+        }
+        return true;
+      })
       .filter(node => {
         // Node display mode filtering (Requirements 8.2)
         if (nodeDisplayMode === 'none') {
@@ -335,7 +383,17 @@ const NodeMarkers: React.FC = () => {
       });
     
     return filtered;
-  }, [nodes, animationsEnabled, showAll, nodesMaxAge, nodesOfflineAge, nodesDisconnectedAge, nodeDisplayMode, viewMode]);
+  }, [
+    nodes,
+    animationsEnabled,
+    showAll,
+    nodesMaxAge,
+    nodesOfflineAge,
+    nodesDisconnectedAge,
+    nodeDisplayMode,
+    viewMode,
+    visibleNodeIdsFromHopFilter,
+  ]);
 
   // Get clustered node IDs to hide individual markers
   const clusteredNodeIds = useNodeClusters(processedNodes, zoom, mapBounds);

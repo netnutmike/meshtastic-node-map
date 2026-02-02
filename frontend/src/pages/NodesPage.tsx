@@ -33,6 +33,7 @@ import Footer from '../components/Layout/Footer';
 import { MQTTMonitor } from '../components/MQTTMonitor';
 import apiService from '../services/api';
 import { getHardwareName } from '../utils/hardwareModels';
+import { useUrlState } from '../utils/UrlStateManager';
 
 type Order = 'asc' | 'desc';
 
@@ -42,23 +43,24 @@ interface Column {
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
   format?: (value: any) => string;
+  hideMobile?: boolean; // Hide on mobile devices
 }
 
 const columns: Column[] = [
   { id: 'hexId', label: 'ID', minWidth: 100 },
   { id: 'shortName', label: 'Short Name', minWidth: 100 },
-  { id: 'longName', label: 'Long Name', minWidth: 150 },
-  { id: 'hardwareModel', label: 'Hardware', minWidth: 120 },
+  { id: 'longName', label: 'Long Name', minWidth: 150, hideMobile: true },
+  { id: 'hardwareModel', label: 'Hardware', minWidth: 120, hideMobile: true },
   { id: 'role', label: 'Role', minWidth: 100 },
-  { id: 'altitude', label: 'Altitude (m)', minWidth: 100, align: 'right', format: (value) => value?.toFixed(0) || '' },
-  { id: 'latitude', label: 'Latitude', minWidth: 100, align: 'right', format: (value) => value?.toFixed(6) || '' },
-  { id: 'longitude', label: 'Longitude', minWidth: 100, align: 'right', format: (value) => value?.toFixed(6) || '' },
+  { id: 'altitude', label: 'Altitude (m)', minWidth: 100, align: 'right', format: (value) => value?.toFixed(0) || '', hideMobile: true },
+  { id: 'latitude', label: 'Latitude', minWidth: 100, align: 'right', format: (value) => value?.toFixed(6) || '', hideMobile: true },
+  { id: 'longitude', label: 'Longitude', minWidth: 100, align: 'right', format: (value) => value?.toFixed(6) || '', hideMobile: true },
   { id: 'neighborCount', label: 'Neighbors', minWidth: 80, align: 'center' },
   { id: 'batteryLevel', label: 'Battery %', minWidth: 90, align: 'right', format: (value) => value ? `${value}%` : '' },
-  { id: 'voltage', label: 'Voltage (V)', minWidth: 100, align: 'right', format: (value) => value?.toFixed(2) || '' },
-  { id: 'channelUtilization', label: 'Ch. Util. %', minWidth: 100, align: 'right', format: (value) => value ? `${value.toFixed(1)}%` : '' },
+  { id: 'voltage', label: 'Voltage (V)', minWidth: 100, align: 'right', format: (value) => value?.toFixed(2) || '', hideMobile: true },
+  { id: 'channelUtilization', label: 'Ch. Util. %', minWidth: 100, align: 'right', format: (value) => value ? `${value.toFixed(1)}%` : '', hideMobile: true },
   { id: 'lastSeen', label: 'Last Seen', minWidth: 150 },
-  { id: 'owner', label: 'Owner', minWidth: 120 },
+  { id: 'owner', label: 'Owner', minWidth: 120, hideMobile: true },
   { id: 'actions', label: 'Actions', minWidth: 80, align: 'center' },
 ];
 
@@ -68,13 +70,23 @@ const NodesPage: React.FC = () => {
   const nodes = useSelector((state: RootState) => state.nodes.nodes);
   const { nodesOfflineAge } = useSelector((state: RootState) => state.settings);
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showActiveOnly, setShowActiveOnly] = useState(true); // ON by default
-  const [showUnknown, setShowUnknown] = useState(false); // OFF by default
-  const [orderBy, setOrderBy] = useState<string>('shortName');
-  const [order, setOrder] = useState<Order>('asc');
+  // Use URL state management for filters and pagination
+  // Requirements: 44.3, 44.4, 44.5, 44.10, 44.11
+  // This enables:
+  // - State restoration from URL on page load (44.3)
+  // - Automatic URL updates when filters change (44.4, 44.5)
+  // - Browser back/forward navigation support (44.11)
+  // - Bookmarkable and shareable filtered views (44.10)
+  const [urlState, updateUrlState] = useUrlState({
+    search: '',
+    showActiveOnly: true,
+    showUnknown: false,
+    orderBy: 'shortName',
+    order: 'asc' as Order,
+    page: 1,
+  });
+
   const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalNodes, setTotalNodes] = useState(0);
   const [pageSize] = useState(50); // Items per page for client-side pagination
 
@@ -167,9 +179,11 @@ const NodesPage: React.FC = () => {
   };
 
   const handleRequestSort = (property: string) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
+    const isAsc = urlState.orderBy === property && urlState.order === 'asc';
+    updateUrlState({
+      order: isAsc ? 'desc' : 'asc',
+      orderBy: property,
+    });
   };
 
   const handleViewNode = (nodeId: string) => {
@@ -203,11 +217,6 @@ const NodesPage: React.FC = () => {
     navigate('/');
   };
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const formatLastSeen = (timestamp: string | undefined): string => {
     if (!timestamp) return 'Never';
     
@@ -239,13 +248,13 @@ const NodesPage: React.FC = () => {
     let filtered = [...nodes];
 
     // Filter out unknown nodes (nodes without shortName) unless showUnknown is enabled
-    if (!showUnknown) {
+    if (!urlState.showUnknown) {
       filtered = filtered.filter(node => node.shortName && node.shortName.trim() !== '');
     }
 
     // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (urlState.search) {
+      const query = urlState.search.toLowerCase();
       filtered = filtered.filter(node =>
         node.shortName?.toLowerCase().includes(query) ||
         node.longName?.toLowerCase().includes(query) ||
@@ -255,22 +264,22 @@ const NodesPage: React.FC = () => {
     }
 
     // Apply active filter
-    if (showActiveOnly) {
+    if (urlState.showActiveOnly) {
       filtered = filtered.filter(node => isNodeActive(node.lastSeen));
     }
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[orderBy as keyof typeof a];
-      let bValue: any = b[orderBy as keyof typeof b];
+      let aValue: any = a[urlState.orderBy as keyof typeof a];
+      let bValue: any = b[urlState.orderBy as keyof typeof b];
 
       // Handle special cases
-      if (orderBy === 'neighborCount') {
+      if (urlState.orderBy === 'neighborCount') {
         aValue = a.neighbors?.length || 0;
         bValue = b.neighbors?.length || 0;
-      } else if (orderBy === 'altitude' || orderBy === 'latitude' || orderBy === 'longitude') {
-        aValue = a.position?.[orderBy as keyof typeof a.position] || 0;
-        bValue = b.position?.[orderBy as keyof typeof b.position] || 0;
+      } else if (urlState.orderBy === 'altitude' || urlState.orderBy === 'latitude' || urlState.orderBy === 'longitude') {
+        aValue = a.position?.[urlState.orderBy as keyof typeof a.position] || 0;
+        bValue = b.position?.[urlState.orderBy as keyof typeof b.position] || 0;
       }
 
       // Handle null/undefined values
@@ -279,25 +288,25 @@ const NodesPage: React.FC = () => {
 
       // Compare values
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return order === 'asc' 
+        return urlState.order === 'asc' 
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
 
-      return order === 'asc' 
+      return urlState.order === 'asc' 
         ? (aValue < bValue ? -1 : 1)
         : (bValue < aValue ? -1 : 1);
     });
 
     return filtered;
-  }, [nodes, searchQuery, showActiveOnly, showUnknown, orderBy, order, nodesOfflineAge]);
+  }, [nodes, urlState.search, urlState.showActiveOnly, urlState.showUnknown, urlState.orderBy, urlState.order, nodesOfflineAge]);
 
   // Paginate the filtered results
   const paginatedNodes = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
+    const startIndex = (urlState.page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return filteredAndSortedNodes.slice(startIndex, endIndex);
-  }, [filteredAndSortedNodes, currentPage, pageSize]);
+  }, [filteredAndSortedNodes, urlState.page, pageSize]);
 
   const getNodeValue = (node: any, columnId: string): any => {
     switch (columnId) {
@@ -337,17 +346,18 @@ const NodesPage: React.FC = () => {
             label="Search nodes"
             variant="outlined"
             size="small"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={urlState.search}
+            onChange={(e) => updateUrlState({ search: e.target.value })}
             placeholder="Search by name or ID..."
             sx={{ minWidth: 300 }}
+            inputProps={{ style: { fontSize: '16px' } }} // Prevent iOS zoom
           />
           
           <FormControlLabel
             control={
               <Switch
-                checked={showActiveOnly}
-                onChange={(e) => setShowActiveOnly(e.target.checked)}
+                checked={urlState.showActiveOnly}
+                onChange={(e) => updateUrlState({ showActiveOnly: e.target.checked })}
                 color="primary"
               />
             }
@@ -357,8 +367,8 @@ const NodesPage: React.FC = () => {
           <FormControlLabel
             control={
               <Switch
-                checked={showUnknown}
-                onChange={(e) => setShowUnknown(e.target.checked)}
+                checked={urlState.showUnknown}
+                onChange={(e) => updateUrlState({ showUnknown: e.target.checked })}
                 color="primary"
               />
             }
@@ -378,7 +388,7 @@ const NodesPage: React.FC = () => {
           )}
         </Box>
 
-        <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 250px)' }}>
+        <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 250px)' }} className="responsive-table">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -387,11 +397,12 @@ const NodesPage: React.FC = () => {
                     key={column.id}
                     align={column.align}
                     style={{ minWidth: column.minWidth, fontWeight: 'bold' }}
+                    className={column.hideMobile ? 'hide-mobile' : column.id === 'actions' ? 'actions-column' : ''}
                   >
                     {column.id !== 'actions' ? (
                       <TableSortLabel
-                        active={orderBy === column.id}
-                        direction={orderBy === column.id ? order : 'asc'}
+                        active={urlState.orderBy === column.id}
+                        direction={urlState.orderBy === column.id ? urlState.order : 'asc'}
                         onClick={() => handleRequestSort(column.id)}
                       >
                         {column.label}
@@ -420,7 +431,7 @@ const NodesPage: React.FC = () => {
                       
                       if (column.id === 'actions') {
                         return (
-                          <TableCell key={column.id} align={column.align}>
+                          <TableCell key={column.id} align={column.align} className="actions-column">
                             <Tooltip title="View details">
                               <IconButton
                                 size="small"
@@ -449,7 +460,11 @@ const NodesPage: React.FC = () => {
                       const displayValue = column.format ? column.format(value) : (value || '');
                       
                       return (
-                        <TableCell key={column.id} align={column.align}>
+                        <TableCell 
+                          key={column.id} 
+                          align={column.align}
+                          className={column.hideMobile ? 'hide-mobile' : ''}
+                        >
                           {column.id === 'role' && value ? (
                             <Chip label={value} size="small" />
                           ) : (
@@ -479,15 +494,15 @@ const NodesPage: React.FC = () => {
           <Stack spacing={2} alignItems="center" sx={{ mt: 3, mb: 2 }}>
             <Pagination 
               count={Math.ceil(filteredAndSortedNodes.length / pageSize)}
-              page={currentPage}
-              onChange={handlePageChange}
+              page={urlState.page}
+              onChange={(_, page) => updateUrlState({ page })}
               color="primary"
               size="large"
               showFirstButton
               showLastButton
             />
             <Typography variant="body2" color="text.secondary">
-              Page {currentPage} of {Math.ceil(filteredAndSortedNodes.length / pageSize)}
+              Page {urlState.page} of {Math.ceil(filteredAndSortedNodes.length / pageSize)}
             </Typography>
           </Stack>
         )}

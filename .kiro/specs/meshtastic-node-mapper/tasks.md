@@ -434,19 +434,19 @@ This implementation plan converts the Meshtastic Node Mapper design into a serie
 
 ---
 
-## Malla-Inspired Feature Implementation Tasks
+## New Feature Implementation Tasks
 
-The following tasks implement features inspired by the Malla project analysis. These tasks build upon the existing foundation to add advanced network visualization, analytics, and user experience enhancements.
+The following tasks implement new features. These tasks build upon the existing foundation to add advanced network visualization, analytics, and user experience enhancements.
 
 **Reference Documentation:**
-- `docs/MALLA_NETWORK_MAP_IMPLEMENTATION.md` - Implementation details for network map
-- `docs/FEATURE_ROADMAP_MALLA_INSPIRED.md` - Complete feature roadmap
-- `docs/MALLA_DASHBOARD_AND_FEATURES_ANALYSIS.md` - Dashboard specifications
+- `docs/NETWORK_MAP_IMPLEMENTATION.md` - Implementation details for network map
+- `docs/FEATURE_ROADMAP.md` - Complete feature roadmap
+- `docs/DASHBOARD_AND_FEATURES_ANALYSIS.md` - Dashboard specifications
 - `docs/UI_UX_BEST_PRACTICES.md` - UI/UX implementation patterns
 
 ### Phase 1: Network Map with RF Links (Priority 1.0)
 
-- [ ] 33. Implement RF link detection backend services
+- [x] 33. Implement RF link detection backend services
   - Create TracerouteLinkService to extract RF hops from TRACEROUTE_APP packets
   - Create PacketLinkService to detect 0-hop packets (hop_start = hop_limit)
   - Implement link aggregation and bidirectional merging
@@ -454,17 +454,17 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create database indexes for performance optimization
   - _Requirements: 34.1, 34.2, 34.3, 34.11, 34.12, 34.13, 34.14_
 
-- [ ] 33.1 Write property test for RF link detection
+- [x] 33.1 Write property test for RF link detection
   - **Property: RF link extraction from traceroutes**
   - **Validates: Requirements 34.1, 34.2, 34.3**
 
-- [ ] 33.2 Write unit tests for link services
+- [x] 33.2 Write unit tests for link services
   - Test traceroute parsing and hop extraction
   - Validate 0-hop packet detection logic
   - Test link aggregation and statistics calculation
   - _Requirements: 34.1, 34.2, 34.3, 34.11, 34.12, 34.13_
 
-- [ ] 34. Create RF links API endpoint
+- [x] 34. Create RF links API endpoint
   - Implement GET /api/map/links endpoint with time range parameter
   - Add caching layer with 5-minute TTL
   - Implement query optimization with time window limits
@@ -472,13 +472,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Add filtering by hours parameter (default 24, max 336/14 days)
   - _Requirements: 34.10, 34.15_
 
-- [ ] 34.1 Write unit tests for links API
+- [x] 34.1 Write unit tests for links API
   - Test endpoint response format and data structure
   - Validate time range filtering
   - Test caching behavior
   - _Requirements: 34.10, 34.15_
 
-- [ ] 35. Implement RF link visualization on map
+- [x] 35. Implement RF link visualization on map
   - Update NetworkMap component to fetch and display RF links
   - Draw solid lines for traceroute links, dashed for packet links
   - Implement color coding by success rate (green/yellow/red)
@@ -486,13 +486,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create toggle controls for link type visibility
   - _Requirements: 34.4, 34.5, 34.6, 34.7_
 
-- [ ] 35.1 Write unit tests for link visualization
+- [x] 35.1 Write unit tests for link visualization
   - Test link rendering with different types and success rates
   - Validate popup content and interaction
   - Test toggle controls functionality
   - _Requirements: 34.4, 34.5, 34.6, 34.7_
 
-- [ ] 36. Implement hop depth filtering
+- [x] 36. Implement hop depth filtering
   - Create BFS algorithm to compute nodes within N hops
   - Add hop depth selector UI (1, 2, 3, or all hops)
   - Filter visible nodes and links based on hop depth
@@ -500,13 +500,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Optimize performance for large networks
   - _Requirements: 34.8, 34.9_
 
-- [ ] 36.1 Write property test for hop depth calculation
+- [x] 36.1 Write property test for hop depth calculation
   - **Property: BFS hop depth calculation correctness**
   - **Validates: Requirements 34.8, 34.9**
 
 ### Phase 2: Theme Support (Priority 1.1)
 
-- [ ] 37. Implement DarkModeToggle class
+- [x] 37. Implement DarkModeToggle class
   - Create theme management class with localStorage persistence
   - Implement three-state toggle: light → dark → auto
   - Add system preference detection with prefers-color-scheme
@@ -514,13 +514,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Update meta theme-color for mobile browsers
   - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7, 35.10_
 
-- [ ] 37.1 Write unit tests for theme management
+- [x] 37.1 Write unit tests for theme management
   - Test theme preference storage and retrieval
   - Validate theme cycling logic
   - Test system preference detection
   - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7_
 
-- [ ] 38. Integrate theme support in components
+- [x] 38. Integrate theme support in components
   - Update Chart.js charts to use theme-aware colors
   - Switch Leaflet map tiles between light/dark
   - Add CSS custom properties for theme-aware styling
@@ -528,13 +528,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test theme switching across all pages
   - _Requirements: 35.8, 35.9, 35.11_
 
-- [ ] 38.1 Write unit tests for theme integration
+- [x] 38.1 Write unit tests for theme integration
   - Test chart color updates on theme change
   - Validate map tile layer switching
   - Test CSS custom property application
   - _Requirements: 35.8, 35.9, 35.11_
 
-- [ ] 39. Add theme toggle to navigation
+- [x] 39. Add theme toggle to navigation
   - Create theme toggle button component
   - Add icon indicators for current mode (sun/moon/circle-half)
   - Position toggle in navigation header
@@ -542,7 +542,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test accessibility and keyboard navigation
   - _Requirements: 35.12_
 
-- [ ] 39.1 Write unit tests for theme toggle UI
+- [x] 39.1 Write unit tests for theme toggle UI
   - Test button rendering and icon display
   - Validate click interaction and theme cycling
   - Test accessibility features
@@ -550,7 +550,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 3: Mobile Responsiveness (Priority 1.2)
 
-- [ ] 40. Implement responsive layout system
+- [x] 40. Implement responsive layout system
   - Add responsive breakpoints and CSS media queries
   - Implement mobile-first base styles with font scaling
   - Create responsive sidebar (side on desktop, bottom sheet on mobile)
@@ -558,13 +558,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test on multiple device sizes and orientations
   - _Requirements: 36.1, 36.4, 36.5, 36.6, 36.7, 36.13_
 
-- [ ] 40.1 Write unit tests for responsive behavior
+- [x] 40.1 Write unit tests for responsive behavior
   - Test breakpoint detection and layout changes
   - Validate sidebar positioning on different screen sizes
   - Test touch target sizing
   - _Requirements: 36.1, 36.4, 36.5, 36.6, 36.7_
 
-- [ ] 41. Convert action buttons to icon-only format
+- [x] 41. Convert action buttons to icon-only format
   - Replace text buttons with icon buttons + tooltips
   - Ensure 44x44px minimum touch target size
   - Implement button groups for multiple actions
@@ -572,13 +572,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test on mobile devices for usability
   - _Requirements: 36.2, 36.3, 36.11, 36.12_
 
-- [ ] 41.1 Write unit tests for icon buttons
+- [x] 41.1 Write unit tests for icon buttons
   - Test button rendering and tooltip display
   - Validate touch target sizing
   - Test dropdown menu functionality
   - _Requirements: 36.2, 36.3, 36.11, 36.12_
 
-- [ ] 42. Optimize tables for mobile
+- [x] 42. Optimize tables for mobile
   - Hide less important columns on mobile with .hide-mobile class
   - Reduce font size and padding on small screens
   - Prevent iOS zoom with 16px minimum font size on inputs
@@ -586,13 +586,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Consider card layout alternative for very small screens
   - _Requirements: 36.8, 36.9, 36.10_
 
-- [ ] 42.1 Write unit tests for mobile table optimization
+- [x] 42.1 Write unit tests for mobile table optimization
   - Test column hiding on mobile breakpoints
   - Validate font size and padding adjustments
   - Test input font size for iOS
   - _Requirements: 36.8, 36.9, 36.10_
 
-- [ ] 43. Optimize map for mobile
+- [x] 43. Optimize map for mobile
   - Implement touch-friendly map controls
   - Add larger tap targets for map interactions
   - Optimize marker clustering for touch
@@ -600,7 +600,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Ensure smooth performance on mobile devices
   - _Requirements: 36.14, 36.15_
 
-- [ ] 43.1 Write unit tests for mobile map features
+- [x] 43.1 Write unit tests for mobile map features
   - Test touch interaction handling
   - Validate gesture support
   - Test performance on simulated mobile devices
@@ -608,7 +608,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 4: Dashboard Enhancements (Priority 1.3)
 
-- [ ] 44. Implement dashboard statistics API
+- [x] 44. Implement dashboard statistics API
   - Create GET /api/analytics/dashboard endpoint
   - Implement single optimized SQL query for all statistics
   - Calculate 6 metric cards: Total Nodes, Active Nodes, Gateway Diversity, Protocol Diversity, Total Messages, Success Rate
@@ -616,13 +616,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Return data for all 7 charts
   - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5, 37.13, 37.14_
 
-- [ ] 44.1 Write unit tests for dashboard API
+- [x] 44.1 Write unit tests for dashboard API
   - Test statistics calculation accuracy
   - Validate caching behavior
   - Test query performance
   - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5, 37.13, 37.14_
 
-- [ ] 45. Create dashboard metric cards
+- [x] 45. Create dashboard metric cards
   - Implement 6 metric card components
   - Add color-coding based on thresholds
   - Display network coverage percentage for Active Nodes
@@ -630,13 +630,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Update cards in real-time
   - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5_
 
-- [ ] 45.1 Write unit tests for metric cards
+- [x] 45.1 Write unit tests for metric cards
   - Test card rendering and data display
   - Validate color-coding logic
   - Test number formatting
   - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5_
 
-- [ ] 46. Implement dashboard charts
+- [x] 46. Implement dashboard charts
   - Create Network Activity Trends line chart (7 days)
   - Create Node Activity Distribution doughnut chart
   - Create Gateway Activity Distribution bar chart
@@ -646,7 +646,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create Most Active Nodes table
   - _Requirements: 37.6, 37.7, 37.8, 37.9, 37.10, 37.11, 37.12_
 
-- [ ] 46.1 Write unit tests for dashboard charts
+- [x] 46.1 Write unit tests for dashboard charts
   - Test chart data processing and rendering
   - Validate chart configuration and options
   - Test theme-aware color updates
@@ -654,7 +654,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 5: Advanced Packet Analysis (Priority 2.1)
 
-- [ ] 47. Implement packet grouping functionality
+- [x] 47. Implement packet grouping functionality
   - Add "Group by Packet ID" toggle to packets page
   - Implement grouping by (mesh_packet_id, from_node_id, to_node_id, portnum, portnum_name)
   - Calculate aggregated statistics: gateway count, RSSI/SNR ranges, hop ranges, reception count
@@ -662,13 +662,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Optimize performance with in-memory grouping
   - _Requirements: 38.1, 38.2, 38.3, 38.4_
 
-- [ ] 47.1 Write unit tests for packet grouping
+- [x] 47.1 Write unit tests for packet grouping
   - Test grouping logic and aggregation
   - Validate statistics calculation
   - Test relay node formatting
   - _Requirements: 38.1, 38.2, 38.3, 38.4_
 
-- [ ] 48. Implement advanced packet filters
+- [x] 48. Implement advanced packet filters
   - Add time range filters (start_time, end_time)
   - Create searchable node pickers for From/To/Exclude filters
   - Add gateway picker with searchable dropdown
@@ -679,13 +679,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Add "Exclude gateway self messages" checkbox
   - _Requirements: 38.5, 38.6, 38.7, 38.8, 38.9, 38.10, 38.11, 38.12_
 
-- [ ] 48.1 Write unit tests for packet filters
+- [x] 48.1 Write unit tests for packet filters
   - Test each filter type independently
   - Validate filter combination logic
   - Test filter state persistence
   - _Requirements: 38.5, 38.6, 38.7, 38.8, 38.9, 38.10, 38.11, 38.12_
 
-- [ ] 49. Implement TEXT_MESSAGE_APP decoding
+- [x] 49. Implement TEXT_MESSAGE_APP decoding
   - Decode and display text message content in packets table
   - Handle different text encodings
   - Sanitize message content for display
@@ -693,7 +693,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test with various message formats
   - _Requirements: 38.13_
 
-- [ ] 49.1 Write unit tests for message decoding
+- [x] 49.1 Write unit tests for message decoding
   - Test text message decoding
   - Validate content sanitization
   - Test search functionality
@@ -701,7 +701,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 6: Distance Calculation (Priority 2.2)
 
-- [ ] 50. Implement Haversine distance calculation
+- [x] 50. Implement Haversine distance calculation
   - Create DistanceCalculationService with Haversine formula
   - Use Earth radius of 6371.0 km
   - Add distance calculation to neighbor relationships
@@ -709,17 +709,17 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Add distance formatting with appropriate precision
   - _Requirements: 39.1, 39.2, 39.3, 39.13, 39.14_
 
-- [ ] 50.1 Write property test for distance calculation
+- [x] 50.1 Write property test for distance calculation
   - **Property: Haversine formula correctness**
   - **Validates: Requirements 39.1, 39.2**
 
-- [ ] 50.2 Write unit tests for distance service
+- [x] 50.2 Write unit tests for distance service
   - Test distance calculation accuracy
   - Validate location history caching
   - Test distance formatting
   - _Requirements: 39.1, 39.2, 39.3, 39.13, 39.14_
 
-- [ ] 51. Implement longest links analysis
+- [x] 51. Implement longest links analysis
   - Create GET /api/links/longest endpoint
   - Filter by minimum distance (default 1km) and SNR (default -20dB)
   - Pre-fetch location history for performance
@@ -728,13 +728,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Add age warnings for stale location data
   - _Requirements: 39.4, 39.5, 39.6, 39.7, 39.8, 39.9_
 
-- [ ] 51.1 Write unit tests for longest links
+- [x] 51.1 Write unit tests for longest links
   - Test filtering logic
   - Validate distance calculations
   - Test age warning display
   - _Requirements: 39.4, 39.5, 39.6, 39.7, 39.8, 39.9_
 
-- [ ] 52. Add distance display to map
+- [x] 52. Add distance display to map
   - Show distance labels on RF link lines (optional toggle)
   - Display distance in neighbor popups
   - Calculate total path distance for multi-hop routes
@@ -742,7 +742,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test performance with many links
   - _Requirements: 39.10, 39.11, 39.15_
 
-- [ ] 52.1 Write unit tests for distance display
+- [x] 52.1 Write unit tests for distance display
   - Test distance label rendering
   - Validate multi-hop distance calculation
   - Test scatter plot generation
@@ -750,7 +750,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 7: Line of Sight Analysis (Priority 2.3)
 
-- [ ] 53. Implement line-of-sight analysis tool
+- [x] 53. Implement line-of-sight analysis tool
   - Create LineOfSight page component
   - Add two searchable node picker dropdowns
   - Calculate straight-line distance between selected nodes
@@ -759,13 +759,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Display signal quality statistics if connectivity exists
   - _Requirements: 40.1, 40.2, 40.3, 40.4, 40.5, 40.6_
 
-- [ ] 53.1 Write unit tests for line-of-sight tool
+- [x] 53.1 Write unit tests for line-of-sight tool
   - Test node selection and distance calculation
   - Validate historical connectivity queries
   - Test signal quality statistics display
   - _Requirements: 40.1, 40.2, 40.3, 40.4, 40.5, 40.6_
 
-- [ ] 54. Add elevation profile support
+- [x] 54. Add elevation profile support
   - Integrate with elevation API (Open-Elevation or USGS)
   - Display elevation profile chart between nodes
   - Calculate first Fresnel zone clearance
@@ -773,13 +773,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Make elevation data optional/configurable
   - _Requirements: 40.7, 40.11, 40.12_
 
-- [ ] 54.1 Write unit tests for elevation profile
+- [x] 54.1 Write unit tests for elevation profile
   - Test elevation data fetching
   - Validate Fresnel zone calculation
   - Test obstruction detection
   - _Requirements: 40.7, 40.11, 40.12_
 
-- [ ] 55. Add line-of-sight URL parameters and integration
+- [x] 55. Add line-of-sight URL parameters and integration
   - Support ?from=X&to=Y URL parameters for pre-loading
   - Add "Line of Sight" button to link popups on map
   - Calculate bearing/azimuth for antenna alignment
@@ -787,7 +787,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Add to tools dropdown menu
   - _Requirements: 40.8, 40.9, 40.10, 40.13, 40.14, 40.15_
 
-- [ ] 55.1 Write unit tests for LOS integration
+- [x] 55.1 Write unit tests for LOS integration
   - Test URL parameter handling
   - Validate map integration
   - Test bearing calculation
@@ -795,7 +795,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 8: Gateway Comparison (Priority 2.4)
 
-- [ ] 56. Implement gateway comparison backend
+- [x] 56. Implement gateway comparison backend
   - Create GET /api/gateways/compare endpoint
   - Find common packets with INNER JOIN on (mesh_packet_id, from_node_id, hop_limit)
   - Filter packets within 30 seconds of each other
@@ -804,13 +804,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Cache gateway statistics for 5 minutes
   - _Requirements: 41.2, 41.3, 41.4, 41.9, 41.14_
 
-- [ ] 56.1 Write unit tests for gateway comparison
+- [x] 56.1 Write unit tests for gateway comparison
   - Test common packet detection
   - Validate statistics calculations
   - Test caching behavior
   - _Requirements: 41.2, 41.3, 41.4, 41.9, 41.14_
 
-- [ ] 57. Create gateway comparison UI
+- [x] 57. Create gateway comparison UI
   - Add two searchable gateway picker dropdowns
   - Display scatter plots (RSSI and SNR comparisons)
   - Show timeline chart of signal quality over time
@@ -818,13 +818,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Show detailed packet table with differences
   - _Requirements: 41.1, 41.5, 41.6, 41.7, 41.8, 41.10_
 
-- [ ] 57.1 Write unit tests for comparison UI
+- [x] 57.1 Write unit tests for comparison UI
   - Test gateway selection
   - Validate chart rendering
   - Test table display
   - _Requirements: 41.1, 41.5, 41.6, 41.7, 41.8, 41.10_
 
-- [ ] 58. Add comparison filters and export
+- [x] 58. Add comparison filters and export
   - Implement time range filters
   - Add source node filter
   - Display gateway statistics (packet count, avg signal, unique sources)
@@ -832,7 +832,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test with large datasets
   - _Requirements: 41.11, 41.12, 41.13, 41.15_
 
-- [ ] 58.1 Write unit tests for comparison features
+- [x] 58.1 Write unit tests for comparison features
   - Test filtering functionality
   - Validate export format
   - Test performance with large datasets
@@ -840,7 +840,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 9: Data Retention (Priority 3.1)
 
-- [ ] 59. Implement data retention configuration
+- [x] 59. Implement data retention configuration
   - Add retention policies to config/app.yml
   - Support different retention periods per data type
   - Add enabled/disabled flag
@@ -848,13 +848,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Load configuration on service start
   - _Requirements: 42.1, 42.2, 42.9_
 
-- [ ] 59.1 Write unit tests for retention config
+- [x] 59.1 Write unit tests for retention config
   - Test configuration loading
   - Validate policy parsing
   - Test default values
   - _Requirements: 42.1, 42.2, 42.9_
 
-- [ ] 60. Create data cleanup job
+- [x] 60. Create data cleanup job
   - Implement hourly cron job for automatic cleanup
   - Delete messages older than retention period
   - Preserve traceroute packets (longer retention)
@@ -863,13 +863,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Run VACUUM after large deletions
   - _Requirements: 42.3, 42.4, 42.5, 42.6, 42.10, 42.11_
 
-- [ ] 60.1 Write unit tests for cleanup job
+- [x] 60.1 Write unit tests for cleanup job
   - Test deletion logic for each data type
   - Validate batch processing
   - Test VACUUM execution
   - _Requirements: 42.3, 42.4, 42.5, 42.6, 42.10, 42.11_
 
-- [ ] 61. Add cleanup monitoring and controls
+- [x] 61. Add cleanup monitoring and controls
   - Log cleanup statistics (records deleted, space freed)
   - Add admin button for manual cleanup trigger
   - Implement optional archive-before-delete
@@ -877,7 +877,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create audit trail for cleanup operations
   - _Requirements: 42.7, 42.8, 42.12, 42.13, 42.14, 42.15_
 
-- [ ] 61.1 Write unit tests for cleanup monitoring
+- [x] 61.1 Write unit tests for cleanup monitoring
   - Test logging functionality
   - Validate manual trigger
   - Test archive functionality
@@ -885,7 +885,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 10: Reusable Components (Priority 3.2)
 
-- [ ] 62. Create NodePicker component
+- [x] 62. Create NodePicker component
   - Implement searchable dropdown with autocomplete
   - Add debounced search (300ms)
   - Cache node list client-side
@@ -893,26 +893,26 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Support keyboard navigation
   - _Requirements: 43.1, 43.2, 43.3, 43.4_
 
-- [ ] 62.1 Write unit tests for NodePicker
+- [x] 62.1 Write unit tests for NodePicker
   - Test search and filtering
   - Validate debouncing
   - Test keyboard navigation
   - _Requirements: 43.1, 43.2, 43.3, 43.4_
 
-- [ ] 63. Create GatewayPicker component
+- [x] 63. Create GatewayPicker component
   - Implement similar to NodePicker for gateways
   - Convert between hex IDs and decimal node IDs
   - Show gateway packet counts
   - Fallback to API if not in cache
   - _Requirements: 43.5_
 
-- [ ] 63.1 Write unit tests for GatewayPicker
+- [x] 63.1 Write unit tests for GatewayPicker
   - Test gateway selection
   - Validate ID conversion
   - Test API fallback
   - _Requirements: 43.5_
 
-- [ ] 64. Create ModernTable component
+- [x] 64. Create ModernTable component
   - Implement lightweight table with pagination
   - Add client-side sorting
   - Support customizable columns with render functions
@@ -920,13 +920,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Integrate URL state management
   - _Requirements: 43.6, 43.7, 43.8, 43.9_
 
-- [ ] 64.1 Write unit tests for ModernTable
+- [x] 64.1 Write unit tests for ModernTable
   - Test pagination and sorting
   - Validate column rendering
   - Test search functionality
   - _Requirements: 43.6, 43.7, 43.8, 43.9_
 
-- [ ] 65. Create shared utility components
+- [x] 65. Create shared utility components
   - Implement FilterStore with Proxy for reactive state
   - Create SignalQualityBadge component
   - Create TimeRangePicker component
@@ -934,7 +934,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create EmptyState component
   - _Requirements: 43.10, 43.11, 43.12, 43.13, 43.14, 43.15_
 
-- [ ] 65.1 Write unit tests for utility components
+- [x] 65.1 Write unit tests for utility components
   - Test FilterStore reactivity
   - Validate badge color coding
   - Test time range selection
@@ -942,7 +942,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 11: URL State Management (Priority 3.3)
 
-- [ ] 66. Implement UrlStateManager utility
+- [x] 66. Implement UrlStateManager utility
   - Create utility for syncing filters to URL
   - Use URLSearchParams and history.replaceState()
   - Debounce URL updates by 300ms
@@ -950,13 +950,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Validate and sanitize URL parameters
   - _Requirements: 44.1, 44.2, 44.6, 44.7, 44.8, 44.9_
 
-- [ ] 66.1 Write unit tests for UrlStateManager
+- [x] 66.1 Write unit tests for UrlStateManager
   - Test URL parameter encoding/decoding
   - Validate debouncing
   - Test array parameter handling
   - _Requirements: 44.1, 44.2, 44.6, 44.7, 44.8, 44.9_
 
-- [ ] 67. Integrate URL state across pages
+- [x] 67. Integrate URL state across pages
   - Restore filter state from URL on page load
   - Update URL when filters change
   - Remove null/empty parameters from URL
@@ -964,13 +964,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test bookmark and sharing functionality
   - _Requirements: 44.3, 44.4, 44.5, 44.10, 44.11_
 
-- [ ] 67.1 Write unit tests for URL state integration
+- [x] 67.1 Write unit tests for URL state integration
   - Test state restoration on load
   - Validate browser navigation
   - Test bookmark functionality
   - _Requirements: 44.3, 44.4, 44.5, 44.10, 44.11_
 
-- [ ] 68. Add shareable link functionality
+- [x] 68. Add shareable link functionality
   - Create "Copy Link" button for filtered views
   - Generate shareable URLs with all filters
   - Ensure exact reproduction of filter state
@@ -978,7 +978,7 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Test across all pages (packets, nodes, map)
   - _Requirements: 44.12, 44.13, 44.14, 44.15_
 
-- [ ] 68.1 Write unit tests for shareable links
+- [x] 68.1 Write unit tests for shareable links
   - Test link generation
   - Validate state reproduction
   - Test complex filter scenarios
@@ -986,7 +986,7 @@ The following tasks implement features inspired by the Malla project analysis. T
 
 ### Phase 12: Final Integration and Testing
 
-- [ ] 69. Integration testing for Malla features
+- [x] 69. Integration testing for New features
   - Test complete RF link visualization workflow
   - Validate theme switching across all components
   - Test mobile responsiveness on real devices
@@ -999,13 +999,13 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Validate reusable components integration
   - Test URL state management across pages
 
-- [ ] 69.1 Write integration tests for user workflows
+- [x] 69.1 Write integration tests for user workflows
   - Test complete user journeys for each feature
   - Validate cross-feature interactions
   - Test performance under load
   - Verify mobile user experience
 
-- [ ] 70. Documentation and deployment
+- [x] 70. Documentation and deployment
   - Update user documentation with new features
   - Create feature guides for RF link visualization
   - Document theme customization options
@@ -1014,8 +1014,8 @@ The following tasks implement features inspired by the Malla project analysis. T
   - Create deployment guide for new features
   - Update configuration examples
 
-- [ ] 71. Final checkpoint - Malla features complete
-  - Ensure all Malla-inspired feature tests pass
+- [x] 71. Final checkpoint - New features complete
+  - Ensure all New feature tests pass
   - Validate all requirements are implemented
   - Perform final system integration testing
   - Prepare release notes and changelog

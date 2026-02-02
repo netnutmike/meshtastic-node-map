@@ -6,11 +6,13 @@ import { optionalAuth, requirePermission } from '../middleware/auth';
 import { applyRateLimit } from '../middleware/rateLimiting';
 import { asyncHandler, NotFoundError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { PacketGroupingService, PacketData } from '../services/packet-grouping.service';
 import Joi from 'joi';
 
 const router = Router();
 const messageRepository = new MessageRepository();
 const nodeRepository = new NodeRepository();
+const packetGroupingService = new PacketGroupingService();
 
 // Message query filters schema
 const messageFiltersSchema = Joi.object({
@@ -28,6 +30,147 @@ const messageFiltersSchema = Joi.object({
   networkId: Joi.string().uuid().optional(),
   search: Joi.string().optional() // Search in message content
 }).concat(schemas.pagination).concat(schemas.dateRange);
+
+// GET /messages/grouped - Get grouped packets with aggregated statistics
+router.get('/grouped',
+  applyRateLimit('read'),
+  optionalAuth,
+  validate(Joi.object({
+    fromNodeId: Joi.string().optional(),
+    toNodeId: Joi.string().optional(),
+    type: Joi.string().valid(
+      'TEXT', 'POSITION', 'TELEMETRY', 'NODEINFO', 'ROUTING', 'ADMIN',
+      'DETECTION_SENSOR', 'REPLY', 'IP_TUNNEL_APP', 'PAXCOUNTER_APP',
+      'SERIAL_APP', 'STORE_FORWARD_APP', 'RANGE_TEST_APP', 'TELEMETRY_APP',
+      'ZPS_APP', 'SIMULATOR_APP', 'TRACEROUTE_APP', 'NEIGHBOR_INFO_APP',
+      'ATAK_PLUGIN', 'MAP_REPORT_APP', 'PRIVATE_APP', 'ATAK_FORWARDER'
+    ).optional(),
+    encrypted: Joi.boolean().optional(),
+    channel: Joi.number().integer().min(0).max(7).optional(),
+    networkId: Joi.string().uuid().optional(),
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().optional(),
+    limit: Joi.number().integer().min(1).max(25000).default(5000)
+  }), { property: 'query' }),
+  asyncHandler(async (req, res) => {
+    const {
+      fromNodeId,
+      toNodeId,
+      type,
+      encrypted,
+      channel,
+      networkId,
+      startDate,
+      endDate,
+      limit = 5000
+    } = req.query;
+
+    logger.debug('Fetching grouped packets with filters:', req.query);
+
+    // Build filter object
+    const filters: any = {};
+    
+    if (fromNodeId) filters.fromNodeId = fromNodeId;
+    if (toNodeId) filters.toNodeId = toNodeId;
+    if (type) filters.type = type;
+    if (typeof encrypted === 'boolean') filters.encrypted = encrypted;
+    if (channel !== undefined) filters.channel = channel;
+    
+    // Network filtering through node relationship
+    if (networkId) {
+      filters.fromNode = {
+        networkId: networkId
+      };
+    }
+
+    // Date range filtering
+    if (startDate || endDate) {
+      filters.timestamp = {};
+      if (startDate) filters.timestamp.gte = new Date(startDate as string);
+      if (endDate) filters.timestamp.lte = new Date(endDate as string);
+    }
+
+    // Fetch raw packets (limited for performance)
+    const messages = await messageRepository.findMany({
+      where: filters,
+      select: {
+        id: true,
+        messageId: true,
+        fromNodeId: true,
+        toNodeId: true,
+        type: true,
+        hopStart: true,
+        hopLimit: true,
+        rssi: true,
+        snr: true,
+        timestamp: true,
+        topic: true
+      },
+      orderBy: { timestamp: 'desc' },
+      take: limit as number
+    });
+
+    // Transform messages to PacketData format
+    const packets: PacketData[] = messages.map(msg => ({
+      id: msg.id,
+      mesh_packet_id: msg.messageId || msg.id,
+      from_node_id: msg.fromNodeId,
+      to_node_id: msg.toNodeId || null,
+      portnum: getPortnumFromType(msg.type),
+      portnum_name: msg.type,
+      gateway_id: extractGatewayFromTopic(msg.topic || null),
+      rssi: msg.rssi || 0,
+      snr: msg.snr || 0,
+      hop_start: msg.hopStart || 0,
+      hop_limit: msg.hopLimit || 0,
+      timestamp: msg.timestamp,
+      relay_node_id: undefined // TODO: Extract from routing path if available
+    }));
+
+    // Group packets
+    const groupedPackets = packetGroupingService.groupPackets(packets);
+
+    res.json({
+      data: groupedPackets,
+      metadata: {
+        total_packets: messages.length,
+        total_groups: groupedPackets.length,
+        grouped: true
+      },
+      filters: req.query
+    });
+  })
+);
+
+// Helper function to extract gateway from MQTT topic
+function extractGatewayFromTopic(topic: string | null): string {
+  if (!topic) return 'unknown';
+  
+  // Topic format: msh/<region>/<area>/<hop>/<channel>/<gateway_id>
+  const parts = topic.split('/');
+  if (parts.length >= 6) {
+    return parts[5];
+  }
+  
+  return 'unknown';
+}
+
+// Helper function to map message type to portnum
+function getPortnumFromType(type: string): number {
+  const portnumMap: Record<string, number> = {
+    'TEXT': 1,
+    'POSITION': 3,
+    'NODEINFO': 4,
+    'ROUTING': 5,
+    'ADMIN': 6,
+    'TELEMETRY': 67,
+    'TRACEROUTE_APP': 70,
+    'NEIGHBOR_INFO_APP': 71,
+    // Add more mappings as needed
+  };
+  
+  return portnumMap[type] || 0;
+}
 
 // GET /messages - List all messages with filtering
 router.get('/',

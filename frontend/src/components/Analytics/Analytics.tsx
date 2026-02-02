@@ -57,6 +57,7 @@ import {
   Filler
 } from 'chart.js';
 import apiService from '../../services/api';
+import { applyThemeToChartOptions } from '../../utils/chartTheme';
 import './Analytics.css';
 
 // Register Chart.js components
@@ -158,6 +159,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartKey, setChartKey] = useState(0);
   
   // Analytics data state
   const [predictions, setPredictions] = useState<NodeFailurePrediction[]>([]);
@@ -170,6 +172,18 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
   // Filters
   const [timeWindow, setTimeWindow] = useState(24);
   const [lookAheadDays, setLookAheadDays] = useState(30);
+
+  // Listen for theme changes and force chart re-render
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setChartKey(prev => prev + 1);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
+    };
+  }, []);
 
   useEffect(() => {
     loadAnalyticsData();
@@ -541,7 +555,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
       fill: true
     }));
 
-    const chartOptions = {
+    const chartOptions = applyThemeToChartOptions({
       responsive: true,
       plugins: {
         legend: {
@@ -566,7 +580,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
           }
         }
       }
-    };
+    });
 
     return (
       <Grid container spacing={2}>
@@ -578,6 +592,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ networkId }) => {
               </Typography>
               {trends.length > 0 && (
                 <Line
+                  key={`trends-${chartKey}`}
                   data={{
                     labels: trends[0]?.forecast.map(f => new Date(f.date).toLocaleDateString()) || [],
                     datasets: chartData

@@ -293,15 +293,15 @@ const NetworkInsightsPage: React.FC = () => {
         <Typography variant="body2" color="text.secondary" gutterBottom>
           Showing {chatMessages.length} text messages out of {messages.length} total messages
         </Typography>
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} className="responsive-table">
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Timestamp</TableCell>
                 <TableCell>Sender</TableCell>
-                <TableCell>Receiver</TableCell>
+                <TableCell className="hide-mobile">Receiver</TableCell>
                 <TableCell>Message</TableCell>
-                <TableCell>Topic</TableCell>
+                <TableCell className="hide-mobile">Topic</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -332,9 +332,9 @@ const NetworkInsightsPage: React.FC = () => {
                     <TableRow key={idx}>
                       <TableCell>{new Date(msg.timestamp || msg.createdAt).toLocaleString()}</TableCell>
                       <TableCell>{msg.fromNode?.shortName || msg.fromNode?.longName || 'Unknown'}</TableCell>
-                      <TableCell>{msg.toNode?.shortName || msg.toNode?.longName || 'Broadcast'}</TableCell>
+                      <TableCell className="hide-mobile">{msg.toNode?.shortName || msg.toNode?.longName || 'Broadcast'}</TableCell>
                       <TableCell>{textContent}</TableCell>
-                      <TableCell>
+                      <TableCell className="hide-mobile">
                         <Chip label={msg.topic || 'N/A'} size="small" />
                       </TableCell>
                     </TableRow>
@@ -361,15 +361,15 @@ const NetworkInsightsPage: React.FC = () => {
         <Typography variant="body2" color="text.secondary" gutterBottom>
           Showing only nodes with short names ({nodesWithShortNames.length} nodes)
         </Typography>
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} className="responsive-table">
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Short Name</TableCell>
-                <TableCell>Long Name</TableCell>
+                <TableCell className="hide-mobile">Long Name</TableCell>
                 <TableCell>Neighbors Heard</TableCell>
-                <TableCell>Heard By</TableCell>
-                <TableCell>Last Update</TableCell>
+                <TableCell className="hide-mobile">Heard By</TableCell>
+                <TableCell className="hide-mobile">Last Update</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -383,7 +383,7 @@ const NetworkInsightsPage: React.FC = () => {
                 nodesWithShortNames.map((node) => (
                   <TableRow key={node.id}>
                     <TableCell>{node.shortName}</TableCell>
-                    <TableCell>{node.longName}</TableCell>
+                    <TableCell className="hide-mobile">{node.longName}</TableCell>
                     <TableCell>
                       {node.neighbors && node.neighbors.length > 0 ? (
                         <Box>
@@ -398,10 +398,10 @@ const NetworkInsightsPage: React.FC = () => {
                         </Box>
                       ) : null}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hide-mobile">
                       {/* Nodes that heard this node - would need backend support */}
                     </TableCell>
-                    <TableCell>{node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}</TableCell>
+                    <TableCell className="hide-mobile">{node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -746,15 +746,15 @@ const NetworkInsightsPage: React.FC = () => {
         </Paper>
 
         {/* Table */}
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} className="responsive-table">
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Rank</TableCell>
                 <TableCell>Node Name</TableCell>
                 <TableCell align="right">Message Count</TableCell>
-                <TableCell align="right">Activity %</TableCell>
-                <TableCell>Last Active</TableCell>
+                <TableCell align="right" className="hide-mobile">Activity %</TableCell>
+                <TableCell className="hide-mobile">Last Active</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -777,10 +777,10 @@ const NetworkInsightsPage: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell align="right">{talker.messageCount}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" className="hide-mobile">
                       {talker.percentage.toFixed(1)}%
                     </TableCell>
-                    <TableCell>{new Date(talker.lastActive).toLocaleString()}</TableCell>
+                    <TableCell className="hide-mobile">{new Date(talker.lastActive).toLocaleString()}</TableCell>
                   </TableRow>
                 ))
               )}

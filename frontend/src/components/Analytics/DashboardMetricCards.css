@@ -1,0 +1,193 @@
+/* Dashboard Metric Cards Styles */
+
+.dashboard-metric-cards {
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  height: 100%;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border-left: 4px solid transparent;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.metric-icon svg {
+  font-size: 20px;
+}
+
+.metric-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-weight: 700;
+  margin: 8px 0;
+  line-height: 1.2;
+}
+
+.metric-subtitle {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+/* Color coding for different metric types */
+
+/* Total Nodes - Default blue */
+.metric-card.total-nodes {
+  border-left-color: #2196f3;
+}
+
+.metric-card.total-nodes .metric-icon {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+
+/* Active Nodes - Green */
+.metric-card.active-nodes {
+  border-left-color: #4caf50;
+}
+
+.metric-card.active-nodes .metric-icon {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+/* Gateway Diversity - Blue */
+.metric-card.gateway-diversity {
+  border-left-color: #1976d2;
+}
+
+.metric-card.gateway-diversity .metric-icon {
+  background-color: rgba(25, 118, 210, 0.1);
+  color: #1976d2;
+}
+
+/* Protocol Diversity - Info Blue */
+.metric-card.protocol-diversity {
+  border-left-color: #0288d1;
+}
+
+.metric-card.protocol-diversity .metric-icon {
+  background-color: rgba(2, 136, 209, 0.1);
+  color: #0288d1;
+}
+
+/* Total Messages - Purple */
+.metric-card.total-messages {
+  border-left-color: #9c27b0;
+}
+
+.metric-card.total-messages .metric-icon {
+  background-color: rgba(156, 39, 176, 0.1);
+  color: #9c27b0;
+}
+
+/* Success Rate - Dynamic based on threshold */
+
+/* High success rate (>= 95%) - Green */
+.metric-card.success-high {
+  border-left-color: #4caf50;
+}
+
+.metric-card.success-high .metric-icon {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.metric-card.success-high .metric-value {
+  color: #4caf50;
+}
+
+/* Medium success rate (85-94%) - Yellow/Orange */
+.metric-card.success-medium {
+  border-left-color: #ff9800;
+}
+
+.metric-card.success-medium .metric-icon {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.metric-card.success-medium .metric-value {
+  color: #ff9800;
+}
+
+/* Low success rate (< 85%) - Red */
+.metric-card.success-low {
+  border-left-color: #f44336;
+}
+
+.metric-card.success-low .metric-icon {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.metric-card.success-low .metric-value {
+  color: #f44336;
+}
+
+/* Dark theme adjustments */
+[data-bs-theme="dark"] .metric-card {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .metric-card:hover {
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .metric-icon {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .metric-value {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .metric-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .metric-value {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-metric-cards {
+    margin-bottom: 16px;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+  }
+}

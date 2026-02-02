@@ -1,3 +1,9 @@
+/**
+ * Navigation Header Component
+ * Main navigation bar with search, tools menu, and settings
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 40.15
+ */
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -11,6 +17,10 @@ import {
   alpha,
   styled,
   Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -23,11 +33,15 @@ import {
   Login as LoginIcon,
   MapOutlined as MapIcon,
   Dashboard as DashboardIcon,
+  Build as ToolsIcon,
+  Visibility as LineOfSightIcon,
+  BarChart as AnalyticsIcon,
 } from '@mui/icons-material';
 import ConnectionStatus from '../ConnectionStatus';
 import Settings from '../Settings';
 import CustomLinksMenu from '../CustomLinksMenu';
 import { AuthModal, UserMenu } from '../Auth';
+import ThemeToggle from './ThemeToggle';
 import { selectIsAuthenticated, selectUser } from '../../store/slices/authSlice';
 import { loadAppName } from '../../services/config';
 
@@ -89,10 +103,13 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
   const [appName, setAppName] = useState('Meshtastic Node Mapper');
+  const [toolsMenuAnchor, setToolsMenuAnchor] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectUser);
+
+  const toolsMenuOpen = Boolean(toolsMenuAnchor);
 
   // Load app name from config
   React.useEffect(() => {
@@ -131,6 +148,19 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
   const handleCloseSettings = () => {
     setSettingsOpen(false);
+  };
+
+  const handleOpenToolsMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setToolsMenuAnchor(event.currentTarget);
+  };
+
+  const handleCloseToolsMenu = () => {
+    setToolsMenuAnchor(null);
+  };
+
+  const handleToolsMenuItemClick = (path: string) => {
+    handleCloseToolsMenu();
+    navigate(path);
   };
 
   return (
@@ -197,6 +227,54 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           
           <IconButton
             color="inherit"
+            aria-label="tools"
+            title="Tools"
+            onClick={handleOpenToolsMenu}
+          >
+            <ToolsIcon />
+          </IconButton>
+          
+          <Menu
+            anchorEl={toolsMenuAnchor}
+            open={toolsMenuOpen}
+            onClose={handleCloseToolsMenu}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={() => handleToolsMenuItemClick('/line-of-sight')}>
+              <ListItemIcon>
+                <LineOfSightIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Line of Sight Analysis</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={onOpenMQTTMonitor}>
+              <ListItemIcon>
+                <MonitorIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>MQTT Monitor</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={onOpenTopology}>
+              <ListItemIcon>
+                <TopologyIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Network Topology</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => handleToolsMenuItemClick('/insights')}>
+              <ListItemIcon>
+                <AnalyticsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Network Insights</ListItemText>
+            </MenuItem>
+          </Menu>
+          
+          <IconButton
+            color="inherit"
             aria-label="settings"
             title="Settings"
             onClick={handleOpenSettings}
@@ -204,34 +282,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             <SettingsIcon />
           </IconButton>
           
-          <IconButton
-            color="inherit"
-            aria-label="mqtt monitor"
-            title="MQTT Monitor"
-            onClick={onOpenMQTTMonitor}
-          >
-            <MonitorIcon />
-          </IconButton>
-          
-          <IconButton
-            color="inherit"
-            aria-label="network topology"
-            title="Network Topology Graph"
-            onClick={onOpenTopology}
-          >
-            <TopologyIcon />
-          </IconButton>
-          
           <CustomLinksMenu />
-          
-          <IconButton
-            color="inherit"
-            aria-label="network insights"
-            title="Network Insights"
-            onClick={() => navigate('/insights')}
-          >
-            <DashboardIcon />
-          </IconButton>
           
           <IconButton
             color="inherit"
@@ -250,6 +301,8 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           >
             <RefreshIcon />
           </IconButton>
+          
+          <ThemeToggle />
         </Box>
 
         {/* Authentication Section - Only show if auth is enabled */}

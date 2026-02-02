@@ -12,6 +12,13 @@ Perfect for anyone who wants to install, configure, and use the application.
 - **[User Guide](user-guide.md)** - Complete feature walkthrough and how-to guides
 - **[Troubleshooting](troubleshooting.md)** - Solutions to common problems
 
+### New Features (v1.1.0)
+- **[RF Link Visualization](features/rf-link-visualization.md)** - Real-time network topology and RF connections
+- **[Theme Customization](features/theme-customization.md)** - Light/dark/auto theme support
+- **[Mobile Usage Guide](features/mobile-usage.md)** - Mobile-optimized interface and features
+- **[Dashboard Analytics](features/dashboard-analytics.md)** - Comprehensive network insights and metrics
+- **[Deployment Guide](deployment-new-features.md)** - Deploy and configure new features
+
 ### Deployment
 - **[Production Deployment](production-deployment.md)** - Deploy on port 80 for production use
 - **[Production Quick Start](production-quickstart.md)** - Fast production deployment reference
@@ -28,6 +35,7 @@ For developers who want to contribute, extend, or understand the codebase.
 - **[Architecture Overview](developer/architecture.md)** - System design and technical details
 - **[Contributing Guidelines](developer/contributing.md)** - How to contribute to the project
 - **[Development Setup](developer/development-setup.md)** - Set up your dev environment
+- **[Implementation Guides](implementation/)** - Detailed technical implementation documentation
 
 ## Quick Navigation
 
