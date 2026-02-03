@@ -6,8 +6,19 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Autocomplete, TextField, Box, Typography, Chip } from '@mui/material';
-import { debounce } from 'lodash';
 import apiService from '../../services/api';
+
+// Simple debounce implementation to avoid lodash dependency
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 export interface GatewayOption {
   id: string;           // Decimal node ID
@@ -122,14 +133,14 @@ const GatewayPicker: React.FC<GatewayPickerProps> = ({
 
       // Fetch node information for gateways
       const nodesResponse = await apiService.get('/nodes');
-      const nodesMap = new Map(
+      const nodesMap = new Map<string, any>(
         nodesResponse.data.map((node: any) => [node.hexId, node])
       );
 
       // Convert to GatewayOption array
       const fetchedGateways: GatewayOption[] = Array.from(gatewayMap.entries())
         .map(([hexId, data]) => {
-          const node = nodesMap.get(hexId);
+          const node: any = nodesMap.get(hexId);
           const decimalId = hexToDecimal(hexId);
           
           return {

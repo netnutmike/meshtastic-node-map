@@ -7,6 +7,7 @@ import NetworkInsightsPage from '../pages/NetworkInsightsPage';
 import PacketsPage from '../pages/PacketsPage';
 import LineOfSightPage from '../pages/LineOfSightPage';
 import GatewayComparisonPage from '../pages/GatewayComparisonPage';
+import DashboardPage from '../pages/DashboardPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const AppRouter: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/map" replace />} />
         <Route path="/map" element={<MapPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         {/* Future routes will be added here */}
         <Route path="/about" element={<AboutPage />} />
         <Route path="/nodes" element={<NodesPage />} />

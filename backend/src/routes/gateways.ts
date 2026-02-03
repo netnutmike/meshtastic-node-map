@@ -170,10 +170,10 @@ router.get('/compare', async (req, res) => {
       options
     );
 
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     logger.error('Error in gateway comparison endpoint:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to compare gateways',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -196,10 +196,10 @@ router.get('/compare', async (req, res) => {
 router.post('/cache/clear', async (req, res) => {
   try {
     gatewayComparisonService.clearCache();
-    res.json({ message: 'Cache cleared successfully' });
+    return res.json({ message: 'Cache cleared successfully' });
   } catch (error) {
     logger.error('Error clearing gateway comparison cache:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to clear cache',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -231,10 +231,10 @@ router.post('/cache/clear', async (req, res) => {
 router.get('/cache/stats', async (req, res) => {
   try {
     const stats = gatewayComparisonService.getCacheStats();
-    res.json(stats);
+    return res.json(stats);
   } catch (error) {
     logger.error('Error getting gateway comparison cache stats:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to get cache stats',
       message: error instanceof Error ? error.message : 'Unknown error'
     });

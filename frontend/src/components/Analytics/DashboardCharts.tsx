@@ -55,6 +55,7 @@ interface DashboardChartsData {
   gatewayActivityDistribution: CategoryData[];
   signalQualityDistribution: CategoryData[];
   messageRoutingPatterns: CategoryData[];
+  mqttTopicDistribution?: CategoryData[];
   protocolUsage: Array<{ protocol: string; count: number }>;
 }
 
@@ -85,6 +86,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts, topNodes = []
     gatewayActivityDistribution = [],
     signalQualityDistribution = [],
     messageRoutingPatterns = [],
+    mqttTopicDistribution = [],
     protocolUsage = []
   } = charts || {};
 
@@ -251,13 +253,13 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts, topNodes = []
         x: {
           title: {
             display: true,
-            text: 'Gateway'
+            text: 'Gateway Device'
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Packet Count'
+            text: 'Messages Received'
           },
           beginAtZero: true
         }
@@ -274,6 +276,79 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts, topNodes = []
               <Box display="flex" alignItems="center" justifyContent="center" height="100%">
                 <Typography variant="body2" color="text.secondary">
                   No gateway data available
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  /**
+   * MQTT Topic Distribution Bar Chart
+   * Shows top 10 MQTT topics by message count
+   */
+  const renderMqttTopicDistribution = () => {
+    const labels = mqttTopicDistribution.map(item => item.category);
+    const counts = mqttTopicDistribution.map(item => item.count);
+
+    const data = {
+      labels,
+      datasets: [
+        {
+          label: 'Message Count',
+          data: counts,
+          backgroundColor: 'rgba(153, 102, 255, 0.8)',
+          borderColor: 'rgb(153, 102, 255)',
+          borderWidth: 1
+        }
+      ]
+    };
+
+    const options = applyThemeToChartOptions({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'MQTT Topic Distribution (Top 10)'
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'MQTT Topic'
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Message Count'
+          },
+          beginAtZero: true
+        }
+      }
+    });
+
+    return (
+      <Card data-testid="mqtt-topic-distribution-chart">
+        <CardContent>
+          <Box height={300}>
+            {mqttTopicDistribution.length > 0 ? (
+              <Bar key={`mqtt-topic-${chartKey}`} data={data} options={options} />
+            ) : (
+              <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+                <Typography variant="body2" color="text.secondary">
+                  No MQTT topic data available
                 </Typography>
               </Box>
             )}
@@ -552,6 +627,11 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts, topNodes = []
         {/* Gateway Activity Distribution */}
         <Grid item xs={12} md={6}>
           {renderGatewayActivityDistribution()}
+        </Grid>
+
+        {/* MQTT Topic Distribution */}
+        <Grid item xs={12} md={6}>
+          {renderMqttTopicDistribution()}
         </Grid>
 
         {/* Signal Quality Distribution */}

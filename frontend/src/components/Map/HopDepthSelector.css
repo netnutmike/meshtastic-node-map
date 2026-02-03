@@ -125,57 +125,55 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .hop-depth-selector {
-    background: #2d2d2d;
-  }
+[data-bs-theme="dark"] .hop-depth-selector {
+  background: #2d2d2d;
+}
 
-  .hop-depth-selector-header h4 {
-    color: #e0e0e0;
-  }
+[data-bs-theme="dark"] .hop-depth-selector-header h4 {
+  color: #e0e0e0;
+}
 
-  .hop-depth-clear-btn {
-    color: #999;
-  }
+[data-bs-theme="dark"] .hop-depth-clear-btn {
+  color: #999;
+}
 
-  .hop-depth-clear-btn:hover {
-    background: #3d3d3d;
-    color: #ccc;
-  }
+[data-bs-theme="dark"] .hop-depth-clear-btn:hover {
+  background: #3d3d3d;
+  color: #ccc;
+}
 
-  .hop-depth-control label {
-    color: #aaa;
-  }
+[data-bs-theme="dark"] .hop-depth-control label {
+  color: #aaa;
+}
 
-  .hop-depth-node-select {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
+[data-bs-theme="dark"] .hop-depth-node-select {
+  background: #3d3d3d;
+  border-color: #555;
+  color: #e0e0e0;
+}
 
-  .hop-depth-node-select:hover {
-    border-color: #777;
-  }
+[data-bs-theme="dark"] .hop-depth-node-select:hover {
+  border-color: #777;
+}
 
-  .hop-depth-btn {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
+[data-bs-theme="dark"] .hop-depth-btn {
+  background: #3d3d3d;
+  border-color: #555;
+  color: #e0e0e0;
+}
 
-  .hop-depth-btn:hover {
-    background: #4d4d4d;
-    border-color: #777;
-  }
+[data-bs-theme="dark"] .hop-depth-btn:hover {
+  background: #4d4d4d;
+  border-color: #777;
+}
 
-  .hop-depth-btn.active {
-    background: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-  }
+[data-bs-theme="dark"] .hop-depth-btn.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
 
-  .hop-depth-info {
-    background: #3d3d3d;
-    color: #aaa;
-  }
+[data-bs-theme="dark"] .hop-depth-info {
+  background: #3d3d3d;
+  color: #aaa;
 }

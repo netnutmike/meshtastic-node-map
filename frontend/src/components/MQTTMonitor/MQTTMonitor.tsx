@@ -232,7 +232,14 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
       'POSITION': 'bg-green-100 text-green-800',
       'TELEMETRY': 'bg-purple-100 text-purple-800',
       'NODEINFO': 'bg-orange-100 text-orange-800',
-      'ROUTING': 'bg-gray-100 text-gray-800'
+      'NEIGHBOR_INFO_APP': 'bg-cyan-100 text-cyan-800',
+      'TRACEROUTE_APP': 'bg-indigo-100 text-indigo-800',
+      'ROUTING': 'bg-gray-100 text-gray-800',
+      'ADMIN': 'bg-red-100 text-red-800',
+      'RANGE_TEST_APP': 'bg-yellow-100 text-yellow-800',
+      'STORE_FORWARD_APP': 'bg-teal-100 text-teal-800',
+      'DETECTION_SENSOR': 'bg-pink-100 text-pink-800',
+      'PRIVATE_APP': 'bg-slate-100 text-slate-800'
     };
     
     return (
@@ -322,7 +329,13 @@ export const MQTTMonitor: React.FC<MQTTMonitorProps> = ({ isVisible, onClose }) 
                   <option value="TELEMETRY">Telemetry</option>
                   <option value="NODEINFO">Node Info</option>
                   <option value="NEIGHBOR_INFO_APP">Neighbor Info</option>
+                  <option value="TRACEROUTE_APP">Traceroute</option>
                   <option value="ROUTING">Routing</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="RANGE_TEST_APP">Range Test</option>
+                  <option value="STORE_FORWARD_APP">Store & Forward</option>
+                  <option value="DETECTION_SENSOR">Detection Sensor</option>
+                  <option value="PRIVATE_APP">Private App</option>
                 </select>
                 
                 <input

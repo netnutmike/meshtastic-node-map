@@ -6,8 +6,19 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Autocomplete, TextField, Box, Typography, Chip } from '@mui/material';
-import { debounce } from 'lodash';
 import apiService from '../../services/api';
+
+// Simple debounce implementation to avoid lodash dependency
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 export interface NodeOption {
   id: string;

@@ -142,6 +142,13 @@ router.get('/dashboard',
           LEFT JOIN messages m ON m."fromNodeId" = n.id AND m.timestamp >= ${twentyFourHoursAgo}
           GROUP BY n.id, n."shortName", n."longName"
         ),
+        top_node_activity AS (
+          SELECT *
+          FROM node_activity
+          WHERE message_count > 0
+          ORDER BY message_count DESC
+          LIMIT 10
+        ),
         hourly_activity AS (
           SELECT
             DATE_TRUNC('hour', timestamp) as hour,
@@ -175,7 +182,7 @@ router.get('/dashboard',
             'longName', "longName",
             'messageCount', message_count,
             'avgRssi', avg_rssi
-          ) ORDER BY message_count DESC LIMIT 10) FROM node_activity WHERE message_count > 0) as top_nodes,
+          )) FROM top_node_activity) as top_nodes,
           (SELECT json_agg(json_build_object(
             'hour', hour,
             'messageCount', message_count
@@ -198,7 +205,7 @@ router.get('/dashboard',
         : 0;
 
       // Build response
-      const dashboardData = {
+      const dashboardData: any = {
         metrics: {
           totalNodes: Number(nodeStats.totalNodes) || 0,
           activeNodes24h: Number(nodeStats.activeNodes24h) || 0,
@@ -213,24 +220,15 @@ router.get('/dashboard',
             timestamp: item.hour,
             messageCount: Number(item.messageCount)
           })),
-          nodeActivityDistribution: [
-            { category: 'Very Active (>100 msgs)', count: topNodes.filter((n: any) => n.messageCount > 100).length },
-            { category: 'Moderately Active (10-100)', count: topNodes.filter((n: any) => n.messageCount >= 10 && n.messageCount <= 100).length },
-            { category: 'Lightly Active (1-10)', count: topNodes.filter((n: any) => n.messageCount >= 1 && n.messageCount < 10).length },
-            { category: 'Inactive (0)', count: Math.max(0, Number(nodeStats.totalNodes) - topNodes.length) }
-          ],
-          gatewayActivityDistribution: [], // Will be populated from gateway-specific query if needed
-          signalQualityDistribution: [
-            { category: 'Excellent (>-70dBm)', count: Number(messageStats.rssiExcellent) || 0 },
-            { category: 'Good (-70 to -80)', count: Number(messageStats.rssiGood) || 0 },
-            { category: 'Fair (-80 to -90)', count: Number(messageStats.rssiFair) || 0 },
-            { category: 'Poor (<-90)', count: Number(messageStats.rssiPoor) || 0 }
-          ],
+          nodeActivityDistribution: [],
+          gatewayActivityDistribution: [],
+          signalQualityDistribution: [],
           messageRoutingPatterns: [
             { category: 'Direct (0 hops)', count: Number(messageStats.directMessages) || 0 },
             { category: 'Routed (1-2 hops)', count: Number(messageStats.routedMessages) || 0 },
             { category: 'Multi-hop (3+)', count: Number(messageStats.multihopMessages) || 0 }
           ],
+          mqttTopicDistribution: [],
           protocolUsage: [] as Array<{ protocol: string; count: number }>
         },
         topNodes: topNodes.map((node: any) => ({
@@ -241,6 +239,86 @@ router.get('/dashboard',
           avgRssi: node.avgRssi ? Number(node.avgRssi).toFixed(1) : null
         })).slice(0, 10) // Ensure we only return top 10
       };
+
+      // Calculate node activity distribution
+      const allNodes = await db.node.count();
+      const veryActive = topNodes.filter((n: any) => n.messageCount > 100).length;
+      const moderatelyActive = topNodes.filter((n: any) => n.messageCount >= 10 && n.messageCount <= 100).length;
+      const lightlyActive = topNodes.filter((n: any) => n.messageCount >= 1 && n.messageCount < 10).length;
+      const inactive = Math.max(0, allNodes - (veryActive + moderatelyActive + lightlyActive));
+      
+      dashboardData.charts.nodeActivityDistribution = [
+        { category: 'Very Active (>100 msgs)', count: veryActive },
+        { category: 'Moderately Active (10-100)', count: moderatelyActive },
+        { category: 'Lightly Active (1-10)', count: lightlyActive },
+        { category: 'Inactive (0)', count: inactive }
+      ];
+
+      // Calculate gateway activity distribution (nodes receiving messages from others)
+      // A gateway is a node that receives messages (toNodeId)
+      const gatewayActivity = await db.$queryRaw<Array<{ nodeId: string; shortName: string; longName: string; count: bigint }>>`
+        SELECT 
+          n."nodeId",
+          n."shortName",
+          n."longName",
+          COUNT(DISTINCT m.id) as count
+        FROM nodes n
+        INNER JOIN messages m ON m."toNodeId" = n.id
+        WHERE m.timestamp >= ${twentyFourHoursAgo}
+          AND m."toNodeId" IS NOT NULL
+        GROUP BY n."nodeId", n."shortName", n."longName"
+        ORDER BY count DESC
+        LIMIT 10
+      `;
+      
+      if (gatewayActivity.length === 0) {
+        dashboardData.charts.gatewayActivityDistribution = [{ category: 'No Gateway Data', count: 0 }];
+      } else {
+        dashboardData.charts.gatewayActivityDistribution = gatewayActivity.map(g => ({
+          category: g.shortName || g.nodeId,
+          count: Number(g.count)
+        }));
+      }
+
+      // Add MQTT topic distribution (new chart)
+      const topicActivity = await db.$queryRaw<Array<{ topic: string; count: bigint }>>`
+        SELECT 
+          COALESCE(topic, 'Unknown') as topic,
+          COUNT(*) as count
+        FROM messages
+        WHERE timestamp >= ${twentyFourHoursAgo}
+          AND topic IS NOT NULL
+        GROUP BY topic
+        ORDER BY count DESC
+        LIMIT 10
+      `;
+      
+      if (topicActivity.length === 0) {
+        dashboardData.charts.mqttTopicDistribution = [{ category: 'No Topic Data', count: 0 }];
+      } else {
+        dashboardData.charts.mqttTopicDistribution = topicActivity.map(t => ({
+          category: t.topic,
+          count: Number(t.count)
+        }));
+      }
+
+      // Calculate signal quality distribution
+      const excellent = Number(messageStats.rssiExcellent) || 0;
+      const good = Number(messageStats.rssiGood) || 0;
+      const fair = Number(messageStats.rssiFair) || 0;
+      const poor = Number(messageStats.rssiPoor) || 0;
+      const totalRssi = excellent + good + fair + poor;
+      
+      if (totalRssi === 0) {
+        dashboardData.charts.signalQualityDistribution = [{ category: 'No RSSI Data Available', count: 0 }];
+      } else {
+        dashboardData.charts.signalQualityDistribution = [
+          { category: 'Excellent (>-70dBm)', count: excellent },
+          { category: 'Good (-70 to -80)', count: good },
+          { category: 'Fair (-80 to -90)', count: fair },
+          { category: 'Poor (<-90)', count: poor }
+        ];
+      }
 
       // Get protocol usage distribution
       const protocolUsage = await db.message.groupBy({

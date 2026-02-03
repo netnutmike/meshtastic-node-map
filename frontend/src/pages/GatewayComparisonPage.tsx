@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -51,6 +51,9 @@ import {
 import { RootState } from '../store';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import Footer from '../components/Layout/Footer';
+import { MQTTMonitor } from '../components/MQTTMonitor';
+import NetworkTopologyGraph from '../components/Map/NetworkTopologyGraph';
+import { openTopologyGraph, closeTopologyGraph } from '../store/slices/mapSlice';
 import apiService from '../services/api';
 
 // Register Chart.js components
@@ -109,8 +112,10 @@ interface GatewayComparisonResult {
 }
 
 const GatewayComparisonPage: React.FC = () => {
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const nodes = useSelector((state: RootState) => state.nodes.nodes);
+  const topologyGraphOpen = useSelector((state: RootState) => state.map.topologyGraphOpen);
   
   const [gateway1, setGateway1] = useState<GatewayOption | null>(null);
   const [gateway2, setGateway2] = useState<GatewayOption | null>(null);
@@ -119,6 +124,7 @@ const GatewayComparisonPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
 
   // Convert nodes to gateway options (nodes that have received packets)
   const gatewayOptions = useMemo(() => {
@@ -257,6 +263,26 @@ const GatewayComparisonPage: React.FC = () => {
     setPage(0);
   };
 
+  const handleOpenMQTTMonitor = () => {
+    setMqttMonitorOpen(true);
+  };
+
+  const handleCloseMQTTMonitor = () => {
+    setMqttMonitorOpen(false);
+  };
+
+  const handleOpenTopology = () => {
+    // Open topology graph modal on current page
+    dispatch(openTopologyGraph());
+  };
+
+  const handleRefresh = () => {
+    // Refresh comparison if gateways are selected
+    if (gateway1 && gateway2) {
+      compareGateways(gateway1.id, gateway2.id);
+    }
+  };
+
   // Prepare scatter plot data for RSSI comparison
   const rssiScatterData = useMemo(() => {
     if (!result) return null;
@@ -280,7 +306,7 @@ const GatewayComparisonPage: React.FC = () => {
             { x: -120, y: -120 },
             { x: -40, y: -40 }
           ],
-          type: 'line' as const,
+          type: 'line' as any,
           borderColor: 'rgba(255, 99, 132, 0.5)',
           borderDash: [5, 5],
           pointRadius: 0,
@@ -313,7 +339,7 @@ const GatewayComparisonPage: React.FC = () => {
             { x: -20, y: -20 },
             { x: 20, y: 20 }
           ],
-          type: 'line' as const,
+          type: 'line' as any,
           borderColor: 'rgba(255, 99, 132, 0.5)',
           borderDash: [5, 5],
           pointRadius: 0,
@@ -385,7 +411,11 @@ const GatewayComparisonPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <NavigationHeader />
+      <NavigationHeader 
+        onRefresh={handleRefresh}
+        onOpenTopology={handleOpenTopology}
+        onOpenMQTTMonitor={handleOpenMQTTMonitor}
+      />
       
       <Box sx={{ p: 3, flexGrow: 1, overflow: 'auto' }}>
         <Typography variant="h4" gutterBottom>
@@ -796,6 +826,18 @@ const GatewayComparisonPage: React.FC = () => {
       </Box>
 
       <Footer />
+
+      {/* MQTT Monitor */}
+      <MQTTMonitor 
+        isVisible={mqttMonitorOpen}
+        onClose={handleCloseMQTTMonitor}
+      />
+
+      {/* Network Topology Graph */}
+      <NetworkTopologyGraph
+        isOpen={topologyGraphOpen}
+        onClose={() => dispatch(closeTopologyGraph())}
+      />
     </Box>
   );
 };

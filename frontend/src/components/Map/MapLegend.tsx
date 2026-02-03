@@ -52,7 +52,10 @@ const MapLegend: React.FC = () => {
         minWidth: 200,
         maxWidth: 300,
         zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: (theme) => 
+          theme.palette.mode === 'dark' 
+            ? 'rgba(33, 37, 41, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(4px)',
       }}
     >
@@ -69,7 +72,10 @@ const MapLegend: React.FC = () => {
                 height: 12,
                 borderRadius: '50%',
                 backgroundColor: item.color,
-                border: '2px solid white',
+                border: (theme) => 
+                  theme.palette.mode === 'dark' 
+                    ? '2px solid #555' 
+                    : '2px solid white',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
                 flexShrink: 0,
               }}
@@ -82,7 +88,14 @@ const MapLegend: React.FC = () => {
       </Box>
 
       {viewMode === 'nodes' && (
-        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #eee' }}>
+        <Box sx={{ 
+          mt: 1, 
+          pt: 1, 
+          borderTop: (theme) => 
+            theme.palette.mode === 'dark' 
+              ? '1px solid #555' 
+              : '1px solid #eee' 
+        }}>
           <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
             Nodes may appear faded or marked as "OLD" based on age settings
           </Typography>

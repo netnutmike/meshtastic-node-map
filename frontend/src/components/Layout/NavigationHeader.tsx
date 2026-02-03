@@ -218,6 +218,15 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           
           <IconButton
             color="inherit"
+            aria-label="dashboard"
+            title="Dashboard"
+            onClick={() => navigate('/dashboard')}
+          >
+            <DashboardIcon />
+          </IconButton>
+          
+          <IconButton
+            color="inherit"
             aria-label="nodes"
             title="Nodes"
             onClick={() => navigate('/nodes')}
@@ -253,13 +262,19 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               </ListItemIcon>
               <ListItemText>Line of Sight Analysis</ListItemText>
             </MenuItem>
-            <MenuItem onClick={onOpenMQTTMonitor}>
+            <MenuItem onClick={() => {
+              handleCloseToolsMenu();
+              onOpenMQTTMonitor?.();
+            }}>
               <ListItemIcon>
                 <MonitorIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>MQTT Monitor</ListItemText>
             </MenuItem>
-            <MenuItem onClick={onOpenTopology}>
+            <MenuItem onClick={() => {
+              handleCloseToolsMenu();
+              onOpenTopology?.();
+            }}>
               <ListItemIcon>
                 <TopologyIcon fontSize="small" />
               </ListItemIcon>
@@ -301,7 +316,13 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           >
             <RefreshIcon />
           </IconButton>
-          
+        </Box>
+
+        {/* Spacer to push theme toggle and auth to the right */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Theme Toggle - Right side */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <ThemeToggle />
         </Box>
 

@@ -46,7 +46,19 @@ router.get('/messages',
   optionalPermission('read'),
   asyncHandler(async (req, res) => {
     if (!mqttMonitorService) {
-      return res.status(503).json({ error: 'MQTT Monitor service not available' });
+      // Return empty data instead of 503 when service is not available
+      logger.warn('MQTT Monitor service not available, returning empty data');
+      return res.json({
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 50,
+          total: 0,
+          pages: 0
+        },
+        filters: req.query,
+        warning: 'MQTT Monitor service is not available. Check MQTT connection configuration.'
+      });
     }
 
     const {
@@ -101,7 +113,23 @@ router.get('/statistics',
   optionalPermission('read'),
   asyncHandler(async (req, res) => {
     if (!mqttMonitorService) {
-      return res.status(503).json({ error: 'MQTT Monitor service not available' });
+      logger.warn('MQTT Monitor service not available, returning empty statistics');
+      return res.json({
+        data: {
+          totalMessages: 0,
+          messagesByType: {},
+          messagesByChannel: {},
+          encryptedMessages: 0,
+          unencryptedMessages: 0,
+          decryptionFailures: 0,
+          decryptionFailurePercentage: 0,
+          averageMessageSize: 0,
+          messagesPerMinute: 0,
+          topNodes: [],
+          timeRange: req.query.timeRange || '1h'
+        },
+        warning: 'MQTT Monitor service is not available. Check MQTT connection configuration.'
+      });
     }
     
     const { timeRange = '1h' } = req.query;

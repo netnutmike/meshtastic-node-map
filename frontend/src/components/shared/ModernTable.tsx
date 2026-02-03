@@ -22,7 +22,18 @@ import {
   InputAdornment
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { debounce } from 'lodash';
+
+// Simple debounce implementation to avoid lodash dependency
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 export interface ColumnDef<T> {
   id: string;

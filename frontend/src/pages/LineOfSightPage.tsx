@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -49,6 +49,9 @@ import 'leaflet/dist/leaflet.css';
 import { RootState } from '../store';
 import NavigationHeader from '../components/Layout/NavigationHeader';
 import Footer from '../components/Layout/Footer';
+import { MQTTMonitor } from '../components/MQTTMonitor';
+import NetworkTopologyGraph from '../components/Map/NetworkTopologyGraph';
+import { openTopologyGraph, closeTopologyGraph } from '../store/slices/mapSlice';
 import apiService from '../services/api';
 
 // Register Chart.js components
@@ -151,8 +154,10 @@ interface LineOfSightResult {
 }
 
 const LineOfSightPage: React.FC = () => {
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const nodes = useSelector((state: RootState) => state.nodes.nodes);
+  const topologyGraphOpen = useSelector((state: RootState) => state.map.topologyGraphOpen);
   
   const [fromNode, setFromNode] = useState<NodeOption | null>(null);
   const [toNode, setToNode] = useState<NodeOption | null>(null);
@@ -163,6 +168,7 @@ const LineOfSightPage: React.FC = () => {
   const [loadingElevation, setLoadingElevation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elevationError, setElevationError] = useState<string | null>(null);
+  const [mqttMonitorOpen, setMqttMonitorOpen] = useState(false);
 
   // Convert nodes to autocomplete options
   const nodeOptions = useMemo(() => {
@@ -276,6 +282,26 @@ const LineOfSightPage: React.FC = () => {
     }
   };
 
+  const handleOpenMQTTMonitor = () => {
+    setMqttMonitorOpen(true);
+  };
+
+  const handleCloseMQTTMonitor = () => {
+    setMqttMonitorOpen(false);
+  };
+
+  const handleOpenTopology = () => {
+    // Open topology graph modal on current page
+    dispatch(openTopologyGraph());
+  };
+
+  const handleRefresh = () => {
+    // Refresh analysis if nodes are selected
+    if (fromNode && toNode) {
+      analyzeLineOfSight(fromNode.id, toNode.id);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString();
@@ -375,7 +401,11 @@ const LineOfSightPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <NavigationHeader />
+      <NavigationHeader 
+        onRefresh={handleRefresh}
+        onOpenTopology={handleOpenTopology}
+        onOpenMQTTMonitor={handleOpenMQTTMonitor}
+      />
       
       <Box sx={{ p: 3, flexGrow: 1, overflow: 'auto' }}>
         <Typography variant="h4" gutterBottom>
@@ -792,6 +822,18 @@ const LineOfSightPage: React.FC = () => {
       </Box>
 
       <Footer />
+
+      {/* MQTT Monitor */}
+      <MQTTMonitor 
+        isVisible={mqttMonitorOpen}
+        onClose={handleCloseMQTTMonitor}
+      />
+
+      {/* Network Topology Graph */}
+      <NetworkTopologyGraph
+        isOpen={topologyGraphOpen}
+        onClose={() => dispatch(closeTopologyGraph())}
+      />
     </Box>
   );
 };

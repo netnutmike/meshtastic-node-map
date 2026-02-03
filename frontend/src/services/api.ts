@@ -167,6 +167,48 @@ class ApiService {
     return this.request<any>(`/nodes/${nodeId}/neighbors`);
   }
 
+  async getTopologyLinks(options: {
+    includeNeighbors?: boolean;
+    includeTraceroutes?: boolean;
+    minSnr?: number;
+    maxAge?: number;
+  } = {}): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    if (options.includeNeighbors !== undefined) {
+      params.append('includeNeighbors', options.includeNeighbors.toString());
+    }
+    if (options.includeTraceroutes !== undefined) {
+      params.append('includeTraceroutes', options.includeTraceroutes.toString());
+    }
+    if (options.minSnr !== undefined) {
+      params.append('minSnr', options.minSnr.toString());
+    }
+    if (options.maxAge !== undefined) {
+      params.append('maxAge', options.maxAge.toString());
+    }
+    
+    const endpoint = `/links/topology${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
+  async getTraceroutes(options: {
+    maxAge?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    if (options.maxAge !== undefined) {
+      params.append('maxAge', options.maxAge.toString());
+    }
+    if (options.limit !== undefined) {
+      params.append('limit', options.limit.toString());
+    }
+    
+    const endpoint = `/links/traceroutes${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
   // Message API methods
   async getMessages(
     options: {

@@ -16,7 +16,7 @@ import { linksRoutes } from './links';
 import { lineOfSightRoutes } from './line-of-sight';
 import gatewayRoutes from './gateways';
 import cleanupRoutes from './cleanup';
-// import analyticsRoutes from './analytics'; // Temporarily disabled due to validation errors
+import analyticsRoutes from './analytics';
 import coverageAnalysisRoutes from './coverage-analysis';
 import { trackApiUsage } from '../middleware/rateLimiting';
 
@@ -46,7 +46,7 @@ router.use(`${API_VERSION}/links`, linksRoutes);
 router.use(`${API_VERSION}/analysis/line-of-sight`, lineOfSightRoutes);
 router.use(`${API_VERSION}/gateways`, gatewayRoutes);
 router.use(`${API_VERSION}/cleanup`, cleanupRoutes);
-// router.use(`${API_VERSION}/analytics`, analyticsRoutes); // Temporarily disabled
+router.use(`${API_VERSION}/analytics`, analyticsRoutes);
 router.use(`${API_VERSION}/coverage-analysis`, coverageAnalysisRoutes);
 
 // API info endpoint

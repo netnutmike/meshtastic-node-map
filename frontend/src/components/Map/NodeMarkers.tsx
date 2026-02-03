@@ -179,8 +179,19 @@ const addNodeMarkerStyles = () => {
       white-space: nowrap !important;
     }
     
+    [data-bs-theme="dark"] .node-label-tooltip {
+      background-color: rgba(50, 50, 50, 0.95) !important;
+      border: 1px solid #555 !important;
+      color: #f0f0f0 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
+    }
+    
     .node-label-tooltip::before {
       border-right-color: #ccc !important;
+    }
+    
+    [data-bs-theme="dark"] .node-label-tooltip::before {
+      border-right-color: #555 !important;
     }
   `;
   document.head.appendChild(style);

@@ -35,7 +35,7 @@ import {
   History as HistoryIcon,
   Archive as ArchiveIcon,
 } from '@mui/icons-material';
-import { api } from '../../services/api';
+import apiService from '../../services/api';
 
 interface CleanupStatus {
   scheduler: {
@@ -104,7 +104,7 @@ const DataCleanupPanel: React.FC = () => {
   const loadStatus = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/cleanup/status');
+      const response = await apiService.get('/cleanup/status');
       setStatus(response.data);
     } catch (err) {
       setError('Failed to load cleanup status');
@@ -116,7 +116,7 @@ const DataCleanupPanel: React.FC = () => {
 
   const loadDiskSpace = async () => {
     try {
-      const response = await api.get('/cleanup/disk-space');
+      const response = await apiService.get('/cleanup/disk-space');
       setDiskSpace(response.data);
     } catch (err) {
       console.error('Failed to load disk space info', err);
@@ -125,7 +125,7 @@ const DataCleanupPanel: React.FC = () => {
 
   const loadAuditLog = async () => {
     try {
-      const response = await api.get('/cleanup/audit-log');
+      const response = await apiService.get('/cleanup/audit-log');
       setAuditLog(response.data.entries || []);
     } catch (err) {
       console.error('Failed to load audit log', err);
@@ -137,7 +137,7 @@ const DataCleanupPanel: React.FC = () => {
       setExecuting(true);
       setError(null);
       
-      const response = await api.post('/cleanup/execute', {
+      const response = await apiService.post('/cleanup/execute', {
         archive: enableArchive,
         triggeredBy: triggeredBy || undefined,
       });

@@ -79,8 +79,8 @@ const NodesPage: React.FC = () => {
   // - Bookmarkable and shareable filtered views (44.10)
   const [urlState, updateUrlState] = useUrlState({
     search: '',
-    showActiveOnly: true,
-    showUnknown: false,
+    showActiveOnly: true as boolean,
+    showUnknown: false as boolean,
     orderBy: 'shortName',
     order: 'asc' as Order,
     page: 1,
@@ -217,6 +217,10 @@ const NodesPage: React.FC = () => {
     navigate('/');
   };
 
+  const handleRefresh = () => {
+    loadNodes();
+  };
+
   const formatLastSeen = (timestamp: string | undefined): string => {
     if (!timestamp) return 'Never';
     
@@ -332,6 +336,7 @@ const NodesPage: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <NavigationHeader 
+        onRefresh={handleRefresh}
         onOpenMQTTMonitor={handleOpenMQTTMonitor}
         onOpenTopology={handleOpenTopology}
       />

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Provider } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -9,64 +9,67 @@ import webSocketService from './services/websocket';
 import offlineService from './services/offline.service';
 import { MOTD } from './components/MOTD';
 import { loadMOTDConfig, MOTDConfig } from './services/config';
+import { getDarkModeToggle } from './utils/DarkModeToggle';
 import './App.css';
 import './styles/mobile.css';
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
+function App() {
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+
+  // Create theme based on current mode
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode: themeMode,
+      primary: {
+        main: '#1976d2',
+      },
+      secondary: {
+        main: '#dc004e',
+      },
     },
-    secondary: {
-      main: '#dc004e',
+    breakpoints: {
+      values: {
+        xs: 0,
+        sm: 600,
+        md: 768,
+        lg: 1024,
+        xl: 1200,
+      },
     },
-  },
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 768,
-      lg: 1024,
-      xl: 1200,
-    },
-  },
-  components: {
-    // Mobile-optimized component overrides
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          '@media (max-width: 768px)': {
-            minHeight: 44,
-            minWidth: 44,
+    components: {
+      // Mobile-optimized component overrides
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 768px)': {
+              minHeight: 44,
+              minWidth: 44,
+            },
           },
         },
       },
-    },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          '@media (max-width: 768px)': {
-            padding: 12,
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 768px)': {
+              padding: 12,
+            },
           },
         },
       },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '@media (max-width: 768px)': {
-            '& input': {
-              fontSize: '16px', // Prevent zoom on iOS
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 768px)': {
+              '& input': {
+                fontSize: '16px', // Prevent zoom on iOS
+              },
             },
           },
         },
       },
     },
-  },
-});
-
-function App() {
+  }), [themeMode]);
   const [servicesInitialized, setServicesInitialized] = React.useState(false);
   const [motdConfig, setMotdConfig] = React.useState<MOTDConfig>({
     enabled: false,
@@ -76,6 +79,19 @@ function App() {
   });
 
   useEffect(() => {
+    // Initialize dark mode toggle and set initial theme
+    const darkModeToggle = getDarkModeToggle();
+    const effectiveTheme = darkModeToggle.getEffectiveTheme();
+    setThemeMode(effectiveTheme);
+
+    // Listen for theme changes
+    const handleThemeChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      setThemeMode(customEvent.detail.effective);
+    };
+    
+    window.addEventListener('themeChanged', handleThemeChange);
+
     // Load MOTD configuration
     loadMOTDConfig().then(config => {
       setMotdConfig(config);
@@ -121,8 +137,10 @@ function App() {
     // Cleanup on unmount
     return () => {
       clearTimeout(timer);
+      window.removeEventListener('themeChanged', handleThemeChange);
       webSocketService.disconnect();
       offlineService.destroy();
+      darkModeToggle.destroy();
       document.removeEventListener('touchstart', preventDefaultTouch);
       document.removeEventListener('touchmove', preventDefaultTouch);
     };
