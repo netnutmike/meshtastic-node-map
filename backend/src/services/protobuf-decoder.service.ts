@@ -143,15 +143,15 @@ export class ProtobufDecoderService {
       
       // Define NeighborInfo message for NEIGHBORINFO_APP
       const NeighborInfo = new protobuf.Type('NeighborInfo')
-        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
-        .add(new protobuf.Field('nodeBroadcastIntervalSecs', 2, 'uint32'))
-        .add(new protobuf.Field('neighbors', 3, 'Neighbor', 'repeated'));
+        .add(new protobuf.Field('nodeId', 1, 'uint32'))
+        .add(new protobuf.Field('lastSentById', 2, 'uint32'))
+        .add(new protobuf.Field('nodeBroadcastIntervalSecs', 3, 'uint32'))
+        .add(new protobuf.Field('neighbors', 4, 'Neighbor', 'repeated'));
       
       const Neighbor = new protobuf.Type('Neighbor')
-        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
+        .add(new protobuf.Field('nodeId', 1, 'uint32'))
         .add(new protobuf.Field('snr', 2, 'float'))
-        .add(new protobuf.Field('lastRxTime', 3, 'fixed32'))
-        .add(new protobuf.Field('nodeIdStr', 4, 'string'));
+        .add(new protobuf.Field('lastRxTime', 3, 'fixed32'));
       
       // Add all types to root
       this.root.add(ServiceEnvelope);
