@@ -41,7 +41,7 @@
     "socket.io": "^4.7.4",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "validator": "^13.15.23",
+    "validator": "^13.15.26",
     "webidl-conversions": "^7.0.0",
     "winston": "^3.11.0"
   },
