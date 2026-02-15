@@ -30,7 +30,12 @@ import {
   togglePositionHistory,
   toggleNodeLabels,
   setViewMode,
+  toggleRFLinks,
+  toggleTracerouteLinks,
+  togglePacketLinks,
+  toggleDistanceLabels,
 } from '../../store/slices/mapSlice';
+import HopDepthSelector from './HopDepthSelector';
 
 interface MapOptionsProps {
   isOpen: boolean;
@@ -71,6 +76,10 @@ const MapOptions: React.FC<MapOptionsProps> = ({ isOpen, onClose }) => {
     showPositionHistory,
     showNodeLabels,
     viewMode,
+    showRFLinks,
+    showTracerouteLinks,
+    showPacketLinks,
+    showDistanceLabels,
   } = useSelector((state: RootState) => state.map);
 
   if (!isOpen) return null;
@@ -218,6 +227,75 @@ const MapOptions: React.FC<MapOptionsProps> = ({ isOpen, onClose }) => {
             />
           </Tooltip>
         </FormGroup>
+      </Box>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* RF Links Options */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ mb: 2 }}>
+          RF Links
+        </Typography>
+        <FormGroup>
+          <Tooltip title="Show/hide all RF links" placement="left">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showRFLinks}
+                  onChange={() => dispatch(toggleRFLinks())}
+                  size="small"
+                />
+              }
+              label="Show RF Links"
+            />
+          </Tooltip>
+          <Tooltip title="Show/hide traceroute links (solid lines)" placement="left">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showTracerouteLinks}
+                  onChange={() => dispatch(toggleTracerouteLinks())}
+                  size="small"
+                  disabled={!showRFLinks}
+                />
+              }
+              label="Traceroute Links"
+            />
+          </Tooltip>
+          <Tooltip title="Show/hide packet links (dashed lines)" placement="left">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showPacketLinks}
+                  onChange={() => dispatch(togglePacketLinks())}
+                  size="small"
+                  disabled={!showRFLinks}
+                />
+              }
+              label="Packet Links (0-hop)"
+            />
+          </Tooltip>
+          <Tooltip title="Show/hide distance labels on RF links" placement="left">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showDistanceLabels}
+                  onChange={() => dispatch(toggleDistanceLabels())}
+                  size="small"
+                  disabled={!showRFLinks}
+                />
+              }
+              label="Distance Labels"
+            />
+          </Tooltip>
+        </FormGroup>
+        
+        {/* Hop Depth Selector */}
+        {showRFLinks && (
+          <Box sx={{ mt: 2 }}>
+            <HopDepthSelector />
+          </Box>
+        )}
       </Box>
 
       {/* Help Text */}

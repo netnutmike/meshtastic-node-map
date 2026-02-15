@@ -5,3 +5,5 @@ export { default as NeighborArrows } from './NeighborArrows';
 export { default as NetworkTopologyGraph } from './NetworkTopologyGraph';
 export { default as MapOptions } from './MapOptions';
 export { default as MapLegend } from './MapLegend';
+export { default as RFLinks } from './RFLinks';
+export { default as HopDepthSelector } from './HopDepthSelector';

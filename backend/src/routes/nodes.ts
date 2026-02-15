@@ -102,6 +102,12 @@ router.get('/',
           orderBy: { timestamp: 'desc' },
           take: 1
         },
+        neighborsFrom: {
+          include: { neighbor: true }
+        },
+        neighborsTo: {
+          include: { node: true }
+        },
         network: true
       },
       orderBy: { [sortBy as string]: sortOrder },

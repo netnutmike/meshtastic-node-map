@@ -7,6 +7,8 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import { MQTTManagerService } from './services/mqtt-manager.service';
+import { dataRetentionConfig } from './services/data-retention-config.service';
+import { startCleanupScheduler, stopCleanupScheduler } from './jobs/cleanup-scheduler';
 import { NodeRepository } from './database/repositories/node.repository';
 import { PositionRepository } from './database/repositories/position.repository';
 import { TelemetryRepository } from './database/repositories/telemetry.repository';
@@ -214,6 +216,7 @@ app.use('*', notFoundHandler);
 // Graceful shutdown handling
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  stopCleanupScheduler();
   if (mqttManager) {
     await mqttManager.shutdown();
   }
@@ -225,6 +228,7 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  stopCleanupScheduler();
   if (mqttManager) {
     await mqttManager.shutdown();
   }
@@ -240,6 +244,17 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`🚀 Meshtastic Node Mapper Backend running on port ${PORT}`);
     logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
     logger.info(`🔌 Socket.IO server ready for connections`);
+    
+    // Load data retention configuration
+    const retentionConfig = dataRetentionConfig.getConfig();
+    logger.info(`🗄️  Data retention: ${retentionConfig.enabled ? 'enabled' : 'disabled'}`, {
+      policies: retentionConfig.policies,
+      batchSize: retentionConfig.batchSize,
+      vacuumThreshold: retentionConfig.vacuumThreshold
+    });
+    
+    // Start cleanup scheduler
+    startCleanupScheduler();
     
     // Initialize MQTT Manager after server starts
     await initializeMQTTManager();

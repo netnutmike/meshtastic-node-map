@@ -513,3 +513,333 @@ Users must obtain the actual encryption keys from their Meshtastic devices using
 - Channel filtering confirmed working (unconfigured channels properly skipped)
 - Protobuf parsing failures indicate wrong keys, not broken decryption logic
 - System correctly handles both encrypted and unencrypted messages
+
+
+---
+
+## Malla-Inspired Feature Requirements
+
+The following requirements are based on analysis of the Malla project (https://github.com/zenitraM/malla), a Python/Flask-based Meshtastic network analyzer with excellent analytics and visualization capabilities. These features will enhance the Meshtastic Node Mapper with advanced network analysis, improved visualization, and better user experience.
+
+**Reference Documentation:**
+- `docs/MALLA_NETWORK_MAP_IMPLEMENTATION.md` - Network map implementation details
+- `docs/FEATURE_ROADMAP_MALLA_INSPIRED.md` - Complete feature roadmap with priorities
+- `docs/MALLA_DASHBOARD_AND_FEATURES_ANALYSIS.md` - Dashboard statistics and charts
+- `docs/UI_UX_BEST_PRACTICES.md` - Theme support and mobile responsiveness
+
+### Requirement 34
+
+**User Story:** As a network administrator, I want to visualize actual RF links between nodes based on real packet data, so that I can understand true network connectivity without relying on NEIGHBORINFO messages.
+
+#### Acceptance Criteria
+
+1. WHEN traceroute packets (TRACEROUTE_APP, portnum 41) are received THEN the system SHALL extract consecutive node pairs from the route_nodes array as direct RF hops
+2. WHEN processing traceroute data THEN the system SHALL track packet_count, avg_snr, avg_rssi, and last_seen timestamp for each RF hop
+3. WHEN any packet is received with hop_start equal to hop_limit THEN the system SHALL identify this as a direct RF reception (0-hop packet) and create a packet link between sender and gateway
+4. WHEN displaying the network map THEN the system SHALL draw solid lines for traceroute links and dashed lines for packet links
+5. WHEN displaying RF links THEN the system SHALL color-code links based on success rate: green (≥80%), yellow (50-79%), red (<50%)
+6. WHEN a user clicks on an RF link THEN the system SHALL display a popup showing success_rate, total_attempts, avg_snr, avg_rssi, last_seen, and link_type
+7. WHEN the map is displayed THEN the system SHALL provide toggle controls to show/hide traceroute links and packet links independently
+8. WHEN a node is selected THEN the system SHALL provide a hop depth filter to show only nodes within N hops (1, 2, 3, or all)
+9. WHEN calculating hop depth THEN the system SHALL use breadth-first search (BFS) to compute nodes within the specified hop distance
+10. WHEN processing traceroute packets THEN the system SHALL limit queries to the most recent 2000 packets for performance
+11. WHEN querying for packet links THEN the system SHALL use the condition `hop_start = hop_limit` to identify direct receptions
+12. WHEN aggregating link data THEN the system SHALL merge bidirectional links (A↔B treated as same link) to reduce data volume
+13. WHEN calculating success rate THEN the system SHALL use the formula `min(100, max(10, packet_count * 10))` to scale packet count to percentage
+14. WHEN the system starts THEN the system SHALL create database indexes on `(portnum, timestamp)` for traceroute queries and `(from_node_id, gateway_id, timestamp)` for packet link queries
+15. WHEN link data is requested THEN the system SHALL cache results for 5 minutes to improve performance
+
+**Implementation Notes:**
+- Backend service: `backend/src/services/traceroute-link.service.ts`
+- Backend service: `backend/src/services/packet-link.service.ts`
+- API endpoint: `GET /api/map/links?hours=24`
+- Frontend component: Update `frontend/src/components/Map/NetworkMap.tsx`
+- Database: Add computed column `hop_count` as `(hop_start - hop_limit)`
+- Default time window: 24 hours, maximum 14 days
+
+### Requirement 35
+
+**User Story:** As a user, I want to switch between light, dark, and auto themes, so that I can use the application comfortably in different lighting conditions.
+
+#### Acceptance Criteria
+
+1. WHEN the application loads THEN the system SHALL check localStorage for saved theme preference (light, dark, or auto)
+2. WHEN no theme preference is saved THEN the system SHALL default to 'auto' mode and detect system preference using `prefers-color-scheme` media query
+3. WHEN the theme toggle button is clicked THEN the system SHALL cycle through themes in order: light → dark → auto → light
+4. WHEN a theme is selected THEN the system SHALL save the preference to localStorage with key 'malla-theme-preference'
+5. WHEN applying a theme THEN the system SHALL set the `data-bs-theme` attribute on the document root element to 'light' or 'dark'
+6. WHEN in auto mode THEN the system SHALL resolve to light or dark based on system preference and update when system preference changes
+7. WHEN the theme changes THEN the system SHALL dispatch a custom 'themeChanged' event with detail containing preference and effective theme
+8. WHEN Chart.js charts are displayed THEN the system SHALL update chart colors to match the current theme
+9. WHEN the Leaflet map is displayed THEN the system SHALL switch between light and dark tile layers based on the current theme
+10. WHEN the theme changes THEN the system SHALL update the meta theme-color tag for mobile browsers (dark: #212529, light: #0d6efd)
+11. WHEN components need theme-aware styling THEN the system SHALL use CSS custom properties from Bootstrap 5.3's theme system
+12. WHEN the theme toggle is displayed THEN the system SHALL show an icon indicating the current mode (sun for light, moon for dark, circle-half for auto)
+
+**Implementation Notes:**
+- Frontend class: `frontend/src/utils/DarkModeToggle.ts`
+- CSS variables: Use Bootstrap 5.3 `--bs-*` custom properties
+- Map tiles: Light (CartoDB Positron), Dark (CartoDB Dark Matter)
+- Chart colors: Compute from CSS custom properties on theme change
+- Event listener: Components listen for 'themeChanged' event to update
+
+### Requirement 36
+
+**User Story:** As a mobile user, I want the application to be fully responsive with touch-friendly controls, so that I can effectively use it on smartphones and tablets.
+
+#### Acceptance Criteria
+
+1. WHEN the application is accessed on mobile devices THEN the system SHALL use responsive breakpoints: xs (<576px), sm (≥576px), md (≥768px), lg (≥992px), xl (≥1200px)
+2. WHEN displaying action buttons THEN the system SHALL use icon-only buttons with tooltips instead of text labels to save horizontal space
+3. WHEN action buttons are displayed THEN the system SHALL ensure minimum touch target size of 44x44 pixels for accessibility
+4. WHEN the sidebar is displayed on desktop THEN the system SHALL position it fixed on the right side of the screen
+5. WHEN the sidebar is displayed on mobile THEN the system SHALL position it as a bottom sheet that slides up from the bottom
+6. WHEN the sidebar toggle is clicked on desktop THEN the system SHALL slide the sidebar horizontally (translateX)
+7. WHEN the sidebar toggle is clicked on mobile THEN the system SHALL slide the sidebar vertically (translateY)
+8. WHEN tables are displayed on mobile THEN the system SHALL hide less important columns using `.hide-mobile` class
+9. WHEN form inputs are displayed on mobile THEN the system SHALL use minimum font-size of 16px to prevent iOS zoom
+10. WHEN the viewport width is less than 768px THEN the system SHALL reduce table font size to 0.8rem and padding to 0.4rem 0.3rem
+11. WHEN displaying the nodes list actions column THEN the system SHALL use icon buttons in a button group to fit without horizontal scrolling
+12. WHEN more than 3-4 actions are needed THEN the system SHALL use a dropdown menu with three-dots icon to conserve space
+13. WHEN the application is accessed on mobile THEN the system SHALL scale base font size from 0.9rem (mobile) to 1.05rem (desktop)
+14. WHEN touch interactions are used THEN the system SHALL provide appropriate visual feedback and prevent accidental double-taps
+15. WHEN the map is displayed on mobile THEN the system SHALL optimize controls for touch interaction with larger tap targets
+
+**Implementation Notes:**
+- CSS file: `frontend/src/styles/mobile.css`
+- Responsive utilities: Use Bootstrap 5 responsive classes
+- Icon library: Bootstrap Icons for consistent icon-only buttons
+- Touch targets: Minimum 44x44px per Apple Human Interface Guidelines
+- Sidebar component: Conditional rendering based on viewport width
+
+### Requirement 37
+
+**User Story:** As a network analyst, I want comprehensive dashboard statistics with multiple charts, so that I can monitor network health and activity patterns at a glance.
+
+#### Acceptance Criteria
+
+1. WHEN the dashboard loads THEN the system SHALL display 6 metric cards: Total Nodes, Active Nodes (24h), Gateway Diversity, Protocol Diversity, Total Messages, and Processing Success Rate
+2. WHEN displaying Active Nodes THEN the system SHALL show the count and percentage of total nodes (network coverage)
+3. WHEN displaying Gateway Diversity THEN the system SHALL show the count of unique gateways with color-coded indicator (blue)
+4. WHEN displaying Protocol Diversity THEN the system SHALL show the count of distinct message types with color-coded indicator (info blue)
+5. WHEN displaying Processing Success Rate THEN the system SHALL color-code based on thresholds: green (≥95%), yellow (85-94%), red (<85%)
+6. WHEN the dashboard loads THEN the system SHALL display a Network Activity Trends line chart showing messages per hour over 7 days
+7. WHEN the dashboard loads THEN the system SHALL display a Node Activity Distribution doughnut chart with categories: Very Active (>100 msgs), Moderately Active (10-100), Lightly Active (1-10), Inactive (0)
+8. WHEN the dashboard loads THEN the system SHALL display a Gateway Activity Distribution bar chart showing top 10 gateways by packet count
+9. WHEN the dashboard loads THEN the system SHALL display a Signal Quality Distribution bar chart with categories: Excellent (>-70dBm), Good (-70 to -80), Fair (-80 to -90), Poor (<-90)
+10. WHEN the dashboard loads THEN the system SHALL display a Message Routing Patterns doughnut chart showing Direct (0 hops), Routed (1-2 hops), Multi-hop (3+)
+11. WHEN the dashboard loads THEN the system SHALL display a Protocol Usage pie chart showing message count per protocol type for last 24 hours
+12. WHEN the dashboard loads THEN the system SHALL display a Most Active Nodes table showing top 10 nodes with message counts and signal quality
+13. WHEN dashboard data is requested THEN the system SHALL use a single optimized SQL query to fetch all statistics
+14. WHEN dashboard data is fetched THEN the system SHALL cache results for 60 seconds to improve performance
+15. WHEN charts are displayed THEN the system SHALL update colors automatically when theme changes from light to dark or vice versa
+
+**Implementation Notes:**
+- API endpoint: `GET /api/analytics/dashboard`
+- Chart library: Chart.js with theme-aware color configuration
+- Caching: Redis cache with 60-second TTL
+- SQL optimization: Single query with aggregations and CASE statements
+- Frontend component: `frontend/src/components/Analytics/Dashboard.tsx`
+
+### Requirement 38
+
+**User Story:** As a network operator, I want advanced packet filtering and grouping capabilities, so that I can analyze message patterns and identify duplicate receptions.
+
+#### Acceptance Criteria
+
+1. WHEN viewing the packets page THEN the system SHALL provide a "Group by Packet ID" toggle to enable/disable packet grouping
+2. WHEN packet grouping is enabled THEN the system SHALL group packets by (mesh_packet_id, from_node_id, to_node_id, portnum, portnum_name)
+3. WHEN displaying grouped packets THEN the system SHALL show aggregated statistics: gateway count, gateway list, RSSI range (min-max), SNR range (min-max), hop count range, reception count
+4. WHEN displaying grouped packets THEN the system SHALL show relay node counts in format "0x12, 0x34*2, 0x56*3" where *N indicates N occurrences
+5. WHEN filtering packets THEN the system SHALL provide time range filters with start_time and end_time datetime inputs
+6. WHEN filtering packets THEN the system SHALL provide node filters: From Node, To Node, Exclude From Node, Exclude To Node with searchable pickers
+7. WHEN filtering packets THEN the system SHALL provide a Gateway filter with searchable picker showing gateway names
+8. WHEN filtering packets THEN the system SHALL provide a Port Number filter dropdown with all protocol types
+9. WHEN filtering packets THEN the system SHALL provide a Hop Count filter with options: Any, Direct (0), 1 hop, 2 hops, 3 hops, 4+ hops
+10. WHEN filtering packets THEN the system SHALL provide RSSI/SNR range filters with min/max number inputs
+11. WHEN filtering packets THEN the system SHALL provide a Primary Channel filter dropdown
+12. WHEN filtering packets THEN the system SHALL provide an "Exclude gateway self messages" checkbox
+13. WHEN TEXT_MESSAGE_APP packets are displayed THEN the system SHALL decode and display the message content
+14. WHEN filter state changes THEN the system SHALL update the URL parameters to enable shareable links
+15. WHEN the packets page loads with URL parameters THEN the system SHALL restore filter state from URL
+
+**Implementation Notes:**
+- Frontend component: `frontend/src/components/Packets/PacketBrowser.tsx`
+- Backend endpoint: `GET /api/packets?grouped=true&start_time=...&end_time=...`
+- URL state management: Use URLSearchParams and history.replaceState()
+- Performance: Limit to 5k-25k raw packets, group in-memory
+- Pagination: Use estimated pagination for grouped queries
+
+### Requirement 39
+
+**User Story:** As a network planner, I want to calculate and display distances between nodes, so that I can analyze RF link performance and identify longest successful connections.
+
+#### Acceptance Criteria
+
+1. WHEN two nodes have valid position data THEN the system SHALL calculate the distance between them using the Haversine formula
+2. WHEN calculating distance THEN the system SHALL use Earth's radius of 6371.0 km for the Haversine formula
+3. WHEN displaying neighbor relationships THEN the system SHALL show the calculated distance in kilometers for each neighbor link
+4. WHEN the longest links page is accessed THEN the system SHALL display a table of longest successful RF links with minimum distance threshold (default 1km)
+5. WHEN displaying longest links THEN the system SHALL show: from_node, to_node, distance_km, avg_snr, avg_rssi, hop_count, traceroute_count, last_seen
+6. WHEN calculating longest links THEN the system SHALL filter by minimum SNR threshold (default -20dB) to exclude poor quality links
+7. WHEN calculating distances THEN the system SHALL use location data from the timestamp closest to the packet reception time
+8. WHEN location data is stale THEN the system SHALL display an "age warning" if position data is older than a configurable threshold
+9. WHEN calculating distances for traceroute hops THEN the system SHALL pre-fetch location history for all nodes to optimize performance
+10. WHEN displaying RF links on the map THEN the system SHALL optionally show distance labels on link lines
+11. WHEN analyzing multi-hop paths THEN the system SHALL calculate total path distance by summing individual hop distances
+12. WHEN the line-of-sight tool is used THEN the system SHALL calculate and display straight-line distance between selected nodes
+13. WHEN distance calculations are performed THEN the system SHALL cache location history data to avoid repeated database queries
+14. WHEN displaying distance information THEN the system SHALL format distances with appropriate precision (e.g., "12.34 km" or "0.5 km")
+15. WHEN comparing link performance THEN the system SHALL provide distance vs signal quality scatter plots
+
+**Implementation Notes:**
+- Service: `backend/src/services/distance-calculation.service.ts`
+- Haversine formula: Standard geographic distance calculation
+- Location history: Cache in-memory with Map<node_id, Position[]>
+- API endpoint: `GET /api/links/longest?min_distance=1&min_snr=-20`
+- Frontend component: `frontend/src/components/Analytics/LongestLinks.tsx`
+
+### Requirement 40
+
+**User Story:** As a network administrator, I want a line-of-sight analysis tool, so that I can evaluate RF connectivity potential between any two nodes.
+
+#### Acceptance Criteria
+
+1. WHEN the line-of-sight page is accessed THEN the system SHALL provide two searchable node picker dropdowns for selecting nodes
+2. WHEN two nodes are selected THEN the system SHALL calculate and display the straight-line distance between them using Haversine formula
+3. WHEN two nodes are selected THEN the system SHALL draw a line on the map connecting the two nodes
+4. WHEN two nodes are selected THEN the system SHALL query historical packet data to determine if the nodes have communicated directly
+5. WHEN historical connectivity exists THEN the system SHALL display signal quality statistics (avg RSSI, avg SNR) from packet history
+6. WHEN historical connectivity exists THEN the system SHALL show the number of successful communications and last communication timestamp
+7. WHEN elevation data is available THEN the system SHALL display an elevation profile chart showing terrain between the nodes
+8. WHEN the line-of-sight tool is accessed with URL parameters `?from=X&to=Y` THEN the system SHALL pre-load the analysis for those nodes
+9. WHEN viewing a link popup on the map THEN the system SHALL provide a "Line of Sight" button that opens the analysis tool with those nodes pre-selected
+10. WHEN calculating line-of-sight THEN the system SHALL compute bearing/azimuth between the nodes for antenna alignment
+11. WHEN elevation data is available THEN the system SHALL calculate first Fresnel zone clearance
+12. WHEN terrain obstructions are detected THEN the system SHALL highlight potential obstacles in the elevation profile
+13. WHEN no historical connectivity exists THEN the system SHALL display a message indicating nodes have not communicated directly
+14. WHEN the analysis is complete THEN the system SHALL provide a shareable URL with the selected nodes in parameters
+15. WHEN the line-of-sight tool is used THEN the system SHALL be accessible from the tools dropdown menu
+
+**Implementation Notes:**
+- Frontend component: `frontend/src/components/Tools/LineOfSight.tsx`
+- Backend endpoint: `GET /api/analysis/line-of-sight?from=X&to=Y`
+- Node picker: Reusable component with search and autocomplete
+- Elevation API: Optional integration with Open-Elevation or USGS
+- Map integration: Draw temporary line layer on map
+
+### Requirement 41
+
+**User Story:** As a network analyst, I want a gateway comparison tool, so that I can evaluate relative signal quality between different gateways.
+
+#### Acceptance Criteria
+
+1. WHEN the gateway comparison page is accessed THEN the system SHALL provide two searchable gateway picker dropdowns
+2. WHEN two gateways are selected THEN the system SHALL find common packets using INNER JOIN on (mesh_packet_id, from_node_id, hop_limit)
+3. WHEN finding common packets THEN the system SHALL require both packets to be within 30 seconds of each other
+4. WHEN finding common packets THEN the system SHALL filter to same hop_limit to exclude retransmissions
+5. WHEN displaying comparison results THEN the system SHALL show a scatter plot of Gateway1 RSSI vs Gateway2 RSSI
+6. WHEN displaying comparison results THEN the system SHALL show a scatter plot of Gateway1 SNR vs Gateway2 SNR
+7. WHEN displaying comparison results THEN the system SHALL show a timeline chart of signal quality over time for both gateways
+8. WHEN displaying comparison results THEN the system SHALL show a histogram of signal differences (Gateway2 - Gateway1)
+9. WHEN displaying comparison results THEN the system SHALL calculate and display statistics: average difference, min, max, standard deviation
+10. WHEN displaying comparison results THEN the system SHALL show a detailed packet table with all common packets and their differences
+11. WHEN filtering comparison data THEN the system SHALL provide time range filters to compare over specific periods
+12. WHEN filtering comparison data THEN the system SHALL provide source node filter to compare for specific transmitting nodes
+13. WHEN displaying gateway statistics THEN the system SHALL show packet count, average signal, and unique sources per gateway
+14. WHEN comparison data is requested THEN the system SHALL cache gateway statistics for 5 minutes
+15. WHEN comparison results are displayed THEN the system SHALL provide CSV export functionality
+
+**Implementation Notes:**
+- Frontend component: `frontend/src/components/Tools/GatewayComparison.tsx`
+- Backend endpoint: `GET /api/gateways/compare?gateway1=X&gateway2=Y`
+- Chart library: Plotly.js for interactive scatter plots and histograms
+- Gateway picker: Reusable component similar to node picker
+- Performance: Limit to 1000 common packets for initial display
+
+### Requirement 42
+
+**User Story:** As a system administrator, I want configurable data retention policies with automatic cleanup, so that I can manage database size and comply with data retention requirements.
+
+#### Acceptance Criteria
+
+1. WHEN the system starts THEN the system SHALL load data retention policies from configuration file with hours to retain per data type
+2. WHEN retention policies are configured THEN the system SHALL support different retention periods for messages, telemetry, positions, and traceroutes
+3. WHEN the cleanup job runs THEN the system SHALL execute hourly as a background task (cron job)
+4. WHEN cleaning up messages THEN the system SHALL delete records older than the configured retention period
+5. WHEN cleaning up data THEN the system SHALL preserve traceroute packets even if messages are deleted (longer retention)
+6. WHEN cleaning up data THEN the system SHALL keep node_info records even if no recent packet data exists
+7. WHEN cleanup completes THEN the system SHALL log statistics including records deleted and disk space freed
+8. WHEN cleanup is needed immediately THEN the system SHALL provide an admin button to trigger manual cleanup
+9. WHEN retention policy is disabled THEN the system SHALL skip automatic cleanup when `enabled: false` in configuration
+10. WHEN large deletions occur THEN the system SHALL run VACUUM on PostgreSQL to reclaim disk space
+11. WHEN cleanup runs THEN the system SHALL batch delete operations (1000 records at a time) for performance
+12. WHEN cleanup is configured THEN the system SHALL support optional archive-before-delete to export data before removal
+13. WHEN disk space is low THEN the system SHALL alert administrators via configured notification channels
+14. WHEN cleanup operations occur THEN the system SHALL log all operations to audit trail
+15. WHEN retention policies are updated THEN the system SHALL apply new policies after service restart
+
+**Implementation Notes:**
+- Configuration: `config/app.yml` under `retention` section
+- Default retention: messages (168h/7d), telemetry (168h/7d), positions (720h/30d), traceroutes (720h/30d)
+- Cron job: `backend/src/jobs/cleanup.job.ts`
+- Batch size: 1000 records per delete operation
+- Vacuum: Run after deleting >10,000 records
+
+### Requirement 43
+
+**User Story:** As a developer, I want reusable UI components with consistent behavior, so that I can build features faster and maintain a consistent user experience.
+
+#### Acceptance Criteria
+
+1. WHEN a node picker is needed THEN the system SHALL provide a reusable NodePicker component with search and autocomplete
+2. WHEN the node picker is displayed THEN the system SHALL show node name, hex ID, hardware model, and packet count for each result
+3. WHEN the node picker search is used THEN the system SHALL debounce input by 300ms to reduce API calls
+4. WHEN the node picker is initialized THEN the system SHALL cache the node list client-side for performance
+5. WHEN a gateway picker is needed THEN the system SHALL provide a reusable GatewayPicker component similar to NodePicker
+6. WHEN a data table is needed THEN the system SHALL provide a ModernTable component with client-side pagination and sorting
+7. WHEN the ModernTable is used THEN the system SHALL support customizable columns with render functions for badges and indicators
+8. WHEN the ModernTable is used THEN the system SHALL provide debounced search functionality (300ms delay)
+9. WHEN the ModernTable is used THEN the system SHALL support URL state management for filters and pagination
+10. WHEN filter state is needed THEN the system SHALL provide a FilterStore using Proxy for reactive state management
+11. WHEN the FilterStore state changes THEN the system SHALL notify all subscribers automatically
+12. WHEN signal quality is displayed THEN the system SHALL use a consistent SignalQualityBadge component with color coding
+13. WHEN time ranges are needed THEN the system SHALL provide a reusable TimeRangePicker component
+14. WHEN loading states are needed THEN the system SHALL provide a consistent LoadingSpinner component
+15. WHEN empty states are needed THEN the system SHALL provide a consistent EmptyState component with customizable messaging
+
+**Implementation Notes:**
+- Component library: `frontend/src/components/shared/`
+- NodePicker: `frontend/src/components/shared/NodePicker.tsx`
+- ModernTable: `frontend/src/components/shared/ModernTable.tsx`
+- FilterStore: `frontend/src/utils/FilterStore.ts`
+- Documentation: Add component API docs and usage examples
+
+### Requirement 44
+
+**User Story:** As a user, I want filter state to be stored in URL parameters, so that I can bookmark and share specific filtered views.
+
+#### Acceptance Criteria
+
+1. WHEN filters are applied THEN the system SHALL update URL parameters using URLSearchParams without page reload
+2. WHEN URL parameters are updated THEN the system SHALL use history.replaceState() to avoid cluttering browser history
+3. WHEN the page loads with URL parameters THEN the system SHALL restore filter state from URL
+4. WHEN filter values are null or empty THEN the system SHALL remove those parameters from the URL
+5. WHEN filter values are set THEN the system SHALL add or update those parameters in the URL
+6. WHEN rapid filter changes occur THEN the system SHALL debounce URL updates by 300ms
+7. WHEN array parameters are needed THEN the system SHALL support multiple values (e.g., `?node_id=1&node_id=2`)
+8. WHEN URL parameters are read THEN the system SHALL validate and sanitize values before applying to filters
+9. WHEN special characters are in filter values THEN the system SHALL properly encode them in URL parameters
+10. WHEN a filtered view is bookmarked THEN the system SHALL restore the exact filter state when the bookmark is opened
+11. WHEN the browser back/forward buttons are used THEN the system SHALL maintain filter state correctly
+12. WHEN a "Copy Link" button is clicked THEN the system SHALL copy the current URL with all filters to clipboard
+13. WHEN sharing a filtered view THEN the system SHALL ensure the URL contains all necessary parameters for exact reproduction
+14. WHEN URL state management is used THEN the system SHALL work consistently across all pages (packets, nodes, map)
+15. WHEN filter state is complex THEN the system SHALL handle nested objects and arrays in URL parameters
+
+**Implementation Notes:**
+- Utility: `frontend/src/utils/UrlStateManager.ts`
+- Integration: Use with FilterStore for automatic URL sync
+- Debounce: 300ms delay for URL updates
+- Validation: Sanitize and validate all URL parameters on load
+- Browser compatibility: Test with Chrome, Firefox, Safari, Edge

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { Node } from '../../store/slices/nodeSlice';
+import { applyThemeToChartOptions } from '../../utils/chartTheme';
 
 // Register Chart.js components
 ChartJS.register(
@@ -70,6 +71,19 @@ const timeRangeOptions: TimeRangeOption[] = [
 
 const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, timeRange }) => {
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange || '24h');
+  const [chartKey, setChartKey] = useState(0);
+
+  // Listen for theme changes and force chart re-render
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setChartKey(prev => prev + 1);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
+    };
+  }, []);
 
   // Filter telemetry data by time range
   const filterDataByTimeRange = (data: TelemetryData[], range: string) => {
@@ -94,8 +108,8 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
   const latestEnvironmentalMetrics = environmentalMetrics
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
-  // Chart configuration
-  const chartOptions = {
+  // Chart configuration with theme support
+  const chartOptions = applyThemeToChartOptions({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -120,7 +134,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
         beginAtZero: true,
       },
     },
-  };
+  });
 
   // Create chart data for device metrics
   const createDeviceChartData = (metric: string, label: string, color: string) => {
@@ -261,6 +275,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Battery Level (%)</h4>
                 <Line 
+                  key={`battery-${chartKey}`}
                   data={createDeviceChartData('batteryLevel', 'Battery Level (%)', '#4caf50')} 
                   options={chartOptions} 
                 />
@@ -272,6 +287,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Channel Utilization (%)</h4>
                 <Line 
+                  key={`channel-${chartKey}`}
                   data={createDeviceChartData('channelUtilization', 'Channel Utilization (%)', '#2196f3')} 
                   options={chartOptions} 
                 />
@@ -283,6 +299,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Air Utilization TX (%)</h4>
                 <Line 
+                  key={`air-${chartKey}`}
                   data={createDeviceChartData('airUtilTx', 'Air Utilization TX (%)', '#ff9800')} 
                   options={chartOptions} 
                 />
@@ -347,6 +364,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Temperature (°C)</h4>
                 <Line 
+                  key={`temp-${chartKey}`}
                   data={createEnvironmentalChartData('temperature', 'Temperature (°C)', '#f44336')} 
                   options={chartOptions} 
                 />
@@ -358,6 +376,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Humidity (%)</h4>
                 <Line 
+                  key={`humidity-${chartKey}`}
                   data={createEnvironmentalChartData('humidity', 'Humidity (%)', '#3f51b5')} 
                   options={chartOptions} 
                 />
@@ -369,6 +388,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = ({ node, telemetryData, ti
               <div className="chart-container" style={{ height: '300px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
                 <h4 style={{ marginBottom: '15px', color: '#555' }}>Barometric Pressure (hPa)</h4>
                 <Line 
+                  key={`pressure-${chartKey}`}
                   data={createEnvironmentalChartData('pressure', 'Pressure (hPa)', '#9c27b0')} 
                   options={chartOptions} 
                 />

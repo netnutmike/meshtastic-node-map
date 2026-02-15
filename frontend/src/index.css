@@ -10,6 +10,9 @@ body {
 /* Import mobile styles */
 @import './styles/mobile.css';
 
+/* Import responsive layout system */
+@import './styles/responsive-layout.css';
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

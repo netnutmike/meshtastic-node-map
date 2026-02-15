@@ -27,9 +27,15 @@ const AboutPage: React.FC = () => {
     navigate('/');
   };
 
+  const handleRefresh = () => {
+    // Refresh page content
+    window.location.reload();
+  };
+
   return (
     <Box>
       <NavigationHeader 
+        onRefresh={handleRefresh}
         onOpenMQTTMonitor={handleOpenMQTTMonitor}
         onOpenTopology={handleOpenTopology}
       />

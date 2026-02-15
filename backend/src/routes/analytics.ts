@@ -7,10 +7,19 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { applyRateLimit } from '../middleware/rateLimiting';
 import { logger } from '../utils/logger';
 import Joi from 'joi';
+import { createClient } from 'redis';
 
 const router = Router();
 const db = new PrismaClient();
 const analyticsService = new AnalyticsService(db);
+
+// Initialize Redis client for caching
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+redisClient.connect().catch(err => logger.error('Failed to connect to Redis', err));
 
 // Validation middleware helper (simplified)
 const validateRequest = (req: Request, res: Response, next: Function) => {
@@ -20,6 +29,331 @@ const validateRequest = (req: Request, res: Response, next: Function) => {
 
 // Auth middleware (using optionalAuth as base)
 const authenticateToken = optionalAuth;
+
+/**
+ * @swagger
+ * /api/analytics/dashboard:
+ *   get:
+ *     summary: Get comprehensive dashboard statistics
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics with metrics and charts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 metrics:
+ *                   type: object
+ *                   properties:
+ *                     totalNodes:
+ *                       type: number
+ *                     activeNodes24h:
+ *                       type: number
+ *                     activeNodesPercentage:
+ *                       type: number
+ *                     gatewayDiversity:
+ *                       type: number
+ *                     protocolDiversity:
+ *                       type: number
+ *                     totalMessages:
+ *                       type: number
+ *                     successRate:
+ *                       type: number
+ *                 charts:
+ *                   type: object
+ *                   properties:
+ *                     networkActivityTrends:
+ *                       type: array
+ *                     nodeActivityDistribution:
+ *                       type: array
+ *                     gatewayActivityDistribution:
+ *                       type: array
+ *                     signalQualityDistribution:
+ *                       type: array
+ *                     messageRoutingPatterns:
+ *                       type: array
+ *                     protocolUsage:
+ *                       type: array
+ *                 topNodes:
+ *                   type: array
+ */
+router.get('/dashboard',
+  authenticateToken,
+  validateRequest,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      logger.info('Fetching dashboard statistics', { 
+        userId: (req as any).user?.id 
+      });
+
+      // Check cache first
+      const cacheKey = 'dashboard:statistics';
+      const cached = await redisClient.get(cacheKey);
+      
+      if (cached) {
+        logger.debug('Returning cached dashboard statistics');
+        res.json(JSON.parse(cached));
+        return;
+      }
+
+      // Calculate dashboard statistics using optimized query
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Single optimized query for all statistics
+      const stats = await db.$queryRaw<any[]>`
+        WITH node_stats AS (
+          SELECT
+            COUNT(DISTINCT id) as total_nodes,
+            COUNT(DISTINCT CASE WHEN "lastSeen" >= ${twentyFourHoursAgo} THEN id END) as active_nodes_24h
+          FROM nodes
+        ),
+        message_stats AS (
+          SELECT
+            COUNT(*) as total_messages,
+            COUNT(DISTINCT CASE WHEN topic IS NOT NULL THEN SUBSTRING(topic FROM 'msh/[^/]+/[^/]+/[^/]+/[^/]+/([^/]+)/') END) as gateway_diversity,
+            COUNT(DISTINCT type) as protocol_diversity,
+            SUM(CASE WHEN rssi IS NOT NULL THEN 1 ELSE 0 END) as successful_messages,
+            -- RSSI distribution
+            SUM(CASE WHEN rssi > -70 THEN 1 ELSE 0 END) as rssi_excellent,
+            SUM(CASE WHEN rssi > -80 AND rssi <= -70 THEN 1 ELSE 0 END) as rssi_good,
+            SUM(CASE WHEN rssi > -90 AND rssi <= -80 THEN 1 ELSE 0 END) as rssi_fair,
+            SUM(CASE WHEN rssi <= -90 THEN 1 ELSE 0 END) as rssi_poor,
+            -- Routing patterns
+            SUM(CASE WHEN "hopStart" IS NOT NULL AND "hopLimit" IS NOT NULL AND ("hopStart" - "hopLimit") = 0 THEN 1 ELSE 0 END) as direct_messages,
+            SUM(CASE WHEN "hopStart" IS NOT NULL AND "hopLimit" IS NOT NULL AND ("hopStart" - "hopLimit") BETWEEN 1 AND 2 THEN 1 ELSE 0 END) as routed_messages,
+            SUM(CASE WHEN "hopStart" IS NOT NULL AND "hopLimit" IS NOT NULL AND ("hopStart" - "hopLimit") >= 3 THEN 1 ELSE 0 END) as multihop_messages
+          FROM messages
+          WHERE timestamp >= ${twentyFourHoursAgo}
+        ),
+        node_activity AS (
+          SELECT
+            n.id,
+            n."shortName",
+            n."longName",
+            COUNT(m.id) as message_count,
+            AVG(m.rssi) as avg_rssi
+          FROM nodes n
+          LEFT JOIN messages m ON m."fromNodeId" = n.id AND m.timestamp >= ${twentyFourHoursAgo}
+          GROUP BY n.id, n."shortName", n."longName"
+        ),
+        top_node_activity AS (
+          SELECT *
+          FROM node_activity
+          WHERE message_count > 0
+          ORDER BY message_count DESC
+          LIMIT 10
+        ),
+        hourly_activity AS (
+          SELECT
+            DATE_TRUNC('hour', timestamp) as hour,
+            COUNT(*) as message_count
+          FROM messages
+          WHERE timestamp >= ${sevenDaysAgo}
+          GROUP BY DATE_TRUNC('hour', timestamp)
+          ORDER BY hour
+        )
+        SELECT
+          (SELECT json_build_object(
+            'totalNodes', total_nodes,
+            'activeNodes24h', active_nodes_24h
+          ) FROM node_stats) as node_stats,
+          (SELECT json_build_object(
+            'totalMessages', total_messages,
+            'gatewayDiversity', gateway_diversity,
+            'protocolDiversity', protocol_diversity,
+            'successfulMessages', successful_messages,
+            'rssiExcellent', rssi_excellent,
+            'rssiGood', rssi_good,
+            'rssiFair', rssi_fair,
+            'rssiPoor', rssi_poor,
+            'directMessages', direct_messages,
+            'routedMessages', routed_messages,
+            'multihopMessages', multihop_messages
+          ) FROM message_stats) as message_stats,
+          (SELECT json_agg(json_build_object(
+            'nodeId', id,
+            'shortName', "shortName",
+            'longName', "longName",
+            'messageCount', message_count,
+            'avgRssi', avg_rssi
+          )) FROM top_node_activity) as top_nodes,
+          (SELECT json_agg(json_build_object(
+            'hour', hour,
+            'messageCount', message_count
+          ) ORDER BY hour) FROM hourly_activity) as hourly_activity
+      `;
+
+      const result = stats[0];
+      const nodeStats = result.node_stats || { totalNodes: 0, activeNodes24h: 0 };
+      const messageStats = result.message_stats || {};
+      const topNodes = result.top_nodes || [];
+      const hourlyActivity = result.hourly_activity || [];
+
+      // Calculate derived metrics
+      const activeNodesPercentage = nodeStats.totalNodes > 0 
+        ? Math.round((nodeStats.activeNodes24h / nodeStats.totalNodes) * 100) 
+        : 0;
+
+      const successRate = messageStats.totalMessages > 0
+        ? Math.round((messageStats.successfulMessages / messageStats.totalMessages) * 100)
+        : 0;
+
+      // Build response
+      const dashboardData: any = {
+        metrics: {
+          totalNodes: Number(nodeStats.totalNodes) || 0,
+          activeNodes24h: Number(nodeStats.activeNodes24h) || 0,
+          activeNodesPercentage,
+          gatewayDiversity: Number(messageStats.gatewayDiversity) || 0,
+          protocolDiversity: Number(messageStats.protocolDiversity) || 0,
+          totalMessages: Number(messageStats.totalMessages) || 0,
+          successRate
+        },
+        charts: {
+          networkActivityTrends: hourlyActivity.map((item: any) => ({
+            timestamp: item.hour,
+            messageCount: Number(item.messageCount)
+          })),
+          nodeActivityDistribution: [],
+          gatewayActivityDistribution: [],
+          signalQualityDistribution: [],
+          messageRoutingPatterns: [
+            { category: 'Direct (0 hops)', count: Number(messageStats.directMessages) || 0 },
+            { category: 'Routed (1-2 hops)', count: Number(messageStats.routedMessages) || 0 },
+            { category: 'Multi-hop (3+)', count: Number(messageStats.multihopMessages) || 0 }
+          ],
+          mqttTopicDistribution: [],
+          protocolUsage: [] as Array<{ protocol: string; count: number }>
+        },
+        topNodes: topNodes.map((node: any) => ({
+          nodeId: node.nodeId,
+          shortName: node.shortName || 'Unknown',
+          longName: node.longName || 'Unknown',
+          messageCount: Number(node.messageCount),
+          avgRssi: node.avgRssi ? Number(node.avgRssi).toFixed(1) : null
+        })).slice(0, 10) // Ensure we only return top 10
+      };
+
+      // Calculate node activity distribution
+      const allNodes = await db.node.count();
+      const veryActive = topNodes.filter((n: any) => n.messageCount > 100).length;
+      const moderatelyActive = topNodes.filter((n: any) => n.messageCount >= 10 && n.messageCount <= 100).length;
+      const lightlyActive = topNodes.filter((n: any) => n.messageCount >= 1 && n.messageCount < 10).length;
+      const inactive = Math.max(0, allNodes - (veryActive + moderatelyActive + lightlyActive));
+      
+      dashboardData.charts.nodeActivityDistribution = [
+        { category: 'Very Active (>100 msgs)', count: veryActive },
+        { category: 'Moderately Active (10-100)', count: moderatelyActive },
+        { category: 'Lightly Active (1-10)', count: lightlyActive },
+        { category: 'Inactive (0)', count: inactive }
+      ];
+
+      // Calculate gateway activity distribution (nodes receiving messages from others)
+      // A gateway is a node that receives messages (toNodeId)
+      const gatewayActivity = await db.$queryRaw<Array<{ nodeId: string; shortName: string; longName: string; count: bigint }>>`
+        SELECT 
+          n."nodeId",
+          n."shortName",
+          n."longName",
+          COUNT(DISTINCT m.id) as count
+        FROM nodes n
+        INNER JOIN messages m ON m."toNodeId" = n.id
+        WHERE m.timestamp >= ${twentyFourHoursAgo}
+          AND m."toNodeId" IS NOT NULL
+        GROUP BY n."nodeId", n."shortName", n."longName"
+        ORDER BY count DESC
+        LIMIT 10
+      `;
+      
+      if (gatewayActivity.length === 0) {
+        dashboardData.charts.gatewayActivityDistribution = [{ category: 'No Gateway Data', count: 0 }];
+      } else {
+        dashboardData.charts.gatewayActivityDistribution = gatewayActivity.map(g => ({
+          category: g.shortName || g.nodeId,
+          count: Number(g.count)
+        }));
+      }
+
+      // Add MQTT topic distribution (new chart)
+      const topicActivity = await db.$queryRaw<Array<{ topic: string; count: bigint }>>`
+        SELECT 
+          COALESCE(topic, 'Unknown') as topic,
+          COUNT(*) as count
+        FROM messages
+        WHERE timestamp >= ${twentyFourHoursAgo}
+          AND topic IS NOT NULL
+        GROUP BY topic
+        ORDER BY count DESC
+        LIMIT 10
+      `;
+      
+      if (topicActivity.length === 0) {
+        dashboardData.charts.mqttTopicDistribution = [{ category: 'No Topic Data', count: 0 }];
+      } else {
+        dashboardData.charts.mqttTopicDistribution = topicActivity.map(t => ({
+          category: t.topic,
+          count: Number(t.count)
+        }));
+      }
+
+      // Calculate signal quality distribution
+      const excellent = Number(messageStats.rssiExcellent) || 0;
+      const good = Number(messageStats.rssiGood) || 0;
+      const fair = Number(messageStats.rssiFair) || 0;
+      const poor = Number(messageStats.rssiPoor) || 0;
+      const totalRssi = excellent + good + fair + poor;
+      
+      if (totalRssi === 0) {
+        dashboardData.charts.signalQualityDistribution = [{ category: 'No RSSI Data Available', count: 0 }];
+      } else {
+        dashboardData.charts.signalQualityDistribution = [
+          { category: 'Excellent (>-70dBm)', count: excellent },
+          { category: 'Good (-70 to -80)', count: good },
+          { category: 'Fair (-80 to -90)', count: fair },
+          { category: 'Poor (<-90)', count: poor }
+        ];
+      }
+
+      // Get protocol usage distribution
+      const protocolUsage = await db.message.groupBy({
+        by: ['type'],
+        where: {
+          timestamp: {
+            gte: twentyFourHoursAgo
+          }
+        },
+        _count: {
+          id: true
+        },
+        orderBy: {
+          _count: {
+            id: 'desc'
+          }
+        },
+        take: 10
+      });
+
+      dashboardData.charts.protocolUsage = protocolUsage.map(p => ({
+        protocol: p.type,
+        count: p._count.id
+      }));
+
+      // Cache for 60 seconds
+      await redisClient.setEx(cacheKey, 60, JSON.stringify(dashboardData));
+
+      res.json(dashboardData);
+    } catch (error) {
+      logger.error('Error fetching dashboard statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+    }
+  }
+);
 
 /**
  * @swagger

@@ -11,7 +11,12 @@ import { utilizationAnalysisRoutes } from './utilization-analysis';
 import { apiKeyRoutes } from './api-keys';
 import { securityAuditRoutes } from './security-audit';
 import { dataExportRoutes } from './data-export';
-// import analyticsRoutes from './analytics'; // Temporarily disabled due to validation errors
+import { mapRoutes } from './map';
+import { linksRoutes } from './links';
+import { lineOfSightRoutes } from './line-of-sight';
+import gatewayRoutes from './gateways';
+import cleanupRoutes from './cleanup';
+import analyticsRoutes from './analytics';
 import coverageAnalysisRoutes from './coverage-analysis';
 import { trackApiUsage } from '../middleware/rateLimiting';
 
@@ -36,7 +41,12 @@ router.use(`${API_VERSION}/utilization-analysis`, utilizationAnalysisRoutes);
 router.use(`${API_VERSION}/api-keys`, apiKeyRoutes);
 router.use(`${API_VERSION}/security`, securityAuditRoutes);
 router.use(`${API_VERSION}/export`, dataExportRoutes);
-// router.use(`${API_VERSION}/analytics`, analyticsRoutes); // Temporarily disabled
+router.use(`${API_VERSION}/map`, mapRoutes);
+router.use(`${API_VERSION}/links`, linksRoutes);
+router.use(`${API_VERSION}/analysis/line-of-sight`, lineOfSightRoutes);
+router.use(`${API_VERSION}/gateways`, gatewayRoutes);
+router.use(`${API_VERSION}/cleanup`, cleanupRoutes);
+router.use(`${API_VERSION}/analytics`, analyticsRoutes);
 router.use(`${API_VERSION}/coverage-analysis`, coverageAnalysisRoutes);
 
 // API info endpoint
@@ -58,6 +68,11 @@ router.get(`${API_VERSION}`, (req, res) => {
       apiKeys: `${API_VERSION}/api-keys`,
       security: `${API_VERSION}/security`,
       export: `${API_VERSION}/export`,
+      map: `${API_VERSION}/map`,
+      links: `${API_VERSION}/links`,
+      lineOfSight: `${API_VERSION}/analysis/line-of-sight`,
+      gateways: `${API_VERSION}/gateways`,
+      cleanup: `${API_VERSION}/cleanup`,
       analytics: `${API_VERSION}/analytics`,
       coverageAnalysis: `${API_VERSION}/coverage-analysis`
     },

@@ -11,7 +11,9 @@ import NetworkTopologyGraph from './NetworkTopologyGraph';
 import MapOptions from './MapOptions';
 import MapLegend from './MapLegend';
 import MapDebugInfo from './MapDebugInfo';
+import RFLinks from './RFLinks';
 import { MobileControls } from '../Mobile';
+import { TILE_LAYERS, getCurrentTheme, isThemeSpecificLayer, getOppositeThemeLayer } from '../../utils/mapTheme';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,44 +22,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
-
-const TILE_LAYERS = {
-  openstreetmap: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  },
-  opentopomap: {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-    maxZoom: 17,
-  },
-  satellite: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-    maxZoom: 18,
-  },
-  googlesatellite: {
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google',
-    maxZoom: 20,
-  },
-  googlehybrid: {
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google',
-    maxZoom: 20,
-  },
-  cartolight: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19,
-  },
-  cartodark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19,
-  },
-};
 
 // Component to handle map events and sync with Redux
 const MapEventHandler: React.FC = () => {
@@ -144,8 +108,34 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const { center, zoom, tileLayer, topologyGraphOpen } = useSelector((state: RootState) => state.map);
   const { showDebugInfo } = useSelector((state: RootState) => state.settings);
   const [mapOptionsOpen, setMapOptionsOpen] = useState(false);
+  const [currentTileLayer, setCurrentTileLayer] = useState(tileLayer);
   
-  const selectedTileLayer = TILE_LAYERS[tileLayer as keyof typeof TILE_LAYERS] || TILE_LAYERS.openstreetmap;
+  const selectedTileLayer = TILE_LAYERS[currentTileLayer as keyof typeof TILE_LAYERS] || TILE_LAYERS.openstreetmap;
+
+  // Listen for theme changes and update tile layer if it's theme-specific
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const currentTheme = getCurrentTheme();
+      
+      // If current layer is theme-specific, switch to the appropriate one
+      if (isThemeSpecificLayer(currentTileLayer)) {
+        const newLayer = currentTheme === 'dark' ? 'cartodark' : 'cartolight';
+        if (newLayer !== currentTileLayer) {
+          setCurrentTileLayer(newLayer);
+        }
+      }
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
+    };
+  }, [currentTileLayer]);
+
+  // Sync with Redux state
+  useEffect(() => {
+    setCurrentTileLayer(tileLayer);
+  }, [tileLayer]);
 
   // Handle external map options open request
   useEffect(() => {
@@ -181,7 +171,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         zoomDelta={isMobile ? 0.5 : 1}
       >
         <TileLayer
-          key={tileLayer} // Force re-render when tile layer changes
+          key={`${currentTileLayer}-${getCurrentTheme()}`} // Force re-render when tile layer or theme changes
           url={selectedTileLayer.url}
           attribution={selectedTileLayer.attribution}
           maxZoom={selectedTileLayer.maxZoom}
@@ -198,6 +188,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         <MapEventHandler />
         <MapViewController />
         <NodeMarkers />
+        <RFLinks />
       </MapContainer>
       
       {/* Debug Info - Conditionally shown based on settings */}

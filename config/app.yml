@@ -88,3 +88,266 @@ encryption:
       default: true
     - name: "Primary"
       key: "1PG7OiApB3XvvX7g8kYzDYQD+CW+3Oi+Qs/LoIWh/gg="  # Custom 32-byte key (AES-256)
+
+# Elevation Service Configuration
+# Provides terrain elevation data for line-of-sight analysis
+# Requirements: 40.7, 40.11, 40.12
+elevation:
+  enabled: true
+  apiUrl: "https://api.open-elevation.com/api/v1/lookup"
+  maxSamplePoints: 100
+  # Alternative APIs:
+  # - Open-Elevation: https://api.open-elevation.com/api/v1/lookup (free, no API key)
+  # - USGS: https://nationalmap.gov/epqs/pqs.php (US only, free)
+  # Note: Open-Elevation may be slow or unavailable at times. Consider self-hosting.
+
+# Data Retention Configuration
+# Automatic cleanup of old data to manage database size
+# Requirements: 42.1, 42.2, 42.9
+retention:
+  enabled: true
+  policies:
+    messages:
+      hours: 168  # 7 days
+    telemetry:
+      hours: 168  # 7 days
+    positions:
+      hours: 720  # 30 days
+    traceroutes:
+      hours: 720  # 30 days
+  batchSize: 1000  # Records to delete per batch
+  vacuumThreshold: 10000  # Run VACUUM after deleting this many records
+
+# RF Link Visualization Configuration
+# Real-time network topology and RF connection visualization
+# Requirements: 34.1-34.15
+rfLinks:
+  enabled: true
+  defaultTimeRange: 24  # Default time range in hours
+  maxTimeRange: 336     # Maximum time range (14 days)
+  cacheTimeout: 300     # Cache timeout in seconds (5 minutes)
+  
+  traceroute:
+    enabled: true
+    minPackets: 1       # Minimum packets to create link
+    
+  packet:
+    enabled: true
+    minPackets: 1       # Minimum packets to create link
+    
+  display:
+    defaultVisible: true
+    showLabels: false   # Show distance labels on links
+    lineWeight: 2
+    lineOpacity: 0.6
+    
+  successRate:
+    minValue: 10        # Minimum success rate percentage
+    maxValue: 100       # Maximum success rate percentage
+    perPacket: 10       # Success rate increase per packet
+
+# Theme Configuration
+# Light/dark/auto theme support with system preference detection
+# Requirements: 35.1-35.12
+theme:
+  enabled: true
+  defaultTheme: "auto"  # Options: light, dark, auto
+  allowUserOverride: true
+  
+  # Meta theme color for mobile browsers
+  lightThemeColor: "#0d6efd"
+  darkThemeColor: "#212529"
+  
+  # Map tile layers for each theme
+  mapTiles:
+    light: "carto-light"
+    dark: "carto-dark"
+
+# Mobile Optimization Configuration
+# Mobile-responsive interface and touch-optimized controls
+# Requirements: 36.1-36.15
+mobile:
+  enabled: true
+  
+  # Responsive breakpoints (in pixels)
+  breakpoints:
+    mobile: 768
+    tablet: 1024
+    desktop: 1200
+    
+  # Touch target minimum size (in pixels)
+  minTouchTarget: 44
+  
+  # Font size scaling
+  fontSizes:
+    mobile: "0.9rem"
+    tablet: "1rem"
+    desktop: "1.05rem"
+    
+  # Features
+  offlineMode: true
+  locationServices: true
+  pwaEnabled: true
+  
+  # Performance optimizations
+  reducedAnimations: true
+  lowerMapQuality: false
+  
+# Dashboard Analytics Configuration
+# Comprehensive network insights and real-time metrics
+# Requirements: 37.1-37.15
+dashboard:
+  enabled: true
+  cacheTimeout: 60      # Cache timeout in seconds
+  autoRefresh: true
+  refreshInterval: 60   # Auto-refresh interval in seconds
+  
+  # Metric card thresholds
+  metrics:
+    activeNodes:
+      excellent: 75     # Percentage
+      good: 50
+    gatewayDiversity:
+      excellent: 5      # Count
+      good: 2
+    protocolDiversity:
+      excellent: 8      # Count
+      good: 4
+    totalMessages:
+      excellent: 1000   # Count per 24h
+      good: 100
+    successRate:
+      excellent: 90     # Percentage
+      good: 70
+      
+  # Chart configuration
+  charts:
+    maxDataPoints: 100
+    enableSampling: false
+    sampleRate: 1.0
+
+# Packet Analysis Configuration
+# Advanced packet filtering, grouping, and text message decoding
+# Requirements: 38.1-38.13
+packets:
+  groupingEnabled: true
+  advancedFilters: true
+  textDecoding: true
+  maxResults: 1000
+  
+  # Grouping configuration
+  grouping:
+    defaultEnabled: false
+    aggregateStats: true
+    formatRelayNodes: true
+    
+  # Filter defaults
+  filters:
+    defaultTimeRange: 24  # hours
+    maxTimeRange: 168     # 7 days
+    excludeGatewaySelfMessages: true
+
+# Distance Calculation Configuration
+# Haversine distance calculation for RF links and nodes
+# Requirements: 39.1-39.15
+distance:
+  enabled: true
+  earthRadius: 6371     # Earth radius in kilometers
+  units: "both"         # Options: km, mi, both
+  
+  # Display configuration
+  display:
+    showOnLinks: true
+    showInPopups: true
+    precision: 1        # Decimal places
+    
+  # Longest links analysis
+  longestLinks:
+    minDistance: 1      # Minimum distance in km
+    minSnr: -20         # Minimum SNR in dB
+    maxResults: 50
+    ageWarningHours: 24 # Warn if location data older than this
+
+# Line of Sight Analysis Configuration
+# LOS analysis tool with elevation profile and Fresnel zone
+# Requirements: 40.1-40.15
+lineOfSight:
+  enabled: true
+  
+  # Elevation profile
+  elevationProfile:
+    enabled: true
+    samplePoints: 50
+    
+  # Fresnel zone calculation
+  fresnelZone:
+    enabled: true
+    frequency: 915      # MHz (US915)
+    clearancePercent: 60 # Percentage of first Fresnel zone
+    
+  # URL parameters
+  urlParams:
+    enabled: true
+    
+# Gateway Comparison Configuration
+# Compare signal quality between gateways
+# Requirements: 41.1-41.15
+gatewayComparison:
+  enabled: true
+  
+  # Comparison settings
+  timeWindow: 30        # Seconds for matching packets
+  cacheTimeout: 300     # Cache timeout in seconds
+  
+  # Statistics
+  statistics:
+    enabled: true
+    includeHistograms: true
+    includeTimeline: true
+    
+  # Export
+  export:
+    enabled: true
+    formats: ["csv", "json"]
+
+# URL State Management Configuration
+# Sync filters and state to URL for bookmarking and sharing
+# Requirements: 44.1-44.15
+urlState:
+  enabled: true
+  debounceMs: 300       # Debounce URL updates
+  
+  # Features
+  features:
+    filters: true
+    mapView: true
+    nodeSelection: true
+    
+  # Validation
+  validation:
+    enabled: true
+    sanitize: true
+
+# Performance Configuration
+# Global performance settings
+performance:
+  # Rate limiting (requests per hour)
+  rateLimit:
+    development: 50000
+    production: 10000
+    
+  # Database
+  database:
+    connectionPoolSize: 20
+    queryTimeout: 30000  # milliseconds
+    
+  # Caching
+  cache:
+    defaultTtl: 300      # seconds
+    maxSize: 100         # MB
+    
+  # API
+  api:
+    maxPageSize: 1000
+    defaultPageSize: 50
+    timeout: 30000       # milliseconds

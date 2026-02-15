@@ -636,3 +636,315 @@
     min-width: 80px;
   }
 }
+
+/* Dark Mode Support */
+[data-bs-theme="dark"] .mqtt-monitor-container {
+  background: #212529;
+  color: #e9ecef;
+}
+
+/* Dark mode badge colors */
+[data-bs-theme="dark"] .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+}
+
+[data-bs-theme="dark"] .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  color: #86efac !important;
+}
+
+[data-bs-theme="dark"] .bg-purple-100 {
+  background-color: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+}
+
+[data-bs-theme="dark"] .bg-orange-100 {
+  background-color: rgba(251, 146, 60, 0.2) !important;
+  color: #fdba74 !important;
+}
+
+[data-bs-theme="dark"] .bg-cyan-100 {
+  background-color: rgba(6, 182, 212, 0.2) !important;
+  color: #67e8f9 !important;
+}
+
+[data-bs-theme="dark"] .bg-indigo-100 {
+  background-color: rgba(99, 102, 241, 0.2) !important;
+  color: #a5b4fc !important;
+}
+
+[data-bs-theme="dark"] .bg-gray-100 {
+  background-color: rgba(156, 163, 175, 0.2) !important;
+  color: #d1d5db !important;
+}
+
+[data-bs-theme="dark"] .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+}
+
+[data-bs-theme="dark"] .bg-yellow-100 {
+  background-color: rgba(234, 179, 8, 0.2) !important;
+  color: #fde047 !important;
+}
+
+[data-bs-theme="dark"] .bg-teal-100 {
+  background-color: rgba(20, 184, 166, 0.2) !important;
+  color: #5eead4 !important;
+}
+
+[data-bs-theme="dark"] .bg-pink-100 {
+  background-color: rgba(236, 72, 153, 0.2) !important;
+  color: #f9a8d4 !important;
+}
+
+[data-bs-theme="dark"] .bg-slate-100 {
+  background-color: rgba(148, 163, 184, 0.2) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-bs-theme="dark"] .mqtt-monitor-header {
+  background-color: #2d2d2d;
+  border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .mqtt-monitor-title {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .auto-refresh-control {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .refresh-button {
+  background-color: #0d6efd;
+}
+
+[data-bs-theme="dark"] .refresh-button:hover:not(:disabled) {
+  background-color: #0a58ca;
+}
+
+[data-bs-theme="dark"] .close-button {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .close-button:hover {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .mqtt-monitor-tabs {
+  background-color: #2d2d2d;
+  border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .tab-button {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .tab-button:hover {
+  color: #e9ecef;
+  background-color: #343a40;
+}
+
+[data-bs-theme="dark"] .tab-button.active {
+  color: #6ea8d9;
+  border-bottom-color: #6ea8d9;
+  background-color: #212529;
+}
+
+[data-bs-theme="dark"] .error-message {
+  background-color: #3d1f1f;
+  color: #f87171;
+  border-left-color: #dc2626;
+}
+
+[data-bs-theme="dark"] .filters-section {
+  background-color: #2d2d2d;
+  border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .filter-select,
+[data-bs-theme="dark"] .filter-input {
+  background-color: #343a40;
+  border-color: #495057;
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .filter-select option {
+  background-color: #343a40;
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .clear-filters-button {
+  background-color: #495057;
+}
+
+[data-bs-theme="dark"] .clear-filters-button:hover {
+  background-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .loading-message,
+[data-bs-theme="dark"] .no-messages {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .table-header {
+  background-color: #343a40;
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .table-row {
+  background-color: #212529;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .table-row:hover {
+  background-color: #2d2d2d;
+}
+
+[data-bs-theme="dark"] .col-timestamp,
+[data-bs-theme="dark"] .col-topic,
+[data-bs-theme="dark"] .col-node {
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .col-size {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .inspect-button {
+  background-color: #343a40;
+  color: #e9ecef;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .inspect-button:hover {
+  background-color: #495057;
+  border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .pagination {
+  border-top-color: #495057;
+}
+
+[data-bs-theme="dark"] .pagination-button {
+  background-color: #343a40;
+  color: #e9ecef;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .pagination-button:hover:not(:disabled) {
+  background-color: #495057;
+  border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .pagination-button:disabled {
+  background-color: #2d2d2d;
+  color: #6c757d;
+}
+
+[data-bs-theme="dark"] .pagination-info {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .stat-card {
+  background: #2d2d2d;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .stat-card h3 {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .stat-value {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .stats-section {
+  background: #2d2d2d;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .stats-section h3 {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .stats-item {
+  border-bottom-color: #343a40;
+}
+
+[data-bs-theme="dark"] .stats-label {
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .stats-count {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .traffic-chart {
+  background: #2d2d2d;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .traffic-chart h3 {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .traffic-stats {
+  background-color: #343a40;
+}
+
+[data-bs-theme="dark"] .traffic-stats div {
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .traffic-point {
+  border-color: #495057;
+  background-color: #212529;
+}
+
+[data-bs-theme="dark"] .traffic-time {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .traffic-rate,
+[data-bs-theme="dark"] .traffic-bytes {
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .message-inspector {
+  background: #212529;
+}
+
+[data-bs-theme="dark"] .inspector-header {
+  background-color: #2d2d2d;
+  border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .inspector-header h3 {
+  color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .inspector-section h4 {
+  color: #e9ecef;
+  border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .inspector-field {
+  border-bottom-color: #343a40;
+}
+
+[data-bs-theme="dark"] .inspector-field label {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .inspector-field span {
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .payload-content {
+  background-color: #343a40;
+  border-color: #495057;
+  color: #e9ecef;
+}

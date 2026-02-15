@@ -143,15 +143,15 @@ export class ProtobufDecoderService {
       
       // Define NeighborInfo message for NEIGHBORINFO_APP
       const NeighborInfo = new protobuf.Type('NeighborInfo')
-        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
-        .add(new protobuf.Field('nodeBroadcastIntervalSecs', 2, 'uint32'))
-        .add(new protobuf.Field('neighbors', 3, 'Neighbor', 'repeated'));
+        .add(new protobuf.Field('nodeId', 1, 'uint32'))
+        .add(new protobuf.Field('lastSentById', 2, 'uint32'))
+        .add(new protobuf.Field('nodeBroadcastIntervalSecs', 3, 'uint32'))
+        .add(new protobuf.Field('neighbors', 4, 'Neighbor', 'repeated'));
       
       const Neighbor = new protobuf.Type('Neighbor')
-        .add(new protobuf.Field('nodeId', 1, 'fixed32'))
+        .add(new protobuf.Field('nodeId', 1, 'uint32'))
         .add(new protobuf.Field('snr', 2, 'float'))
-        .add(new protobuf.Field('lastRxTime', 3, 'fixed32'))
-        .add(new protobuf.Field('nodeIdStr', 4, 'string'));
+        .add(new protobuf.Field('lastRxTime', 3, 'fixed32'));
       
       // Add all types to root
       this.root.add(ServiceEnvelope);
@@ -254,7 +254,7 @@ export class ProtobufDecoderService {
 
       // Check if the packet is encrypted
       if (wasEncrypted) {
-        logger.debug(`Packet is encrypted on channel: ${channelName || 'unknown'}`);
+        logger.info(`Packet from ${fromNodeId} is encrypted on channel: ${channelName || 'unknown'}, packet ID: ${packet.id}`);
         
         // Try to match channel name to get the correct key
         let channelIndex = packet.channel || 0;
@@ -264,14 +264,14 @@ export class ProtobufDecoderService {
             channelIndex = namedChannelIndex;
             logger.debug(`Matched channel name "${channelName}" to index ${channelIndex}`);
           } else {
-            logger.debug(`No encryption key configured for channel "${channelName}", skipping packet`);
+            logger.info(`No encryption key configured for channel "${channelName}", skipping encrypted packet from ${fromNodeId}`);
             return null;
           }
         }
         
         // Check if we have a key for this channel
         if (!encryptionService.hasKey(channelIndex)) {
-          logger.debug(`No encryption key available for channel index ${channelIndex}, skipping packet`);
+          logger.info(`No encryption key available for channel index ${channelIndex}, skipping encrypted packet from ${fromNodeId}`);
           return null;
         }
         
@@ -306,7 +306,7 @@ export class ProtobufDecoderService {
             packet.decoded = decoded;
             packet.encrypted = null;
             
-            logger.debug(`Successfully decrypted and decoded packet from channel "${channelName}"`);
+            logger.info(`Successfully decrypted packet from ${fromNodeId} on channel "${channelName}", portnum: ${decoded.portnum}`);
           } catch (error) {
             logger.warn(`Failed to decode decrypted payload from channel "${channelName}" - wrong encryption key or invalid protobuf`);
             logger.debug(`Decode error details: ${error}`);
@@ -325,7 +325,8 @@ export class ProtobufDecoderService {
         const decoded = packet.decoded;
         const portnum = decoded.portnum;
         
-        // PortNum enum values from Meshtastic
+        // PortNum enum values from Meshtastic (updated to match official protocol)
+        // Source: https://docs.rs/meshtastic/0.1.5/meshtastic/protobufs/enum.PortNum.html
         const PortNum = {
           UNKNOWN_APP: 0,
           TEXT_MESSAGE_APP: 1,
@@ -340,18 +341,23 @@ export class ProtobufDecoderService {
           DETECTION_SENSOR_APP: 10,
           REPLY_APP: 32,
           IP_TUNNEL_APP: 33,
-          PAXCOUNTER_APP: 34,
-          SERIAL_APP: 35,
-          STORE_FORWARD_APP: 36,
-          RANGE_TEST_APP: 37,
-          TELEMETRY_APP: 38,
-          ZPS_APP: 39,
-          SIMULATOR_APP: 40,
-          TRACEROUTE_APP: 41,
-          NEIGHBORINFO_APP: 42,
-          ATAK_PLUGIN: 43,
-          MAP_REPORT_APP: 44
+          // Registered 3rd party apps (64-127)
+          SERIAL_APP: 64,
+          STORE_FORWARD_APP: 65,
+          RANGE_TEST_APP: 66,
+          TELEMETRY_APP: 67,
+          ZPS_APP: 68,
+          SIMULATOR_APP: 69,
+          TRACEROUTE_APP: 70,
+          NEIGHBORINFO_APP: 71,
+          // Private app range (256-511)
+          PRIVATE_APP: 256,
+          ATAK_FORWARDER: 257,
+          MAX: 511
         };
+        
+        // Log all received portnums for debugging
+        logger.info(`Received packet with portnum: ${portnum} from node ${fromNodeId} on channel ${channelName || 'unknown'}`);
         
         switch (portnum) {
           case PortNum.NODEINFO_APP:
@@ -381,16 +387,33 @@ export class ProtobufDecoderService {
             result.message = this.parseTextMessage(packet, decoded, wasEncrypted);
             break;
 
+          case PortNum.TRACEROUTE_APP:
+            logger.info('Received TRACEROUTE_APP message (portnum 70)');
+            // Parse traceroute and extract routing path
+            result.message = this.parseTraceroute(packet, decoded, wasEncrypted);
+            break;
+
           case PortNum.NEIGHBORINFO_APP:
-            logger.debug('Received NEIGHBORINFO_APP message');
+            logger.info('Received NEIGHBORINFO_APP message (portnum 71)');
             result.neighbors = this.parseNeighborInfo(fromNodeId, decoded.payload);
             // Also create a message record for NEIGHBORINFO
             result.message = this.parseGenericMessage(packet, decoded, MessageType.NEIGHBOR_INFO_APP, wasEncrypted);
             break;
 
           default:
-            logger.debug(`Unhandled portnum: ${portnum}`);
+            // Handle unregistered 3rd party apps (64-127) and private apps (256-511)
+            if (portnum >= 256 && portnum <= 511) {
+              logger.info(`Received PRIVATE_APP message (portnum ${portnum}) from ${fromNodeId}`);
+              result.message = this.parseGenericMessage(packet, decoded, MessageType.PRIVATE_APP, wasEncrypted);
+            } else if (portnum >= 64 && portnum < 256) {
+              logger.info(`Received unregistered 3rd party app message (portnum ${portnum}) from ${fromNodeId}`);
+              result.message = this.parseGenericMessage(packet, decoded, MessageType.PRIVATE_APP, wasEncrypted);
+            } else {
+              logger.debug(`Unhandled portnum: ${portnum}`);
+            }
         }
+      } else {
+        logger.info(`Packet from ${fromNodeId} has no decoded data - encrypted: ${wasEncrypted}, has encrypted field: ${!!(packet.encrypted && packet.encrypted.length > 0)}`);
       }
 
       // Always update node last seen
@@ -612,6 +635,93 @@ export class ProtobufDecoderService {
     } catch (error) {
       logger.error('Error parsing NeighborInfo:', error);
       return undefined;
+    }
+  }
+
+  /**
+   * Parse Traceroute message and extract routing path
+   */
+  private parseTraceroute(packet: any, decoded: any, wasEncrypted: boolean): CreateMessageInput {
+    try {
+      // Extract route from the traceroute payload
+      let routingPath: string[] = [];
+      
+      const fromNodeId = this.formatNodeId(packet.from);
+      const toNodeId = packet.to ? this.formatNodeId(packet.to) : undefined;
+      
+      // First, try to get route from packet.data (RouteDiscovery message)
+      if (packet.data && packet.data.route && Array.isArray(packet.data.route)) {
+        // Build complete path: from → route → to
+        routingPath.push(fromNodeId);
+        routingPath.push(...packet.data.route.map((nodeId: number) => this.formatNodeId(nodeId)));
+        if (toNodeId) {
+          routingPath.push(toNodeId);
+        }
+        logger.debug(`Parsed traceroute from packet.data.route with ${routingPath.length} nodes in path: ${routingPath.join(' → ')}`);
+      }
+      // Fallback: try to get route from packet.route metadata
+      else if (packet.route && Array.isArray(packet.route)) {
+        // Build complete path: from → route → to
+        routingPath.push(fromNodeId);
+        routingPath.push(...packet.route.map((nodeId: number) => this.formatNodeId(nodeId)));
+        if (toNodeId) {
+          routingPath.push(toNodeId);
+        }
+        logger.debug(`Parsed traceroute from packet.route with ${routingPath.length} nodes in path: ${routingPath.join(' → ')}`);
+      }
+      // If no route found, just use from and to
+      else {
+        routingPath.push(fromNodeId);
+        if (toNodeId) {
+          routingPath.push(toNodeId);
+        }
+        logger.warn(`No route data found in traceroute packet, using only from/to nodes: ${routingPath.join(' → ')}`);
+      }
+      
+      const timestamp = packet.rxTime || Math.floor(Date.now() / 1000);
+      
+      return {
+        fromNodeId,
+        toNodeId,
+        type: MessageType.TRACEROUTE_APP,
+        content: {
+          route: routingPath,
+          hopCount: routingPath.length
+        },
+        encrypted: wasEncrypted,
+        hopLimit: packet.hopLimit,
+        hopStart: packet.hopStart,
+        wantAck: packet.wantAck || false,
+        priority: MessagePriority.DEFAULT,
+        channel: packet.channel || 0,
+        timestamp: new Date(timestamp * 1000),
+        routingPath: routingPath,
+        rssi: packet.rxRssi || undefined,
+        snr: packet.rxSnr || undefined
+      };
+    } catch (error) {
+      logger.error('Error parsing Traceroute:', error);
+      // Return a basic message even if parsing fails
+      const timestamp = packet.rxTime || Math.floor(Date.now() / 1000);
+      const fromNodeId = this.formatNodeId(packet.from);
+      const toNodeId = packet.to ? this.formatNodeId(packet.to) : undefined;
+      
+      return {
+        fromNodeId,
+        toNodeId,
+        type: MessageType.TRACEROUTE_APP,
+        content: { error: 'Failed to parse traceroute payload' },
+        encrypted: wasEncrypted,
+        hopLimit: packet.hopLimit,
+        hopStart: packet.hopStart,
+        wantAck: packet.wantAck || false,
+        priority: MessagePriority.DEFAULT,
+        channel: packet.channel || 0,
+        timestamp: new Date(timestamp * 1000),
+        routingPath: [],
+        rssi: packet.rxRssi || undefined,
+        snr: packet.rxSnr || undefined
+      };
     }
   }
 

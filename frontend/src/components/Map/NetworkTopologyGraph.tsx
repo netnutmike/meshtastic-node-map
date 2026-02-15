@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { Node, NodeNeighbor } from '../../store/slices/nodeSlice';
-import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
+import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
+import apiService from '../../services/api';
 
 // D3.js types and imports (we'll use a simple implementation without D3 for now to avoid dependencies)
 interface GraphNode {
@@ -23,6 +24,7 @@ interface GraphLink {
   snr?: number;
   hopCount: number;
   strength: number; // 0-1 normalized strength
+  type: 'neighbor' | 'traceroute' | 'gateway';
 }
 
 interface NetworkTopologyGraphProps {
@@ -37,55 +39,112 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
   const [showLabels, setShowLabels] = useState(true);
   const [filterByRole, setFilterByRole] = useState<string>('all');
   const [minSignalStrength, setMinSignalStrength] = useState(-100);
+  const [topologyLinks, setTopologyLinks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch topology links from API
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchTopologyLinks = async () => {
+      setIsLoading(true);
+      try {
+        const response = await apiService.getTopologyLinks({
+          includeNeighbors: true,
+          includeTraceroutes: true,
+          minSnr: minSignalStrength > -120 ? minSignalStrength : undefined,
+          maxAge: 24
+        });
+        
+        // The API returns the data directly: { links: [...], count: N, filters: {...} }
+        const links = (response as any).links || [];
+        setTopologyLinks(links);
+      } catch (error) {
+        console.error('Failed to fetch topology links:', error);
+        setTopologyLinks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopologyLinks();
+  }, [isOpen, minSignalStrength]);
 
   // Process nodes and create graph data
   const graphData = React.useMemo(() => {
     const graphNodes: GraphNode[] = [];
     const graphLinks: GraphLink[] = [];
     const nodeMap = new Map<string, Node>();
+    const seenNodeIds = new Set<string>();
 
     // Filter nodes based on criteria
     const filteredNodes = nodes.filter(node => {
       if (filterByRole !== 'all' && node.role !== filterByRole) return false;
-      if (!node.position) return false; // Only include positioned nodes
       return true;
     });
 
     // Create node map for quick lookup
     filteredNodes.forEach(node => {
-      nodeMap.set(node.id, node);
+      const hexId = node.hexId.replace('!', '');
+      nodeMap.set(hexId, node);
+      seenNodeIds.add(hexId);
       graphNodes.push({
-        id: node.id,
+        id: hexId,
         name: node.shortName || node.longName || node.hexId,
         role: node.role,
         neighbors: node.neighbors || []
       });
     });
 
-    // Create links from neighbor relationships
-    filteredNodes.forEach(node => {
-      if (node.neighbors) {
-        node.neighbors.forEach(neighbor => {
-          const targetNode = nodeMap.get(neighbor.neighborId);
-          if (targetNode && (neighbor.rssi || -999) >= minSignalStrength) {
-            // Calculate normalized strength (0-1) based on RSSI
-            const strength = neighbor.rssi ? Math.max(0, (neighbor.rssi + 120) / 90) : 0.5;
-            
-            graphLinks.push({
-              source: node.id,
-              target: neighbor.neighborId,
-              rssi: neighbor.rssi,
-              snr: neighbor.snr,
-              hopCount: neighbor.hopCount,
-              strength
-            });
-          }
+    // Process topology links from API and create placeholder nodes for any missing nodes
+    topologyLinks.forEach(link => {
+      const sourceId = link.source.replace('!', '');
+      const targetId = link.target.replace('!', '');
+      
+      // Create placeholder nodes for any nodes that don't exist in the store
+      if (!seenNodeIds.has(sourceId)) {
+        seenNodeIds.add(sourceId);
+        graphNodes.push({
+          id: sourceId,
+          name: link.metadata?.sourceName || sourceId,
+          role: 'CLIENT', // Default role for unknown nodes
+          neighbors: []
         });
       }
+      
+      if (!seenNodeIds.has(targetId)) {
+        seenNodeIds.add(targetId);
+        graphNodes.push({
+          id: targetId,
+          name: link.metadata?.targetName || targetId,
+          role: 'CLIENT', // Default role for unknown nodes
+          neighbors: []
+        });
+      }
+      
+      // Calculate normalized strength based on SNR or type
+      let strength = 0.5;
+      if (link.snr) {
+        strength = Math.max(0, Math.min(1, (link.snr + 20) / 40)); // Map -20 to +20 dB to 0-1
+      } else if (link.type === 'traceroute') {
+        strength = 0.3; // Lower strength for traceroute links
+      } else if (link.type === 'gateway') {
+        strength = 0.4; // Medium strength for gateway links
+      }
+      
+      graphLinks.push({
+        source: sourceId,
+        target: targetId,
+        rssi: link.rssi,
+        snr: link.snr,
+        hopCount: link.hopIndex || 1,
+        strength,
+        type: link.type
+      });
     });
 
     return { nodes: graphNodes, links: graphLinks };
-  }, [nodes, filterByRole, minSignalStrength]);
+  }, [nodes, filterByRole, topologyLinks]);
 
   // Simple canvas-based network visualization
   useEffect(() => {
@@ -219,24 +278,40 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
         ctx.moveTo(sourceNode.x!, sourceNode.y!);
         ctx.lineTo(targetNode.x!, targetNode.y!);
         
-        // Color based on signal strength
+        // Color and style based on link type and signal strength
         const alpha = Math.max(0.3, link.strength);
-        if (link.rssi && link.rssi >= -50) {
-          ctx.strokeStyle = `rgba(76, 175, 80, ${alpha})`; // Green - strong
-        } else if (link.rssi && link.rssi >= -70) {
-          ctx.strokeStyle = `rgba(139, 195, 74, ${alpha})`; // Light green - good
-        } else if (link.rssi && link.rssi >= -85) {
-          ctx.strokeStyle = `rgba(255, 235, 59, ${alpha})`; // Yellow - fair
-        } else if (link.rssi && link.rssi >= -100) {
-          ctx.strokeStyle = `rgba(255, 152, 0, ${alpha})`; // Orange - poor
+        
+        if (link.type === 'traceroute') {
+          // Traceroute links are dashed and purple
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = `rgba(156, 39, 176, ${alpha})`; // Purple
+          ctx.lineWidth = 2;
+        } else if (link.type === 'gateway') {
+          // Gateway links are dotted and blue
+          ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = `rgba(33, 150, 243, ${alpha})`; // Blue
+          ctx.lineWidth = 2;
         } else {
-          ctx.strokeStyle = `rgba(244, 67, 54, ${alpha})`; // Red - very poor
+          // Neighbor links are solid and colored by signal strength
+          ctx.setLineDash([]);
+          if (link.rssi && link.rssi >= -50) {
+            ctx.strokeStyle = `rgba(76, 175, 80, ${alpha})`; // Green - strong
+          } else if (link.rssi && link.rssi >= -70) {
+            ctx.strokeStyle = `rgba(139, 195, 74, ${alpha})`; // Light green - good
+          } else if (link.rssi && link.rssi >= -85) {
+            ctx.strokeStyle = `rgba(255, 235, 59, ${alpha})`; // Yellow - fair
+          } else if (link.rssi && link.rssi >= -100) {
+            ctx.strokeStyle = `rgba(255, 152, 0, ${alpha})`; // Orange - poor
+          } else {
+            ctx.strokeStyle = `rgba(244, 67, 54, ${alpha})`; // Red - very poor
+          }
+          ctx.lineWidth = Math.max(1, link.strength * 4);
         }
         
-        ctx.lineWidth = Math.max(1, link.strength * 4);
         ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
 
-        // Draw arrow head
+        // Draw arrow head for directed links
         const angle = Math.atan2(targetNode.y! - sourceNode.y!, targetNode.x! - sourceNode.x!);
         const arrowLength = 10;
         const arrowAngle = Math.PI / 6;
@@ -283,7 +358,9 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
 
       // Node label
       if (showLabels) {
-        ctx.fillStyle = '#333';
+        // Use theme-aware color for labels
+        const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        ctx.fillStyle = isDarkMode ? '#f0f0f0' : '#333';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(node.name, node.x!, node.y! + 20);
@@ -313,18 +390,23 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6">Network Topology Graph</Typography>
-        <button
+        <Box
+          component="button"
           onClick={onClose}
-          style={{
+          sx={{
             background: 'none',
             border: 'none',
             fontSize: '24px',
             cursor: 'pointer',
-            padding: '0 8px'
+            padding: '0 8px',
+            color: 'text.primary',
+            '&:hover': {
+              color: 'text.secondary'
+            }
           }}
         >
           ×
-        </button>
+        </Box>
       </Box>
 
       {/* Controls */}
@@ -378,8 +460,10 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
               onChange={(e) => setShowLabels(e.target.checked)}
             />
           }
-          label="Show Labels"
+          label="Labels"
         />
+
+        {isLoading && <CircularProgress size={24} />}
       </Box>
 
       {/* Graph Canvas */}
@@ -423,6 +507,14 @@ const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({ isOpen, onC
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 20, height: 3, bgcolor: '#f44336' }} />
             <span>Poor Signal (-100+ dBm)</span>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 20, height: 3, bgcolor: '#9c27b0', borderTop: '2px dashed #9c27b0' }} />
+            <span>Traceroute Path</span>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 20, height: 3, bgcolor: '#2196f3', borderTop: '2px dotted #2196f3' }} />
+            <span>Gateway Link</span>
           </Box>
         </Box>
       </Box>

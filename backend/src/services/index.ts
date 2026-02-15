@@ -31,3 +31,14 @@ export {
   LineOfSightResult,
   PerformanceEstimate
 } from './coverage-analysis.service';
+export { TracerouteLinkService, RFLink } from './traceroute-link.service';
+export { PacketLinkService } from './packet-link.service';
+export { RFLinkService, rfLinkService } from './rf-link.service';
+export { DistanceCalculationService, Position as DistancePosition, DistanceResult } from './distance-calculation.service';
+export { 
+  DataRetentionConfigService, 
+  RetentionConfig, 
+  RetentionPolicies, 
+  RetentionPolicy,
+  dataRetentionConfig 
+} from './data-retention-config.service';

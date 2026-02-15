@@ -160,30 +160,41 @@ class OfflineServiceImpl implements OfflineService {
 
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        reject(new Error('Database not initialized'));
+        console.warn('Database not initialized, skipping cache operation');
+        resolve(); // Resolve instead of reject to prevent errors
         return;
       }
 
-      const transaction = this.db.transaction(['cache'], 'readwrite');
-      const store = transaction.objectStore('cache');
+      try {
+        const transaction = this.db.transaction(['cache'], 'readwrite');
+        const store = transaction.objectStore('cache');
 
-      const cacheEntry: CacheEntry<T> & { key: string } = {
-        key,
-        data,
-        timestamp: Date.now(),
-        expiry: ttl ? Date.now() + ttl : undefined,
-      };
+        const cacheEntry: CacheEntry<T> & { key: string } = {
+          key,
+          data,
+          timestamp: Date.now(),
+          expiry: ttl ? Date.now() + ttl : undefined,
+        };
 
-      const request = store.put(cacheEntry);
+        const request = store.put(cacheEntry);
 
-      request.onsuccess = () => {
-        resolve();
-      };
+        request.onsuccess = () => {
+          resolve();
+        };
 
-      request.onerror = () => {
-        console.error('Failed to cache data:', request.error);
-        reject(request.error);
-      };
+        request.onerror = () => {
+          console.error('Failed to cache data:', request.error);
+          resolve(); // Resolve instead of reject to prevent errors
+        };
+
+        transaction.onerror = () => {
+          console.error('Transaction error:', transaction.error);
+          resolve(); // Resolve instead of reject to prevent errors
+        };
+      } catch (error) {
+        console.error('Error creating transaction:', error);
+        resolve(); // Resolve instead of reject to prevent errors
+      }
     });
   }
 
@@ -464,13 +475,18 @@ class OfflineServiceImpl implements OfflineService {
 
   // Cleanup method
   destroy(): void {
+    console.log('Destroying offline service');
+    this.isInitialized = false; // Mark as not initialized to prevent new operations
+    
     if (this.onlineStatusListener) {
       window.removeEventListener('online', this.onlineStatusListener);
       window.removeEventListener('offline', this.onlineStatusListener);
+      this.onlineStatusListener = null;
     }
     
     if (this.db) {
       this.db.close();
+      this.db = null;
     }
   }
 }

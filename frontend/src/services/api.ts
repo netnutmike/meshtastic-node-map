@@ -167,6 +167,48 @@ class ApiService {
     return this.request<any>(`/nodes/${nodeId}/neighbors`);
   }
 
+  async getTopologyLinks(options: {
+    includeNeighbors?: boolean;
+    includeTraceroutes?: boolean;
+    minSnr?: number;
+    maxAge?: number;
+  } = {}): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    if (options.includeNeighbors !== undefined) {
+      params.append('includeNeighbors', options.includeNeighbors.toString());
+    }
+    if (options.includeTraceroutes !== undefined) {
+      params.append('includeTraceroutes', options.includeTraceroutes.toString());
+    }
+    if (options.minSnr !== undefined) {
+      params.append('minSnr', options.minSnr.toString());
+    }
+    if (options.maxAge !== undefined) {
+      params.append('maxAge', options.maxAge.toString());
+    }
+    
+    const endpoint = `/links/topology${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
+  async getTraceroutes(options: {
+    maxAge?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    if (options.maxAge !== undefined) {
+      params.append('maxAge', options.maxAge.toString());
+    }
+    if (options.limit !== undefined) {
+      params.append('limit', options.limit.toString());
+    }
+    
+    const endpoint = `/links/traceroutes${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
   // Message API methods
   async getMessages(
     options: {
@@ -425,14 +467,6 @@ class ApiService {
     return this.request<any>(endpoint);
   }
 
-  // Generic HTTP methods for flexibility
-  async get<T = any>(endpoint: string, options: { params?: any } = {}): Promise<{ data: T }> {
-    const params = options.params ? new URLSearchParams(options.params).toString() : '';
-    const url = params ? `${endpoint}?${params}` : endpoint;
-    const response = await this.request<T>(url);
-    return response;
-  }
-
   async post<T = any>(endpoint: string, data?: any, options: RequestInit = {}): Promise<{ data: T }> {
     const response = await this.request<T>(endpoint, {
       method: 'POST',
@@ -597,6 +631,50 @@ class ApiService {
     
     const endpoint = `/statistics/top-talkers${params.toString() ? `?${params.toString()}` : ''}`;
     return this.request<any>(endpoint);
+  }
+
+  // RF Links API methods
+  async getRFLinks(
+    options: {
+      hours?: number;
+      mergeBidirectional?: boolean;
+    } = {}
+  ): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const endpoint = `/map/links${params.toString() ? `?${params.toString()}` : ''}`;
+    return this.request<any>(endpoint);
+  }
+
+  async getRFLinkStats(): Promise<ApiResponse<any>> {
+    return this.request<any>('/map/links/stats');
+  }
+
+  async clearRFLinkCache(): Promise<ApiResponse<any>> {
+    return this.request<any>('/map/links/clear-cache', {
+      method: 'POST'
+    });
+  }
+
+  // Generic GET method for custom endpoints
+  async get<T = any>(endpoint: string, options?: { params?: any }): Promise<ApiResponse<T>> {
+    if (options?.params) {
+      const params = new URLSearchParams(options.params).toString();
+      const url = params ? `${endpoint}?${params}` : endpoint;
+      return this.request<T>(url, { method: 'GET' });
+    }
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  // Line of Sight Analysis API methods
+  async getLineOfSight(fromNodeId: string, toNodeId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/analysis/line-of-sight?from=${fromNodeId}&to=${toNodeId}`);
   }
 }
 
