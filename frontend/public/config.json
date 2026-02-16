@@ -1,0 +1,27 @@
+{
+  "customLinks": [
+    {
+      "name": "Meshtastic Documentation",
+      "description": "Official Meshtastic documentation",
+      "url": "https://meshtastic.org/docs",
+      "icon": "book"
+    },
+    {
+      "name": "Community Forum",
+      "description": "Meshtastic community discussions",
+      "url": "https://meshtastic.discourse.group",
+      "icon": "forum"
+    }
+  ],
+  "motd": {
+    "enabled": true,
+    "title": "Welcome to Meshtastic Node Mapper",
+    "message": "Monitor your mesh network in real-time",
+    "dismissible": true
+  },
+  "app": {
+    "name": "Meshtastic Node Mapper",
+    "version": "1.0.0",
+    "description": "Web-based visualization for Meshtastic mesh networks"
+  }
+}

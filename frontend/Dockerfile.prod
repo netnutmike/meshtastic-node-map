@@ -19,8 +19,15 @@ FROM base AS build
 # Copy source code
 COPY . .
 
+# Copy config from parent directory
+COPY ../config/app.yml /tmp/app.yml
+RUN mkdir -p /app/config && cp /tmp/app.yml /app/config/app.yml
+
 # Install all dependencies (including dev dependencies)
 RUN npm ci
+
+# Generate config.json from app.yml
+RUN node scripts/generate-config.js || echo "Warning: Could not generate config from app.yml"
 
 # Build arguments for environment variables
 ARG REACT_APP_API_URL
