@@ -18,6 +18,7 @@ import gatewayRoutes from './gateways';
 import cleanupRoutes from './cleanup';
 import analyticsRoutes from './analytics';
 import coverageAnalysisRoutes from './coverage-analysis';
+import configRoutes from './config';
 import { trackApiUsage } from '../middleware/rateLimiting';
 
 const router = Router();
@@ -30,6 +31,7 @@ router.use(trackApiUsage);
 
 // Mount route modules
 router.use(`${API_VERSION}/auth`, authRoutes);
+router.use(`${API_VERSION}/config`, configRoutes);
 router.use(`${API_VERSION}/nodes`, nodeRoutes);
 router.use(`${API_VERSION}/positions`, positionRoutes);
 router.use(`${API_VERSION}/telemetry`, telemetryRoutes);

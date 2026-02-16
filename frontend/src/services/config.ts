@@ -112,14 +112,23 @@ Click on any node to view detailed information, telemetry data, and message hist
 };
 
 /**
- * Load custom links configuration
- * In a real implementation, this would fetch from the backend API
+ * Load custom links configuration from backend API
  */
 export const loadCustomLinks = async (): Promise<CustomLink[]> => {
   try {
-    // For now, return static configuration matching the YAML structure
-    // In the future, this could fetch from /api/config/custom-links or similar
-    const customLinks: CustomLink[] = [
+    const apiUrl = process.env.REACT_APP_API_URL || '/api/v1';
+    const response = await fetch(`${apiUrl}/config/custom-links`);
+    
+    if (response.ok) {
+      const links = await response.json();
+      if (Array.isArray(links)) {
+        return links;
+      }
+    }
+    
+    // Fallback to default links if API fails
+    console.warn('Using fallback custom links configuration');
+    return [
       {
         name: "Meshtastic Documentation",
         description: "Official Meshtastic documentation",
@@ -133,11 +142,23 @@ export const loadCustomLinks = async (): Promise<CustomLink[]> => {
         icon: "forum"
       }
     ];
-
-    return customLinks;
   } catch (error) {
     console.error('Failed to load custom links configuration:', error);
-    return [];
+    // Return fallback links on error
+    return [
+      {
+        name: "Meshtastic Documentation",
+        description: "Official Meshtastic documentation",
+        url: "https://meshtastic.org/docs",
+        icon: "book"
+      },
+      {
+        name: "Community Forum",
+        description: "Meshtastic community discussions",
+        url: "https://meshtastic.discourse.group",
+        icon: "forum"
+      }
+    ];
   }
 };
 
@@ -157,21 +178,25 @@ export const loadAppName = async (): Promise<string> => {
 };
 
 /**
- * Load MOTD configuration
- * In a real implementation, this would fetch from the backend API
+ * Load MOTD configuration from backend API
  */
 export const loadMOTDConfig = async (): Promise<MOTDConfig> => {
   try {
-    // For now, return static configuration matching the YAML structure
-    // In the future, this could fetch from /api/config/motd or similar
-    const motdConfig: MOTDConfig = {
-      enabled: true,
-      title: "Welcome to Meshtastic Node Mapper",
-      message: "Monitor your mesh network in real-time",
+    const apiUrl = process.env.REACT_APP_API_URL || '/api/v1';
+    const response = await fetch(`${apiUrl}/config/motd`);
+    
+    if (response.ok) {
+      const motdConfig = await response.json();
+      return motdConfig;
+    }
+    
+    // Fallback configuration
+    return {
+      enabled: false,
+      title: "",
+      message: "",
       dismissible: true
     };
-
-    return motdConfig;
   } catch (error) {
     console.error('Failed to load MOTD configuration:', error);
     return {
